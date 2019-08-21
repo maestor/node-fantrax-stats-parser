@@ -20,7 +20,7 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 `/parse/{regular|playoffs}/{sortBy}` - Get stats sorted by specific stat property (available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks)
 
 ## Technology
-Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with (NodeJS)[https://nodejs.org] server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
+Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
 ## Todo
 - Refactoring dirty quick solutions before going public
