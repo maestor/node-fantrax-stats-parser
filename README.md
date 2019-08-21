@@ -1,7 +1,7 @@
 # node-fantrax-stats-parser
 
 ## Purpose
-Lightweight API to parsing my NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files exported manually from [Fantrax](https://www.fantrax.com). That is also some kind of practice to get some knowledge about micro, if it would be good replacement for example heavy express in some use cases. And finally, I have made last years at least 95% Frontend stuff with JS, so that is good little project to 
+Lightweight API to parsing my NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files exported manually from [Fantrax](https://www.fantrax.com). That is also some kind of practice to get some knowledge about micro, if it would be good replacement for example heavy express in some use cases. And finally, I have made last years at least 95% Frontend stuff with JS, so that is good little project to keep backend stuff on my mind.
 
 ## Installation and use
 ```
