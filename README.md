@@ -13,9 +13,9 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 ```
 
 ## Endpoints
-`/parse/regular` - Get regular season stats combined (starting from 12-13 season)
+`/parse/regular` - Get regular season stats combined (repository examples starting from 12-13 season)
 
-`/parse/playoffs` - Get playoffs stats combined (starting from 12-13 season)
+`/parse/playoffs` - Get playoffs stats combined (repository examples starting from 12-13 season)
 
 `/parse/{regular|playoffs}/{sortBy}` - Get stats sorted by specific stat property (available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks)
 
