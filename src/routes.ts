@@ -24,26 +24,54 @@ export const parseFile: AugmentedRequestHandler = async (req, res) => {
   const defaultSort = (a: Player, b: Player) =>
     b.points - a.points || b.goals - a.goals;
 
-  if (report !== 'playoffs' && report !== 'runkosarja') {
+  if (report !== 'playoffs' && report !== 'regular') {
     send(res, 500, 'Invalid report type');
   }
 
-  const fileArray = ['2012-2013', '2013-2014', '2014-2015', '2015-2016'];
+  const seasons = [
+    '2012-2013',
+    '2013-2014',
+    '2014-2015',
+    '2015-2016',
+    '2016-2017',
+    '2017-2018',
+    '2018-2019',
+  ];
 
   const data1 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${fileArray[0]}.csv`,
+    path.join(__dirname, '../csv') + `/${report}-${seasons[0]}.csv`,
   );
   const data2 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${fileArray[1]}.csv`,
+    path.join(__dirname, '../csv') + `/${report}-${seasons[1]}.csv`,
   );
   const data3 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${fileArray[2]}.csv`,
+    path.join(__dirname, '../csv') + `/${report}-${seasons[2]}.csv`,
   );
   const data4 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${fileArray[3]}.csv`,
+    path.join(__dirname, '../csv') + `/${report}-${seasons[3]}.csv`,
   );
 
-  const rawData = [...data1, ...data2, ...data3, ...data4];
+  const data5 = await csv().fromFile(
+    path.join(__dirname, '../csv') + `/${report}-${seasons[4]}.csv`,
+  );
+
+  const data6 = await csv().fromFile(
+    path.join(__dirname, '../csv') + `/${report}-${seasons[5]}.csv`,
+  );
+
+  const data7 = await csv().fromFile(
+    path.join(__dirname, '../csv') + `/${report}-${seasons[6]}.csv`,
+  );
+
+  const rawData = [
+    ...data1,
+    ...data2,
+    ...data3,
+    ...data4,
+    ...data5,
+    ...data6,
+    ...data7,
+  ];
   const playerData = rawData
     .filter(
       (item, i) =>
