@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "member-ordering": [false],
+    "object-literal-sort-keys": false,
+    "ordered-imports": false,
+    "no-console": false
+  },
+  "extends": ["tslint:latest", "tslint-config-prettier"]
+}
