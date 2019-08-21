@@ -1,20 +1,18 @@
 import { RequestHandler, send } from 'micro';
 import { router, get } from 'microrouter';
 
-import { getHello, indexHello } from './routes';
+import { parseFile } from './routes';
 
-const service: RequestHandler = (req, res) => {
-  const data = {
-    status: 'ok',
-    data: {
-      message: 'Welcome to Micro',
-    },
-  };
-  send(res, 200, data);
+const service: RequestHandler = async (req, res) => {
+  send(res, 200, 'You are service index, enjoy!');
 };
+
+const notFound: RequestHandler = (req, res) =>
+  send(res, 404, 'Route not exists');
 
 module.exports = router(
   get('/', service),
-  get('/hello', indexHello),
-  get('/hello/:toWho', getHello),
+  get('/parse/:fileName/:sortBy', parseFile),
+  get('/parse/:fileName', parseFile),
+  get('/*', notFound),
 );
