@@ -5,11 +5,11 @@ import { RawData, Report } from './types';
 
 export const getRawDataFromFiles = async (
   report: Report,
-  seasons: string[],
+  seasons: number[],
 ): Promise<RawData[]> => {
   const sources = seasons.map(async season => {
     const sourceToJson = await csv().fromFile(
-      path.join(__dirname, '../csv') + `/${report}-${season}.csv`,
+      path.join(__dirname, '../csv') + `/${report}-${season}-${season + 1}.csv`,
     );
     return sourceToJson;
   });

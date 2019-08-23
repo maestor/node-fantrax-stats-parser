@@ -47,6 +47,6 @@ export interface RawData {
   field17: string;
 }
 
-export type Seasons = string[];
+export type Seasons = number[];
 
 export type Report = 'regular' | 'playoffs';

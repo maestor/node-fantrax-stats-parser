@@ -1,7 +1,7 @@
 import { RequestHandler, send } from 'micro';
 import { router, get } from 'microrouter';
 
-import { parseFile } from './routes';
+import { getPlayersCombined, getPlayersSeason } from './routes';
 
 const service: RequestHandler = async (req, res) => {
   send(res, 200, 'You are service index, enjoy!');
@@ -12,7 +12,10 @@ const notFound: RequestHandler = (req, res) =>
 
 module.exports = router(
   get('/', service),
-  get('/parse/:fileName/:sortBy', parseFile),
-  get('/parse/:fileName', parseFile),
+  get('/players/season/:reportType/:season/:sortBy', getPlayersSeason),
+  get('/players/season/:reportType/:season', getPlayersSeason),
+  get('/players/season/:reportType', getPlayersSeason),
+  get('/players/:reportType/:sortBy', getPlayersCombined),
+  get('/players/:reportType', getPlayersCombined),
   get('/*', notFound),
 );

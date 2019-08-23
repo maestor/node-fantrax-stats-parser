@@ -3,29 +3,43 @@ import { AugmentedRequestHandler } from 'microrouter';
 
 import { getRawDataFromFiles } from './services';
 import { mapPlayerData } from './mappings';
-import { Player, PlayerFields, Seasons, Report } from './types';
+import { Player, PlayerFields, Report } from './types';
+import { sortItemsByStatField, getAvailableSeasons } from './helpers';
 
-export const parseFile: AugmentedRequestHandler = async (req, res) => {
-  const report = req.params.fileName as Report;
-  const sortBy: string | undefined = req.params.sortBy;
-  const defaultSort = (a: Player, b: Player) =>
-    b.points - a.points || b.goals - a.goals;
+export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
+  const report = req.params.reportType as Report;
+  const sortBy = req.params.sortBy as PlayerFields | undefined;
+  const season: number | undefined = Number(req.params.season);
 
   if (report !== 'playoffs' && report !== 'regular') {
     send(res, 500, 'Invalid report type');
   }
 
-  const seasons: Seasons = [
-    '2012-2013',
-    '2013-2014',
-    '2014-2015',
-    '2015-2016',
-    '2016-2017',
-    '2017-2018',
-    '2018-2019',
-  ];
+  const availableSeasons = getAvailableSeasons();
 
-  const rawData = await getRawDataFromFiles(report, seasons);
+  if (season && !availableSeasons.includes(season)) {
+    send(res, 500, 'Stats for this season are not available');
+  }
+
+  // Parser want seasons as array even we need just one
+  const seasonParam = season
+    ? availableSeasons.filter(item => season === item)
+    : [Math.max(...availableSeasons)];
+
+  const rawData = await getRawDataFromFiles(report, seasonParam);
+
+  send(res, 200, sortItemsByStatField(mapPlayerData(rawData), sortBy));
+};
+
+export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
+  const report = req.params.reportType as Report;
+  const sortBy = req.params.sortBy as PlayerFields | undefined;
+
+  if (report !== 'playoffs' && report !== 'regular') {
+    send(res, 500, 'Invalid report type');
+  }
+
+  const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
 
   const result: Player[] = [
     ...mapPlayerData(rawData)
@@ -50,7 +64,7 @@ export const parseFile: AugmentedRequestHandler = async (req, res) => {
         return r.set(currentItem.name, item);
       }, new Map())
       .values(),
-  ].sort((a, b) => (sortBy ? b[sortBy] - a[sortBy] : defaultSort(a, b)));
+  ];
 
-  send(res, 200, result);
+  send(res, 200, sortItemsByStatField(result, sortBy));
 };
