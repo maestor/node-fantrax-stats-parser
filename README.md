@@ -17,19 +17,22 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 
 `/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season)
 
+`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for single season
+
+`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!)
+
 ### Parameters
 
 `reportType` - Required. Currently available options: regular, playoffs.
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
 
-`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks. If not specified, sort by points.
+`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, penalties, ppp, shp for both. shots, plusMinus, hits, blocks for players only and wins, saves, shutouts for goalies only. If not specified, sort by points (players) and by wins (goalies).
 
 ## Technology
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
 ## Todo
-- Goalie stats
 - Start using database and CSV import tool
 - Find out if Fantrax offers some API to get needed data easily instead of CSV export
 - Some kind of UI for stats (very low prio, it might be enough to get numbers copypaste when needed somewhere)
