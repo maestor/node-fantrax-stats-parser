@@ -13,19 +13,25 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 ```
 
 ## Endpoints
-`/parse/regular` - Get regular season stats combined (repository examples starting from 12-13 season)
+`/players/season/:reportType/:season/:sortBy` - Get player stats for single season
 
-`/parse/playoffs` - Get playoffs stats combined (repository examples starting from 12-13 season)
+`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season)
 
-`/parse/{regular|playoffs}/{sortBy}` - Get stats sorted by specific stat property (available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks)
+### Parameters
+
+`reportType` - Required. Currently available options: regular, playoffs.
+
+`season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
+
+`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks. If not specified, sort by points.
 
 ## Technology
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
 ## Todo
-- Mostly refactoring this dirty quick first solution before going public
 - Goalie stats
-- One season support
 - Start using database and CSV import tool
 - Find out if Fantrax offers some API to get needed data easily instead of CSV export
 - Some kind of UI for stats (very low prio, it might be enough to get numbers copypaste when needed somewhere)
+
+Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
