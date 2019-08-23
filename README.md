@@ -29,9 +29,9 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
 ## Todo
-- Mostly refactoring this dirty quick first solution before going public
 - Goalie stats
-- One season support
 - Start using database and CSV import tool
 - Find out if Fantrax offers some API to get needed data easily instead of CSV export
 - Some kind of UI for stats (very low prio, it might be enough to get numbers copypaste when needed somewhere)
+
+Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
