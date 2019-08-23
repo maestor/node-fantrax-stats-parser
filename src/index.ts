@@ -15,7 +15,7 @@ module.exports = router(
   get('/players/season/:reportType/:season/:sortBy', getPlayersSeason),
   get('/players/season/:reportType/:season', getPlayersSeason),
   get('/players/season/:reportType', getPlayersSeason),
-  get('/players/:reportType/:sortBy', getPlayersCombined),
-  get('/players/:reportType', getPlayersCombined),
+  get('/players/combined/:reportType/:sortBy', getPlayersCombined),
+  get('/players/combined/:reportType', getPlayersCombined),
   get('/*', notFound),
 );
