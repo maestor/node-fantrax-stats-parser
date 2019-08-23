@@ -23,7 +23,7 @@ Lightweight API to parsing my NHL fantasy league team stats and print combined s
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
 
-`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks.
+`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks. If not specified, sort by points.
 
 ## Technology
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
