@@ -38,49 +38,25 @@ export const parseFile: AugmentedRequestHandler = async (req, res) => {
     '2018-2019',
   ];
 
-  const data1 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[0]}.csv`,
-  );
-  const data2 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[1]}.csv`,
-  );
-  const data3 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[2]}.csv`,
-  );
-  const data4 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[3]}.csv`,
-  );
+  const sources = seasons.map(async season => {
+    const sourceToJson = await csv().fromFile(
+      path.join(__dirname, '../csv') + `/${report}-${season}.csv`,
+    );
+    return sourceToJson.flat();
+  });
 
-  const data5 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[4]}.csv`,
-  );
+  let rawData = await Promise.all(sources);
+  rawData = rawData.flat();
 
-  const data6 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[5]}.csv`,
-  );
-
-  const data7 = await csv().fromFile(
-    path.join(__dirname, '../csv') + `/${report}-${seasons[6]}.csv`,
-  );
-
-  const rawData = [
-    ...data1,
-    ...data2,
-    ...data3,
-    ...data4,
-    ...data5,
-    ...data6,
-    ...data7,
-  ];
   const playerData = rawData
     .filter(
-      (item, i) =>
+      (item: any, i) =>
         i !== 0 &&
         item.field2 !== '' &&
         item.Skaters !== 'G' &&
         Number(item.field7) > 0,
     )
-    .map((item, i) => ({
+    .map((item: any, i) => ({
       name: item.field2,
       games: Number(item.field7) || 0,
       goals: Number(item.field8) || 0,
