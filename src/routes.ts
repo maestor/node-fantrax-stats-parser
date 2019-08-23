@@ -83,6 +83,13 @@ export const parseFile: AugmentedRequestHandler = async (req, res) => {
             goals: 0,
             assists: 0,
             points: 0,
+            plusMinus: 0,
+            penalties: 0,
+            shots: 0,
+            ppp: 0,
+            shp: 0,
+            hits: 0,
+            blocks: 0,
           },
         };
 
