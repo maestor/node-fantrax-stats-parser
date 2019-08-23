@@ -11,7 +11,12 @@ export const getRawDataFromFiles = async (
     const sourceToJson = await csv().fromFile(
       path.join(__dirname, '../csv') + `/${report}-${season}-${season + 1}.csv`,
     );
-    return sourceToJson;
+
+    return sourceToJson.map(item => ({
+      ...item,
+      season,
+      isSeason: seasons.length === 1,
+    }));
   });
   const rawData = await Promise.all(sources);
 

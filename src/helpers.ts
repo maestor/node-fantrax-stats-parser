@@ -1,19 +1,31 @@
-import { Player, PlayerFields, Seasons } from './types';
+import { Player, PlayerFields, Goalie, GoalieFields, Seasons } from './types';
 
-const defaultSort = (a: Player, b: Player): number =>
+const defaultSortPlayers = (a: Player, b: Player): number =>
   b.points - a.points || b.goals - a.goals;
 
+const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
+  b.wins - a.wins || b.games - a.games;
+
 export const sortItemsByStatField = (
-  data: Player[],
-  sortBy?: PlayerFields,
-): Player[] => {
+  data: Player[] | Goalie[],
+  kind: 'players' | 'goalies',
+  sortBy?: PlayerFields | GoalieFields,
+): Player[] | Goalie[] => {
   if (sortBy === 'name') {
     return data;
   }
 
-  return data.sort((a, b) =>
-    sortBy ? b[sortBy] - a[sortBy] : defaultSort(a, b),
-  );
+  if (kind === 'players') {
+    return data.sort((a: any, b: any) =>
+      sortBy ? b[sortBy] - a[sortBy] : defaultSortPlayers(a, b),
+    );
+  } else if (kind === 'goalies') {
+    return data.sort((a: any, b: any) =>
+      sortBy ? b[sortBy] - a[sortBy] : defaultSortGoalies(a, b),
+    );
+  } else {
+    return data;
+  }
 };
 
 export const getAvailableSeasons = (): Seasons => [

@@ -1,16 +1,27 @@
-export interface Player {
+interface Common {
   name: string;
   games: number;
   goals: number;
   assists: number;
   points: number;
-  plusMinus: number;
   penalties: number;
-  shots: number;
   ppp: number;
   shp: number;
+}
+
+export interface Player extends Common {
+  plusMinus: number;
+  shots: number;
   hits: number;
   blocks: number;
+}
+
+export interface Goalie extends Common {
+  wins: number;
+  saves: number;
+  shutouts: number;
+  gaa?: string;
+  savePercent?: string;
 }
 
 export type PlayerFields =
@@ -27,8 +38,23 @@ export type PlayerFields =
   | 'hits'
   | 'blocks';
 
+export type GoalieFields =
+  | 'name'
+  | 'games'
+  | 'wins'
+  | 'saves'
+  | 'shutouts'
+  | 'goals'
+  | 'assists'
+  | 'points'
+  | 'penalties'
+  | 'ppp'
+  | 'shp';
+
 export interface RawData {
   Skaters: string;
+  season: number;
+  isSeason: boolean;
   field2: string;
   field3: string;
   field4: string;
@@ -45,6 +71,7 @@ export interface RawData {
   field15: string;
   field16: string;
   field17: string;
+  field18?: string;
 }
 
 export type Seasons = number[];
