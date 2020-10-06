@@ -25,31 +25,31 @@ export interface Goalie extends Common {
 }
 
 export type PlayerFields =
-  | 'name'
-  | 'games'
-  | 'goals'
-  | 'assists'
-  | 'points'
-  | 'plusMinus'
-  | 'penalties'
-  | 'shots'
-  | 'ppp'
-  | 'shp'
-  | 'hits'
-  | 'blocks';
+  | "name"
+  | "games"
+  | "goals"
+  | "assists"
+  | "points"
+  | "plusMinus"
+  | "penalties"
+  | "shots"
+  | "ppp"
+  | "shp"
+  | "hits"
+  | "blocks";
 
 export type GoalieFields =
-  | 'name'
-  | 'games'
-  | 'wins'
-  | 'saves'
-  | 'shutouts'
-  | 'goals'
-  | 'assists'
-  | 'points'
-  | 'penalties'
-  | 'ppp'
-  | 'shp';
+  | "name"
+  | "games"
+  | "wins"
+  | "saves"
+  | "shutouts"
+  | "goals"
+  | "assists"
+  | "points"
+  | "penalties"
+  | "ppp"
+  | "shp";
 
 export interface RawData {
   Skaters: string;
@@ -76,4 +76,4 @@ export interface RawData {
 
 export type Seasons = number[];
 
-export type Report = 'regular' | 'playoffs';
+export type Report = "regular" | "playoffs";
