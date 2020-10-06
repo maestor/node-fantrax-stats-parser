@@ -15,7 +15,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
     send(res, 500, "Invalid report type");
   }
 
-  const availableSeasons = getAvailableSeasons();
+  const availableSeasons = getAvailableSeasons(report);
 
   if (season && !availableSeasons.includes(season)) {
     send(res, 500, "Stats for this season are not available");
@@ -43,7 +43,10 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
     send(res, 500, "Invalid report type");
   }
 
-  const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
+  const rawData = await getRawDataFromFiles(
+    report,
+    getAvailableSeasons(report)
+  );
 
   const result: Player[] = [
     ...mapPlayerData(rawData)
@@ -82,7 +85,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
     send(res, 500, "Invalid report type");
   }
 
-  const availableSeasons = getAvailableSeasons();
+  const availableSeasons = getAvailableSeasons(report);
 
   if (season && !availableSeasons.includes(season)) {
     send(res, 500, "Stats for this season are not available");
@@ -110,7 +113,10 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
     send(res, 500, "Invalid report type");
   }
 
-  const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
+  const rawData = await getRawDataFromFiles(
+    report,
+    getAvailableSeasons(report)
+  );
   const result: Player[] = [
     ...mapGoalieData(rawData)
       .reduce((r, currentItem: Goalie) => {
