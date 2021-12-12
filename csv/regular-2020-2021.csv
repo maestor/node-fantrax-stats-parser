@@ -1,75 +1,75 @@
-"","Skaters"
-"ID","Pos","Player","Team","Eligible","Status","Age","Opponent","GP","G","A","Pt","+/-","PIM","SOG","PPP","SHP","Hit","Blk"
-"*00qs7*","F","Jamie Benn","DAL","F","Act","32","","32","7","11","18","3","25","85","4","0","44","20"
-"*02oak*","F","Connor Brown","OTT","F","Act","27","OTT 4<br/>@WPG 2 F","38","9","9","18","-9","8","75","2","2","17","20"
-"*03yt9*","F","Maxime Comtois","ANA","F","Act","22","ANA 3<br/>@MIN 4 F","38","10","12","22","2","20","57","3","0","69","26"
-"*031pq*","F","Andrew Copp","WPG","F","Act","27","OTT 4<br/>@WPG 2 F","38","12","16","28","4","12","80","8","0","50","29"
-"*004nk*","F","Logan Couture","SJS","F","Act","32","ARI 5<br/>@SJS 4 F","37","14","11","25","-5","19","86","6","0","39","26"
-"*03eam*","F","Jayce Hawryluk","VAN","F","Act","25","VAN 3<br/>@EDM 4 F","12","1","1","2","-1","2","8","0","0","20","5"
-"*038vb*","F","Travis Konecny","PHI","F","Act","24","PHI 1<br/>@WSH 2 F","30","7","16","23","4","16","54","7","0","39","10"
-"*042vl*","F","Jordan Kyrou","STL","F","Act","23","STL 1<br/>@VGK 4 F","37","10","14","24","1","10","73","3","0","5","10"
-"*004jg*","F","Pat Maroon","TBL","F","Act","33","TBL 1<br/>@FLA 5 F","38","4","11","15","4","46","31","4","0","50","3"
-"*00qrt*","F","Max Pacioretty","VGK","F","Act","33","STL 1<br/>@VGK 4 F","34","18","15","33","10","10","135","6","0","24","20"
-"*02b76*","F","Vincent Trocheck","CAR","F","Act","28","CAR 1<br/>@NSH 3 F","28","14","15","29","4","8","81","13","0","53","20"
-"*005is*","F","Blake Wheeler","WPG","F","Act","35","OTT 4<br/>@WPG 2 F","38","10","21","31","-14","36","87","13","0","37","18"
-"*01f3d*","D","Oliver Ekman-Larsson","ARI","D","Act","30","ARI 5<br/>@SJS 4 F","28","2","15","17","-12","14","52","10","0","43","15"
-"*01zr5*","D","Derek Forbort","WPG","D","Act","29","OTT 4<br/>@WPG 2 F","38","1","6","7","1","35","45","0","0","55","87"
-"*03yg4*","D","Samuel Girard","COL","D","Act","23","COL 3<br/>@LAK 2 F","35","5","23","28","15","12","60","9","0","22","32"
-"*01s5k*","D","Jake Muzzin","TOR","D","Act","32","MTL 2<br/>@TOR 3 F","36","2","14","16","13","25","67","1","1","64","61"
-"*02azh*","D","Jamie Oleksiak","DAL","D","Act","28","","36","3","5","8","2","27","46","0","0","90","48"
-"*02fzd*","D","Mike Reilly","OTT/BOS","D","Act","28","NYR 5<br/>@BOS 4 F","36","0","16","16","-1","18","60","3","0","45","31"
-"*02zpp*","F","Viktor Arvidsson","NSH","F","Res","28","CAR 1<br/>@NSH 3 F","39","5","13","18","1","12","122","3","0","9","22"
-"*03cwq*","F","Conor Sheary","WSH","F","Res","29","PHI 1<br/>@WSH 2 F","35","8","6","14","1","12","42","0","0","20","12"
-"*04qvh*","D","Nicolas Beaudin","CHI","D","Res","22","","14","2","3","5","2","2","6","1","0","8","12"
-"*03m26*","F","Conor Garland","ARI","F","IR","25","ARI 5<br/>@SJS 4 F","37","10","18","28","3","18","103","5","0","16","17"
-"*01mzf*","F","Reilly Smith","VGK","F","IR","30","STL 1<br/>@VGK 4 F","36","7","5","12","5","8","80","2","1","34","13"
-"*03xmh*","F","Brandon Tanev","PIT","F","IR","29","BUF 0<br/>@PIT 1 F","32","7","9","16","12","22","43","0","2","139","33"
-"*003ky*","F","Jonathan Toews","CHI","F","IR","33","","0","0","0","0","0","0","0","0","0","0","0"
-"*01f3j*","D","Calvin de Haan","CHI","D","IR","30","","38","1","7","8","-13","10","48","0","0","88","77"
-"*04mgs*","D","Scott Perunovich","STL","D","IR","23","STL 1<br/>@VGK 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*020h1*","D","Justin Schultz","WSH","D","IR","31","PHI 1<br/>@WSH 2 F","34","2","16","18","12","6","50","6","0","17","35"
-"*02ygs*","F","Andrew Agozzino","ANA","F","Min","30","ANA 3<br/>@MIN 4 F","2","0","0","0","-1","0","1","0","0","4","6"
-"*05kj5*","F","Thomas Bordeleau","SJS","F","Min","19","ARI 5<br/>@SJS 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*03rfc*","F","Jeremy Bracco","CAR","F","Min","24","CAR 1<br/>@NSH 3 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04f8v*","F","Ivan Chekhovich","SJS","F","Min","22","ARI 5<br/>@SJS 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*05k8f*","F","James Hardie","(N/A)","F","Min","19","","0","0","0","0","0","0","0","0","0","0","0"
-"*042xr*","F","Patrick Harper","NSH","F","Min","23","CAR 1<br/>@NSH 3 F","0","0","0","0","0","0","0","0","0","0","0"
-"*05oxr*","F","Alex Jefferies","NYI","F","Min","20","NJD 1<br/>@NYI 5 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04xob*","F","Brett Leason","WSH","F","Min","22","PHI 1<br/>@WSH 2 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04iwc*","F","Alex Limoges","ANA","F","Min","24","","0","0","0","0","0","0","0","0","0","0","0"
-"*04qyp*","F","Blake McLaughlin","ANA","F","Min","21","","0","0","0","0","0","0","0","0","0","0","0"
-"*05k9f*","F","Zion Nybeck","CAR","F","Min","19","CAR 1<br/>@NSH 3 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04qvd*","F","Jay O'Brien","PHI","F","Min","22","","0","0","0","0","0","0","0","0","0","0","0"
-"*04yms*","F","Kasper Simontaival","LAK","F","Min","19","COL 3<br/>@LAK 2 F","0","0","0","0","0","0","0","0","0","0","0"
-"*03as9*","F","Dylan Strome","CHI","F","Min","24","","27","7","4","11","-7","6","47","7","0","3","16"
-"*048x2*","F","Matthew Strome","PHI","F","Min","22","PHI 1<br/>@WSH 2 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04gef*","F","Joel Teasdale","MTL","F","Min","22","MTL 2<br/>@TOR 3 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04qze*","F","Tyler Weiss","COL","F","Min","21","","0","0","0","0","0","0","0","0","0","0","0"
-"*05r3e*","F","Damir Zhafyarov","(N/A)","F","Min","27","","0","0","0","0","0","0","0","0","0","0","0"
-"*01uo5*","D","Alex Biega","DET","D","Min","33","DET 4<br/>@CBJ 5 F","3","0","0","0","-2","2","1","0","0","9","1"
-"*031uw*","D","Kyle Burroughs","COL","D","Min","26","COL 3<br/>@LAK 2 F","0","0","0","0","0","0","0","0","0","0","0"
-"*059dx*","D","Lukas Cormier","VGK","D","Min","19","STL 1<br/>@VGK 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*02odt*","D","Christian Djoos","DET","D","Min","27","DET 4<br/>@CBJ 5 F","32","2","7","9","-9","12","34","3","0","10","25"
-"*04l8u*","D","Thomas Gregoire","SJS","D","Min","23","ARI 5<br/>@SJS 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04yu5*","D","Thomas Harley","DAL","D","Min","20","","0","0","0","0","0","0","0","0","0","0","0"
-"*051m4*","D","Jackson LaCombe","ANA","D","Min","20","","0","0","0","0","0","0","0","0","0","0","0"
-"*043c6*","D","Brinson Pasichnuk","SJS","D","Min","24","ARI 5<br/>@SJS 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04mmk*","D","Lawrence Pilut","BUF","D","Min","25","BUF 0<br/>@PIT 1 F","0","0","0","0","0","0","0","0","0","0","0"
-"*04zot*","D","Matthew Robertson","NYR","D","Min","20","NYR 5<br/>@BOS 4 F","0","0","0","0","0","0","0","0","0","0","0"
-"*042yr*","D","Jakob Stenqvist","DAL","D","Min","23","","0","0","0","0","0","0","0","0","0","0","0"
-"*05no9*","D","Hugo Styf","(N/A)","D","Min","19","","0","0","0","0","0","0","0","0","0","0","0"
-"*04ajn*","D","Marshall Warren","MIN","D","Min","20","","0","0","0","0","0","0","0","0","0","0","0"
-"","Totals","","","","","","","","","","","","","","","","",""
-
-"","Goalies"
-"ID","Pos","Player","Team","Eligible","Status","Age","Opponent","W-G","GP","GAA","SV","SV%","SHO","PIM","G","A","Pt","PPP","SHP"
-"*004pc*","G","Anton Khudobin","DAL","G","Act","35","","7","20","2.48","462",".908","3","0","0","2","2","1","0"
-"*0457k*","G","Jake Oettinger","DAL","G","Res","22","","6","19","2.24","437",".918","1","2","0","1","1","0","0"
-"*0055r*","G","Ben Bishop","DAL","G","IR","35","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*051ve*","G","Dominic Basse","CHI","G","Min","20","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*03lzf*","G","Landon Bow","DAL","G","Min","26","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*03yf8*","G","Jack Lafontaine","CAR","G","Min","23","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*042xi*","G","Colton Point","DAL","G","Min","23","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*05oy8*","G","Remi Poirier","DAL","G","Min","20","","0","0","0","0","0","0","0","0","0","0","0","0"
-"*04kyr*","G","Tomas Sholl","(N/A)","G","Min","27","","0","0","0","0","0","0","0","0","0","0","0","0"
-"","Totals","","","","","","","0","746","2.32","825",".915","5","387","135","247","382","95","4"
+Skaters;;;;;;;;;;;;;;;;;;
+Pos;Player;Team;Eligible;Status;Age;Opponent;GP;G;A;Pt;+/-;PIM;SOG;PPP;SHP;Hit;Blk;
+F;Jamie Benn;DAL;F;Act;32;;32;7;11;18;3;25;85;4;0;44;20;
+F;Connor Brown;OTT;F;Act;27;OTT 4<br/>@WPG 2 F;38;9;9;18;-9;8;75;2;2;17;20;
+F;Maxime Comtois;ANA;F;Act;22;ANA 3<br/>@MIN 4 F;38;10;12;22;2;20;57;3;0;69;26;
+F;Andrew Copp;WPG;F;Act;27;OTT 4<br/>@WPG 2 F;38;12;16;28;4;12;80;8;0;50;29;
+F;Logan Couture;SJS;F;Act;32;ARI 5<br/>@SJS 4 F;37;14;11;25;-5;19;86;6;0;39;26;
+F;Jayce Hawryluk;VAN;F;Act;25;VAN 3<br/>@EDM 4 F;12;1;1;2;-1;2;8;0;0;20;5;
+F;Travis Konecny;PHI;F;Act;24;PHI 1<br/>@WSH 2 F;30;7;16;23;4;16;54;7;0;39;10;
+F;Jordan Kyrou;STL;F;Act;23;STL 1<br/>@VGK 4 F;37;10;14;24;1;10;73;3;0;5;10;
+F;Pat Maroon;TBL;F;Act;33;TBL 1<br/>@FLA 5 F;38;4;11;15;4;46;31;4;0;50;3;
+F;Max Pacioretty;VGK;F;Act;33;STL 1<br/>@VGK 4 F;34;18;15;33;10;10;135;6;0;24;20;
+F;Vincent Trocheck;CAR;F;Act;28;CAR 1<br/>@NSH 3 F;28;14;15;29;4;8;81;13;0;53;20;
+F;Blake Wheeler;WPG;F;Act;35;OTT 4<br/>@WPG 2 F;38;10;21;31;-14;36;87;13;0;37;18;
+D;Oliver Ekman-Larsson;ARI;D;Act;30;ARI 5<br/>@SJS 4 F;28;2;15;17;-12;14;52;10;0;43;15;
+D;Derek Forbort;WPG;D;Act;29;OTT 4<br/>@WPG 2 F;38;1;6;7;1;35;45;0;0;55;87;
+D;Samuel Girard;COL;D;Act;23;COL 3<br/>@LAK 2 F;35;5;23;28;15;12;60;9;0;22;32;
+D;Jake Muzzin;TOR;D;Act;32;MTL 2<br/>@TOR 3 F;36;2;14;16;13;25;67;1;1;64;61;
+D;Jamie Oleksiak;DAL;D;Act;28;;36;3;5;8;2;27;46;0;0;90;48;
+D;Mike Reilly;OTT/BOS;D;Act;28;NYR 5<br/>@BOS 4 F;36;0;16;16;-1;18;60;3;0;45;31;
+F;Viktor Arvidsson;NSH;F;Res;28;CAR 1<br/>@NSH 3 F;39;5;13;18;1;12;122;3;0;9;22;
+F;Conor Sheary;WSH;F;Res;29;PHI 1<br/>@WSH 2 F;35;8;6;14;1;12;42;0;0;20;12;
+D;Nicolas Beaudin;CHI;D;Res;22;;14;2;3;5;2;2;6;1;0;8;12;
+F;Conor Garland;ARI;F;IR;25;ARI 5<br/>@SJS 4 F;37;10;18;28;3;18;103;5;0;16;17;
+F;Reilly Smith;VGK;F;IR;30;STL 1<br/>@VGK 4 F;36;7;5;12;5;8;80;2;1;34;13;
+F;Brandon Tanev;PIT;F;IR;29;BUF 0<br/>@PIT 1 F;32;7;9;16;12;22;43;0;2;139;33;
+F;Jonathan Toews;CHI;F;IR;33;;0;0;0;0;0;0;0;0;0;0;0;
+D;Calvin de Haan;CHI;D;IR;30;;38;1;7;8;-13;10;48;0;0;88;77;
+D;Scott Perunovich;STL;D;IR;23;STL 1<br/>@VGK 4 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Justin Schultz;WSH;D;IR;31;PHI 1<br/>@WSH 2 F;34;2;16;18;12;6;50;6;0;17;35;
+F;Andrew Agozzino;ANA;F;Min;30;ANA 3<br/>@MIN 4 F;2;0;0;0;-1;0;1;0;0;4;6;
+F;Thomas Bordeleau;SJS;F;Min;19;ARI 5<br/>@SJS 4 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Jeremy Bracco;CAR;F;Min;24;CAR 1<br/>@NSH 3 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Ivan Chekhovich;SJS;F;Min;22;ARI 5<br/>@SJS 4 F;0;0;0;0;0;0;0;0;0;0;0;
+F;James Hardie;(N/A);F;Min;19;;0;0;0;0;0;0;0;0;0;0;0;
+F;Patrick Harper;NSH;F;Min;23;CAR 1<br/>@NSH 3 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Alex Jefferies;NYI;F;Min;20;NJD 1<br/>@NYI 5 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Brett Leason;WSH;F;Min;22;PHI 1<br/>@WSH 2 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Alex Limoges;ANA;F;Min;24;;0;0;0;0;0;0;0;0;0;0;0;
+F;Blake McLaughlin;ANA;F;Min;21;;0;0;0;0;0;0;0;0;0;0;0;
+F;Zion Nybeck;CAR;F;Min;19;CAR 1<br/>@NSH 3 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Jay O'Brien;PHI;F;Min;22;;0;0;0;0;0;0;0;0;0;0;0;
+F;Kasper Simontaival;LAK;F;Min;19;COL 3<br/>@LAK 2 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Dylan Strome;CHI;F;Min;24;;27;7;4;11;-7;6;47;7;0;3;16;
+F;Matthew Strome;PHI;F;Min;22;PHI 1<br/>@WSH 2 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Joel Teasdale;MTL;F;Min;22;MTL 2<br/>@TOR 3 F;0;0;0;0;0;0;0;0;0;0;0;
+F;Tyler Weiss;COL;F;Min;21;;0;0;0;0;0;0;0;0;0;0;0;
+F;Damir Zhafyarov;(N/A);F;Min;27;;0;0;0;0;0;0;0;0;0;0;0;
+D;Alex Biega;DET;D;Min;33;DET 4<br/>@CBJ 5 F;3;0;0;0;-2;2;1;0;0;9;1;
+D;Kyle Burroughs;COL;D;Min;26;COL 3<br/>@LAK 2 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Lukas Cormier;VGK;D;Min;19;STL 1<br/>@VGK 4 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Christian Djoos;DET;D;Min;27;DET 4<br/>@CBJ 5 F;32;2;7;9;-9;12;34;3;0;10;25;
+D;Thomas Gregoire;SJS;D;Min;23;ARI 5<br/>@SJS 4 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Thomas Harley;DAL;D;Min;20;;0;0;0;0;0;0;0;0;0;0;0;
+D;Jackson LaCombe;ANA;D;Min;20;;0;0;0;0;0;0;0;0;0;0;0;
+D;Brinson Pasichnuk;SJS;D;Min;24;ARI 5<br/>@SJS 4 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Lawrence Pilut;BUF;D;Min;25;BUF 0<br/>@PIT 1 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Matthew Robertson;NYR;D;Min;20;NYR 5<br/>@BOS 4 F;0;0;0;0;0;0;0;0;0;0;0;
+D;Jakob Stenqvist;DAL;D;Min;23;;0;0;0;0;0;0;0;0;0;0;0;
+D;Hugo Styf;(N/A);D;Min;19;;0;0;0;0;0;0;0;0;0;0;0;
+D;Marshall Warren;MIN;D;Min;20;;0;0;0;0;0;0;0;0;0;0;0;
+Totals;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;
+Goalies;;;;;;;;;;;;;;;;;;
+Pos;Player;Team;Eligible;Status;Age;Opponent;W-G;GP;GAA;SV;SV%;SHO;PIM;G;A;Pt;PPP;SHP
+G;Anton Khudobin;DAL;G;Act;35;;7;20;2.48;462;.908;3;0;0;2;2;1;0
+G;Jake Oettinger;DAL;G;Res;22;;6;19;2.24;437;.918;1;2;0;1;1;0;0
+G;Ben Bishop;DAL;G;IR;35;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Dominic Basse;CHI;G;Min;20;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Landon Bow;DAL;G;Min;26;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Jack Lafontaine;CAR;G;Min;23;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Colton Point;DAL;G;Min;23;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Remi Poirier;DAL;G;Min;20;;0;0;0;0;0;0;0;0;0;0;0;0
+G;Tomas Sholl;(N/A);G;Min;27;;0;0;0;0;0;0;0;0;0;0;0;0
+Totals;;;;;;;0;746;2.32;825;.915;5;387;135;247;382;95;4
