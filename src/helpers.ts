@@ -1,5 +1,9 @@
 import { Player, PlayerFields, Goalie, GoalieFields, Seasons } from './types';
 
+const START_SEASON = 2012;
+// Increase that for one always when coming new season stats
+const SEASONS_TOTAL = 10;
+
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.points - a.points || b.goals - a.goals;
 
@@ -28,14 +32,5 @@ export const sortItemsByStatField = (
   }
 };
 
-export const getAvailableSeasons = (): Seasons => [
-  2012,
-  2013,
-  2014,
-  2015,
-  2016,
-  2017,
-  2018,
-  2019,
-  2020,
-];
+export const getAvailableSeasons = (): Seasons =>
+  Array.from({ length: SEASONS_TOTAL }, (_, i) => i + START_SEASON);
