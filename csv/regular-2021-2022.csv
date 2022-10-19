@@ -67,7 +67,7 @@
 
 "Goalies"
 "Pos","Player","Team","Eligible","Status","Opponent","W-G","GP","GAA","SV","SV%","SHO","PIM","G","A","Pt","PPP","SHP"
-"G","Jacob Markstrom","CGY","G","Act","VAN<br/>Sat 10:00PM","26","43","2.11","1","145",".927","8","10","0","2","2","0","1"
+"G","Jacob Markstrom","CGY","G","Act","VAN<br/>Sat 10:00PM","26","43","2.11","1145",".927","8","10","0","2","2","0","1"
 "G","Jake Oettinger","DAL","G","Res","SEA<br/>Sat 8:00PM","17","29","2.67","772",".914","1","0","0","0","0","0","0"
 "G","Gage Alexander","ANA","G","Min","@LAK<br/>Sat 10:30PM","0","","","","","","","","","","",""
 "G","Brandon Bussi","BOS","G","Min","NYR<br/>Sat 3:00PM","0","","","","","","","","","","",""
