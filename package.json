@@ -9,8 +9,8 @@
   "private": true,
   "scripts": {
     "build": "rimraf lib && tsc",
-    "dev": "yarn build && concurrently \"tsc --watch\" \"micro-dev\"",
-    "dev-start": "yarn build && micro-dev",
+    "dev": "yarn build && concurrently \"tsc --watch\" \"micro\"",
+    "dev-start": "yarn build && micro",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" && yarn lint:fix",
     "lint": "tslint 'src/**/*.{ts,tsx}'",
     "lint:fix": "tslint --fix 'src/**/*.{ts,tsx}'",
@@ -18,19 +18,18 @@
   },
   "dependencies": {
     "csvtojson": "2.0.10",
-    "micro": "9.3.4",
+    "micro": "10.0.1",
     "microrouter": "3.1.3"
   },
   "devDependencies": {
-    "@types/micro": "7.3.3",
-    "@types/microrouter": "3.1.1",
-    "@types/node": "12.7.2",
-    "concurrently": "5.3.0",
-    "micro-dev": "3.0.0",
-    "prettier": "2.1.2",
-    "rimraf": "3.0.2",
+    "@types/microrouter": "3.1.6",
+    "@types/node": "20.12.7",
+    "concurrently": "8.2.2",
+    "micro-dev": "3.1.0",
+    "prettier": "3.2.5",
+    "rimraf": "5.0.5",
     "tslint": "6.1.3",
     "tslint-config-prettier": "1.18.0",
-    "typescript": "4.0.3"
+    "typescript": "5.4.5"
   }
 }
