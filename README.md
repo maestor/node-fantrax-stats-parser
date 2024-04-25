@@ -5,7 +5,7 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 ## Installation and use
 ```
-1. Install Node (at least 8.x recommended)
+1. Install Node (at least 18.x recommended)
 2. Clone repo
 3. yarn
 4. yarn dev
