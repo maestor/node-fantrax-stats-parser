@@ -1,24 +1,24 @@
-import { send } from "micro";
-import { AugmentedRequestHandler } from "microrouter";
+import { send } from 'micro';
+import { AugmentedRequestHandler } from 'microrouter';
 
-import { getRawDataFromFiles } from "./services";
-import { mapPlayerData, mapGoalieData } from "./mappings";
-import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
-import { sortItemsByStatField, getAvailableSeasons } from "./helpers";
+import { getRawDataFromFiles } from './services';
+import { mapPlayerData, mapGoalieData } from './mappings';
+import { Player, PlayerFields, Goalie, GoalieFields, Report } from './types';
+import { sortItemsByStatField, getAvailableSeasons } from './helpers';
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as PlayerFields | undefined;
   const season: number | undefined = Number(req.params.season);
 
-  if (report !== "playoffs" && report !== "regular") {
-    send(res, 500, "Invalid report type");
+  if (report !== 'playoffs' && report !== 'regular') {
+    send(res, 500, 'Invalid report type');
   }
 
   const availableSeasons = getAvailableSeasons();
 
   if (season && !availableSeasons.includes(season)) {
-    send(res, 500, "Stats for this season are not available");
+    send(res, 500, 'Stats for this season are not available');
   }
 
   // Parser want seasons as array even we need just one
@@ -31,7 +31,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   send(
     res,
     200,
-    sortItemsByStatField(mapPlayerData(rawData), "players", sortBy)
+    sortItemsByStatField(mapPlayerData(rawData), 'players', sortBy),
   );
 };
 
@@ -39,14 +39,11 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as PlayerFields | undefined;
 
-  if (report !== "playoffs" && report !== "regular") {
-    send(res, 500, "Invalid report type");
+  if (report !== 'playoffs' && report !== 'regular') {
+    send(res, 500, 'Invalid report type');
   }
 
-  const rawData = await getRawDataFromFiles(
-    report,
-    getAvailableSeasons()
-  );
+  const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
 
   const result: Player[] = [
     ...mapPlayerData(rawData)
@@ -54,7 +51,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem) as PlayerFields[];
         // Name field we don't need for this purposes
-        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === "name")];
+        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === 'name')];
 
         // Initialize item (grouped by name) or use already existing one
         const item: Player = r.get(currentItem.name) || {
@@ -65,7 +62,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
         // Sum statfields to previously combined data
         itemKeys.forEach(
           (itemKey) =>
-            ((item[itemKey] as number) += currentItem[itemKey] as number)
+            ((item[itemKey] as number) += currentItem[itemKey] as number),
         );
 
         return r.set(currentItem.name, item);
@@ -73,7 +70,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
       .values(),
   ];
 
-  send(res, 200, sortItemsByStatField(result, "players", sortBy));
+  send(res, 200, sortItemsByStatField(result, 'players', sortBy));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
@@ -81,14 +78,14 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const sortBy = req.params.sortBy as GoalieFields | undefined;
   const season: number | undefined = Number(req.params.season);
 
-  if (report !== "playoffs" && report !== "regular") {
-    send(res, 500, "Invalid report type");
+  if (report !== 'playoffs' && report !== 'regular') {
+    send(res, 500, 'Invalid report type');
   }
 
   const availableSeasons = getAvailableSeasons();
 
   if (season && !availableSeasons.includes(season)) {
-    send(res, 500, "Stats for this season are not available");
+    send(res, 500, 'Stats for this season are not available');
   }
 
   // Parser want seasons as array even we need just one
@@ -101,7 +98,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   send(
     res,
     200,
-    sortItemsByStatField(mapGoalieData(rawData), "goalies", sortBy)
+    sortItemsByStatField(mapGoalieData(rawData), 'goalies', sortBy),
   );
 };
 
@@ -109,21 +106,18 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as GoalieFields | undefined;
 
-  if (report !== "playoffs" && report !== "regular") {
-    send(res, 500, "Invalid report type");
+  if (report !== 'playoffs' && report !== 'regular') {
+    send(res, 500, 'Invalid report type');
   }
 
-  const rawData = await getRawDataFromFiles(
-    report,
-    getAvailableSeasons()
-  );
+  const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
   const result: Player[] = [
     ...mapGoalieData(rawData)
       .reduce((r, currentItem: Goalie) => {
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem) as GoalieFields[];
         // Name field we don't need for this purposes
-        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === "name")];
+        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === 'name')];
 
         // Initialize item (grouped by name) or use already existing one
         const item: Goalie = r.get(currentItem.name) || {
@@ -134,7 +128,7 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
         // Sum statfields to previously combined data
         itemKeys.forEach(
           (itemKey) =>
-            ((item[itemKey] as number) += currentItem[itemKey] as number)
+            ((item[itemKey] as number) += currentItem[itemKey] as number),
         );
 
         return r.set(currentItem.name, item);
@@ -142,5 +136,5 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
       .values(),
   ];
 
-  send(res, 200, sortItemsByStatField(result, "goalies", sortBy));
+  send(res, 200, sortItemsByStatField(result, 'goalies', sortBy));
 };
