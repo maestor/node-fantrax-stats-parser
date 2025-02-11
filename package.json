@@ -9,12 +9,12 @@
   "private": true,
   "scripts": {
     "build": "rimraf lib && tsc",
-    "dev": "yarn build && concurrently \"tsc --watch\" \"micro\"",
-    "dev-start": "yarn build && micro",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\" && yarn lint:fix",
+    "dev": "npm run build && concurrently \"tsc --watch\" \"micro\"",
+    "dev-start": "npm run build && micro",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" && npm run lint:fix",
     "lint": "tslint 'src/**/*.{ts,tsx}'",
     "lint:fix": "tslint --fix 'src/**/*.{ts,tsx}'",
-    "start": "yarn build && micro"
+    "start": "npm run build && micro"
   },
   "dependencies": {
     "csvtojson": "2.0.10",
