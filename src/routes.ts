@@ -13,6 +13,14 @@ import {
 } from "./types";
 import { sortItemsByStatField, getAvailableSeasons } from "./helpers";
 
+export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
+  const seasons = getAvailableSeasons().map((season) => ({
+    season,
+    text: `${season}-${season + 1}`,
+  }));
+  send(res, 200, seasons);
+};
+
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const { reportType, season, sortBy } = req.params as unknown as QueryParams;
 

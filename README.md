@@ -16,6 +16,8 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 ## Endpoints
 
+`/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
+
 `/players/season/:reportType/:season/:sortBy` - Get player stats for single season
 
 `/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season)

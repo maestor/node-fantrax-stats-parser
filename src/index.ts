@@ -3,6 +3,7 @@ import { router, get } from "microrouter";
 const cors = require("micro-cors")();
 
 import {
+  getSeasons,
   getPlayersCombined,
   getPlayersSeason,
   getGoaliesCombined,
@@ -19,6 +20,7 @@ const notFound: RequestHandler = (req, res) =>
 module.exports = cors(
   router(
     get("/", service),
+    get("/seasons", getSeasons),
     get("/players/season/:reportType/:season/:sortBy", getPlayersSeason),
     get("/players/season/:reportType/:season", getPlayersSeason),
     get("/players/season/:reportType", getPlayersSeason),
