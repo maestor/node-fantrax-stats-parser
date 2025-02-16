@@ -4,6 +4,11 @@ import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
 const START_SEASON = 2012;
 const REPORT_TYPES: Report[] = ["playoffs", "regular"];
 
+export const ERROR_MESSAGES = {
+  INVALID_REPORT_TYPE: "Invalid report type",
+  SEASON_NOT_AVAILABLE: "Stats for given season are not available",
+};
+
 // Check how many regular season files we have
 const seasonsTotal = fs.readdirSync("./csv").filter((file) => file.includes("regular"));
 

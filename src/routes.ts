@@ -16,10 +16,13 @@ import {
   reportTypeAvailable,
   seasonAvailable,
   getSeasonParam,
+  ERROR_MESSAGES,
 } from "./helpers";
 
 export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
-  send(res, 200, mapAvailableSeasons());
+  const data = mapAvailableSeasons();
+
+  send(res, 200, data);
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
@@ -28,16 +31,17 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const season: number | undefined = Number(req.params.season);
 
   if (!reportTypeAvailable(report)) {
-    send(res, 400, "Invalid report type");
+    send(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
   }
 
   if (!seasonAvailable(season)) {
-    send(res, 400, "Stats for this season are not available");
+    send(res, 400, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
   }
 
   const rawData = await getRawDataFromFiles(report, getSeasonParam(season));
+  const data = sortItemsByStatField(mapPlayerData(rawData), "players", sortBy);
 
-  send(res, 200, sortItemsByStatField(mapPlayerData(rawData), "players", sortBy));
+  send(res, 200, data);
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
@@ -45,12 +49,13 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const sortBy = req.params.sortBy as PlayerFields | undefined;
 
   if (!reportTypeAvailable(report)) {
-    send(res, 400, "Invalid report type");
+    send(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
   }
 
   const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
+  const data = sortItemsByStatField(mapCombinedPlayerData(rawData), "players", sortBy);
 
-  send(res, 200, sortItemsByStatField(mapCombinedPlayerData(rawData), "players", sortBy));
+  send(res, 200, data);
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
@@ -59,27 +64,29 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const season: number | undefined = Number(req.params.season);
 
   if (!reportTypeAvailable(report)) {
-    send(res, 400, "Invalid report type");
+    send(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
   }
 
   if (!seasonAvailable(season)) {
-    send(res, 400, "Stats for this season are not available");
+    send(res, 400, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
   }
 
   const rawData = await getRawDataFromFiles(report, getSeasonParam(season));
+  const data = sortItemsByStatField(mapGoalieData(rawData), "goalies", sortBy);
 
-  send(res, 200, sortItemsByStatField(mapGoalieData(rawData), "goalies", sortBy));
+  send(res, 200, data);
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as GoalieFields | undefined;
 
-  if (report !== "playoffs" && report !== "regular") {
-    send(res, 400, "Invalid report type");
+  if (!reportTypeAvailable(report)) {
+    send(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
   }
 
   const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
+  const data = sortItemsByStatField(mapCombinedGoalieData(rawData), "goalies", sortBy);
 
-  send(res, 200, sortItemsByStatField(mapCombinedGoalieData(rawData), "goalies", sortBy));
+  send(res, 200, data);
 };
