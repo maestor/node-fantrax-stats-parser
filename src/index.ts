@@ -10,12 +10,11 @@ import {
   getGoaliesSeason,
 } from "./routes";
 
-const service: RequestHandler = async (req, res) => {
+const service: RequestHandler = async (_req, res) => {
   send(res, 200, "You are service index, enjoy!");
 };
 
-const notFound: RequestHandler = (req, res) =>
-  send(res, 404, "Route not exists");
+const notFound: RequestHandler = (_req, res) => send(res, 404, "Route not exists");
 
 module.exports = cors(
   router(
