@@ -75,8 +75,6 @@ export interface RawData {
   field19?: string;
 }
 
-export type Seasons = number[];
-
 export type Report = "regular" | "playoffs";
 
 export type QueryParams = {

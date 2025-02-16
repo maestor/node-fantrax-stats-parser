@@ -1,17 +1,25 @@
-import { send } from 'micro';
-import { AugmentedRequestHandler } from 'microrouter';
+import { send } from "micro";
+import { AugmentedRequestHandler } from "microrouter";
 
-import { getRawDataFromFiles } from './services';
-import { mapPlayerData, mapGoalieData } from './mappings';
-import { Player, PlayerFields, Goalie, GoalieFields, Report } from './types';
-import { sortItemsByStatField, getAvailableSeasons } from './helpers';
+import { getRawDataFromFiles } from "./services";
+import {
+  mapPlayerData,
+  mapGoalieData,
+  mapAvailableSeasons,
+  mapCombinedPlayerData,
+  mapCombinedGoalieData,
+} from "./mappings";
+import { PlayerFields, GoalieFields, Report } from "./types";
+import {
+  sortItemsByStatField,
+  getAvailableSeasons,
+  reportTypeAvailable,
+  seasonAvailable,
+  getSeasonParam,
+} from "./helpers";
 
 export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
-  const seasons = getAvailableSeasons().map((season) => ({
-    season,
-    text: `${season}-${season + 1}`,
-  }));
-  send(res, 200, seasons);
+  send(res, 200, mapAvailableSeasons());
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
@@ -19,66 +27,30 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const sortBy = req.params.sortBy as PlayerFields | undefined;
   const season: number | undefined = Number(req.params.season);
 
-  if (report !== 'playoffs' && report !== 'regular') {
-    send(res, 500, 'Invalid report type');
+  if (!reportTypeAvailable(report)) {
+    send(res, 400, "Invalid report type");
   }
 
-  const availableSeasons = getAvailableSeasons();
-
-  if (season && !availableSeasons.includes(season)) {
-    send(res, 500, 'Stats for this season are not available');
+  if (!seasonAvailable(season)) {
+    send(res, 400, "Stats for this season are not available");
   }
 
-  // Parser want seasons as array even we need just one
-  const seasonParam = season
-    ? availableSeasons.filter((item) => season === item)
-    : [Math.max(...availableSeasons)];
+  const rawData = await getRawDataFromFiles(report, getSeasonParam(season));
 
-  const rawData = await getRawDataFromFiles(report, seasonParam);
-
-  send(
-    res,
-    200,
-    sortItemsByStatField(mapPlayerData(rawData), 'players', sortBy),
-  );
+  send(res, 200, sortItemsByStatField(mapPlayerData(rawData), "players", sortBy));
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as PlayerFields | undefined;
 
-  if (report !== 'playoffs' && report !== 'regular') {
-    send(res, 500, 'Invalid report type');
+  if (!reportTypeAvailable(report)) {
+    send(res, 400, "Invalid report type");
   }
 
   const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
 
-  const result: Player[] = [
-    ...mapPlayerData(rawData)
-      .reduce((r, currentItem: Player) => {
-        // Helper to get statfields for initializing and combining
-        const itemKeys = Object.keys(currentItem) as PlayerFields[];
-        // Name field we don't need for this purposes
-        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === 'name')];
-
-        // Initialize item (grouped by name) or use already existing one
-        const item: Player = r.get(currentItem.name) || {
-          ...currentItem,
-          ...itemKeys.reduce((o, field) => ({ ...o, [field]: 0 }), {}),
-        };
-
-        // Sum statfields to previously combined data
-        itemKeys.forEach(
-          (itemKey) =>
-            ((item[itemKey] as number) += currentItem[itemKey] as number),
-        );
-
-        return r.set(currentItem.name, item);
-      }, new Map())
-      .values(),
-  ];
-
-  send(res, 200, sortItemsByStatField(result, 'players', sortBy));
+  send(res, 200, sortItemsByStatField(mapCombinedPlayerData(rawData), "players", sortBy));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
@@ -86,63 +58,28 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const sortBy = req.params.sortBy as GoalieFields | undefined;
   const season: number | undefined = Number(req.params.season);
 
-  if (report !== 'playoffs' && report !== 'regular') {
-    send(res, 500, 'Invalid report type');
+  if (!reportTypeAvailable(report)) {
+    send(res, 400, "Invalid report type");
   }
 
-  const availableSeasons = getAvailableSeasons();
-
-  if (season && !availableSeasons.includes(season)) {
-    send(res, 500, 'Stats for this season are not available');
+  if (!seasonAvailable(season)) {
+    send(res, 400, "Stats for this season are not available");
   }
 
-  // Parser want seasons as array even we need just one
-  const seasonParam = season
-    ? availableSeasons.filter((item) => season === item)
-    : [Math.max(...availableSeasons)];
+  const rawData = await getRawDataFromFiles(report, getSeasonParam(season));
 
-  const rawData = await getRawDataFromFiles(report, seasonParam);
-
-  send(
-    res,
-    200,
-    sortItemsByStatField(mapGoalieData(rawData), 'goalies', sortBy),
-  );
+  send(res, 200, sortItemsByStatField(mapGoalieData(rawData), "goalies", sortBy));
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
   const sortBy = req.params.sortBy as GoalieFields | undefined;
 
-  if (report !== 'playoffs' && report !== 'regular') {
-    send(res, 500, 'Invalid report type');
+  if (report !== "playoffs" && report !== "regular") {
+    send(res, 400, "Invalid report type");
   }
 
   const rawData = await getRawDataFromFiles(report, getAvailableSeasons());
-  const result: Player[] = [
-    ...mapGoalieData(rawData)
-      .reduce((r, currentItem: Goalie) => {
-        // Helper to get statfields for initializing and combining
-        const itemKeys = Object.keys(currentItem) as GoalieFields[];
-        // Name field we don't need for this purposes
-        delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === 'name')];
 
-        // Initialize item (grouped by name) or use already existing one
-        const item: Goalie = r.get(currentItem.name) || {
-          ...currentItem,
-          ...itemKeys.reduce((o, field) => ({ ...o, [field]: 0 }), {}),
-        };
-
-        // Sum statfields to previously combined data
-        itemKeys.forEach(
-          (itemKey) =>
-            ((item[itemKey] as number) += currentItem[itemKey] as number),
-        );
-
-        return r.set(currentItem.name, item);
-      }, new Map())
-      .values(),
-  ];
-
-  send(res, 200, sortItemsByStatField(result, 'goalies', sortBy));
+  send(res, 200, sortItemsByStatField(mapCombinedGoalieData(rawData), "goalies", sortBy));
 };

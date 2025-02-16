@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  GetSeasonsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetAvailableSeasons
+      Runtime: nodejs22.x
+      Handler: lambdas/getSeasons.handler
+      CodeUri: .
+      Policies: AWSLambdaBasicExecutionRole
+      Events:
+        GetSeasonsAPI:
+          Type: Api
+          Properties:
+            Path: /seasons
+            Method: GET
+
+  GetPlayersSeasonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetPlayersStatsBySeason
+      Runtime: nodejs22.x
+      Handler: lambdas/getPlayersSeason.handler
+      CodeUri: .
+      Policies: AWSLambdaBasicExecutionRole
+      Events:
+        GetPlayersSeasonAPI:
+          Type: Api
+          Properties:
+            Path: /players/season/{reportType}/{season}/{sortBy}
+            Method: GET
+
+  GetPlayersCombinedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetPlayersStatsCombined
+      Runtime: nodejs22.x
+      Handler: lambdas/getPlayersCombined.handler
+      CodeUri: .
+      Policies: AWSLambdaBasicExecutionRole
+      Events:
+        GetPlayersSeasonAPI:
+          Type: Api
+          Properties:
+            Path: /players/combined/{reportType}/{sortBy}
+            Method: GET
+
+  GetGoaliesSeasonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetGoaliesStatsBySeason
+      Runtime: nodejs22.x
+      Handler: lambdas/getGoaliesSeason.handler
+      CodeUri: .
+      Policies: AWSLambdaBasicExecutionRole
+      Events:
+        GetGoaliesSeasonAPI:
+          Type: Api
+          Properties:
+            Path: /goalies/season/{reportType}/{season}/{sortBy}
+            Method: GET
+
+  GetGoaliesCombinedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GetGoaliesStatsCombined
+      Runtime: nodejs22.x
+      Handler: lambdas/getGoaliesCombined.handler
+      CodeUri: .
+      Policies: AWSLambdaBasicExecutionRole
+      Events:
+        GetPlayersSeasonAPI:
+          Type: Api
+          Properties:
+            Path: /goalies/combined/{reportType}/{sortBy}
+            Method: GET

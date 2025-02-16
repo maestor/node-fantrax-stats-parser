@@ -1,18 +1,16 @@
 import fs from "fs";
-import { Player, PlayerFields, Goalie, GoalieFields, Seasons } from "./types";
+import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
 
 const START_SEASON = 2012;
+const REPORT_TYPES: Report[] = ["playoffs", "regular"];
 
 // Check how many regular season files we have
-const seasonsTotal = fs
-  .readdirSync("./csv")
-  .filter((file) => file.includes("regular"));
+const seasonsTotal = fs.readdirSync("./csv").filter((file) => file.includes("regular"));
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.points - a.points || b.goals - a.goals;
 
-const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
-  b.wins - a.wins || b.games - a.games;
+const defaultSortGoalies = (a: Goalie, b: Goalie): number => b.wins - a.wins || b.games - a.games;
 
 export const sortItemsByStatField = (
   data: Player[] | Goalie[],
@@ -36,9 +34,14 @@ export const sortItemsByStatField = (
   }
 };
 
-export const getAvailableSeasons = (): Seasons => {
-  return Array.from(
-    { length: seasonsTotal?.length ?? 0 },
-    (_, i) => i + START_SEASON
-  );
-};
+export const getAvailableSeasons = (): number[] =>
+  Array.from({ length: seasonsTotal?.length ?? 0 }, (_, i) => i + START_SEASON);
+
+export const seasonAvailable = (season?: number) =>
+  (season && getAvailableSeasons().includes(season)) ?? false;
+
+export const reportTypeAvailable = (report?: Report) =>
+  (report && REPORT_TYPES.includes(report)) ?? false;
+
+// Parser want seasons as array even in one season cases
+export const getSeasonParam = (season?: number) => [season ?? Math.max(...getAvailableSeasons())];
