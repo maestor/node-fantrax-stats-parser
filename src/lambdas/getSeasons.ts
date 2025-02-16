@@ -1,8 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { mapAvailableSeasons } from "../mappings";
-import { sendSuccess } from "./utils/response";
+import { getAvailableSeasons } from "../services";
+import { sendSuccess, sendError } from "./utils/response";
 
 export const handler = async (_event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const data = mapAvailableSeasons();
-  return sendSuccess(data);
+  try {
+    const data = await getAvailableSeasons();
+    return sendSuccess(data);
+  } catch (error) {
+    return sendError(error, 500);
+  }
 };

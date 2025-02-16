@@ -1,5 +1,5 @@
 import { RawData, Player, PlayerFields, Goalie, GoalieFields } from "./types";
-import { getAvailableSeasons } from "./helpers";
+import { availableSeasons } from "./helpers";
 
 export const mapPlayerData = (data: RawData[]): Player[] => {
   return data
@@ -111,7 +111,7 @@ export const mapCombinedGoalieData = (rawData: RawData[]): Goalie[] => [
 ];
 
 export const mapAvailableSeasons = () =>
-  getAvailableSeasons().map((season) => ({
+  availableSeasons().map((season) => ({
     season,
     text: `${season}-${season + 1}`,
   }));

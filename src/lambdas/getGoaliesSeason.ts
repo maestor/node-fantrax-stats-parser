@@ -1,13 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { getRawDataFromFiles } from "../services";
-import { mapGoalieData } from "../mappings";
-import {
-  sortItemsByStatField,
-  reportTypeAvailable,
-  seasonAvailable,
-  getSeasonParam,
-  ERROR_MESSAGES,
-} from "../helpers";
+import { getGoaliesStatsSeason } from "../services";
+import { reportTypeAvailable, seasonAvailable, ERROR_MESSAGES } from "../helpers";
 import { Report, GoalieFields } from "../types";
 import { sendSuccess, sendError } from "./utils/response";
 
@@ -24,8 +17,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return sendError(ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
   }
 
-  const rawData = await getRawDataFromFiles(report, getSeasonParam(season));
-  const data = sortItemsByStatField(mapGoalieData(rawData), "goalies", sortBy);
-
-  return sendSuccess(data);
+  try {
+    const data = await getGoaliesStatsSeason(report, season, sortBy);
+    return sendSuccess(data);
+  } catch (error) {
+    return sendError(error, 500);
+  }
 };

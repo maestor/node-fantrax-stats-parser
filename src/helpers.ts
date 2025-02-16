@@ -39,14 +39,11 @@ export const sortItemsByStatField = (
   }
 };
 
-export const getAvailableSeasons = (): number[] =>
+export const availableSeasons = (): number[] =>
   Array.from({ length: seasonsTotal?.length ?? 0 }, (_, i) => i + START_SEASON);
 
 export const seasonAvailable = (season?: number) =>
-  (season && getAvailableSeasons().includes(season)) ?? false;
+  (season && availableSeasons().includes(season)) ?? false;
 
 export const reportTypeAvailable = (report?: Report) =>
   (report && REPORT_TYPES.includes(report)) ?? false;
-
-// Parser want seasons as array even in one season cases
-export const getSeasonParam = (season?: number) => [season ?? Math.max(...getAvailableSeasons())];
