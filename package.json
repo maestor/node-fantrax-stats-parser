@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Fantrax stats parser",
   "main": "./lib/index.js",
-  "type": "module",
   "repository": "git@github.com:maestor/node-fantrax-stats-parser.git",
   "author": "Kalle Haavisto <maestori@gmail.com>",
   "license": "MIT",
