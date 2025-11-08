@@ -4,6 +4,8 @@
 
 Lightweight API to parse my NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files exported manually from [Fantrax](https://www.fantrax.com). This is also some kind of practice to get some knowledge about micro, if it would be good replacement for example heavy express server in some use cases. And finally, I have made last years at least 95% Frontend stuff with JS, so that is good little project to keep backend stuff on my mind.
 
+[UI written by Angular which uses this parser.](https://github.com/maestor/fantrax-stats-parser-ui)
+
 ## Installation and use
 
 ```
@@ -42,6 +44,5 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 - Start using database and CSV import tool
 - Find out if Fantrax offers some API to get needed data easily instead of CSV export
-- Some kind of UI for stats (very low prio, it might be enough to get numbers copypaste when needed somewhere)
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
