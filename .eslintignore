@@ -1,0 +1,21 @@
+# Build output
+lib/
+dist/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# CSV data files
+csv/
+
+# Config files
+*.config.js
