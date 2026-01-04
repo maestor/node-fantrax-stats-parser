@@ -9,23 +9,27 @@ This is a TypeScript-based API that parses NHL fantasy league stats from CSV fil
 ## Commands
 
 ### Development
+
 - `npm run dev` - Build and run with watch mode (compiles TypeScript on changes and runs micro server)
 - `npm run dev-start` - Build and run once without watch mode
 - `npm run build` - Compile TypeScript to lib/ directory
 - `npm start` - Production build and start
 
 ### Code Quality
+
 - `npm run lint` - Run ESLint on TypeScript files
 - `npm run lint:fix` - Run ESLint with auto-fix
 - `npm run lint:check` - Run ESLint with zero warnings tolerance (CI mode)
 - `npm run format` - Format code with Prettier
 
 ### Testing
+
 - `npm test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode for development
 - `npm run test:coverage` - Run tests with coverage report (HTML report at coverage/index.html)
 
 ### Verification (Quality Gates)
+
 - `npm run verify` - **REQUIRED BEFORE COMMITS**: Run lint → build → test (must all pass)
 - `npm run verify:coverage` - Run lint → build → test with coverage report
 
@@ -41,7 +45,7 @@ This codebase supports **two deployment targets** with different entry points:
    - Exports CommonJS module with CORS enabled
    - Routes defined in src/routes.ts
 
-2. **AWS Lambda** (src/lambdas/*.ts) - Serverless deployment
+2. **AWS Lambda** (src/lambdas/\*.ts) - Serverless deployment
    - Each endpoint has a corresponding Lambda handler
    - Uses APIGatewayProxyEvent/Result types
    - Shared business logic via src/services.ts
@@ -67,6 +71,7 @@ Both deployment models share the same core business logic (services.ts, mappings
 **Season Discovery**: Available seasons are determined by counting regular season CSV files in the csv/ directory at startup (see helpers.ts:13).
 
 **Data Quirks**:
+
 - Goalie wins/games column order changed after 2013 season (see mappings.ts:100-106)
 - Numbers contain commas in thousands and must be cleaned before parsing
 - Players with 0 games are filtered out
@@ -79,21 +84,25 @@ Both deployment models share the same core business logic (services.ts, mappings
 The codebase follows these quality patterns established through systematic refactoring:
 
 **Constants Over Magic Values**:
+
 - `GOALIE_SCHEMA_CHANGE_YEAR = 2013` (mappings.ts:14) - Documents the year goalie CSV schema changed
-- `CSV_FIELD` object (mappings.ts:17-45) - Self-documenting field mappings replace generic field2, field7, etc.
+- `CSV` object (mappings.ts:17-45) - Self-documenting field mappings replace generic field2, field7, etc.
 - `HTTP_STATUS` object (helpers.ts:7-11) - Named constants for 200, 400, 500 status codes
 
 **Error Handling**:
+
 - CSV file reading errors are logged with `console.error` including file path (services.ts:33)
 - Route handlers use `withErrorHandling` wrapper to consistently handle errors (routes.ts:13-23)
 - Early returns after validation errors prevent code execution after error responses (routes.ts)
 
 **Type Safety**:
+
 - No `any` types in production code except necessary test cases
 - Proper type assertions instead of `any` in sort functions (helpers.ts:30-36)
 - Season parameter parsing with `parseSeasonParam` correctly handles undefined (helpers.ts:51-55)
 
 **DRY Principles**:
+
 - `getCombinedStats` generic helper eliminates duplication between player/goalie combined endpoints (services.ts:62-70)
 - `withErrorHandling` wrapper eliminates repeated try/catch blocks in route handlers (routes.ts:13-23)
 
@@ -104,7 +113,7 @@ The codebase follows these quality patterns established through systematic refac
 - Strict mode enabled with noUnusedLocals and noUnusedParameters
 - **Test files excluded from build**: tsconfig.json excludes `src/**/*.test.ts` and `src/__tests__/` from compilation
   - Test files are only compiled by ts-jest when running tests
-  - Build output in lib/ contains only production code (routes, services, mappings, helpers, lambdas, types, index)
+  - Build output in lib/ contains only production code (routes, services, mappings, helpers, types, index)
 
 ### ESLint Rules
 
@@ -136,6 +145,7 @@ The codebase follows these quality patterns established through systematic refac
 Comprehensive test suite using Jest with TypeScript support via ts-jest. **94 tests** covering all business logic and micro server routes.
 
 **Coverage:** 100% statements, 100% functions, 100% lines, 97% branches
+
 - Lambda handlers are excluded from coverage (tested separately if needed)
 - The 2 uncovered branches are defensive programming that can't be reached (helpers.ts:49, mappings.ts:57)
 
@@ -153,12 +163,14 @@ src/__tests__/
 ### Key Testing Patterns
 
 **Mocking Strategy:**
+
 - `fs` module is mocked at module load time in helpers.test.ts
 - `csvtojson` is mocked to return controlled test data
 - `micro` send function is mocked to verify responses
 - `node-mocks-http` is used to create mock request/response objects for route tests
 
 **Critical Test Cases:**
+
 - Goalie wins/games column swap at season 2013 boundary (mappings.ts:100-106)
 - CSV number parsing with comma removal ("1,234" → 1234)
 - Filter logic that excludes header rows, empty names, zero games, non-goalies
@@ -177,6 +189,7 @@ src/__tests__/
 ### Adding New Tests
 
 When modifying code:
+
 1. Filters always require header row in test data (index 0 is skipped)
 2. Player filter checks: `i !== 0 && field2 !== "" && Skaters !== "G" && Number(field7) > 0`
 3. Goalie filter checks: `i !== 0 && field2 !== "" && Skaters === "G" && (games > 0 OR wins > 0)`

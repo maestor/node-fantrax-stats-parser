@@ -8,12 +8,10 @@ import {
   getGoaliesStatsCombined,
 } from "./services";
 import { PlayerFields, GoalieFields, Report } from "./types";
-import { reportTypeAvailable, seasonAvailable, parseSeasonParam, ERROR_MESSAGES, HTTP_STATUS } from "./helpers";
+import { reportTypeAvailable, seasonAvailable, parseSeasonParam } from "./helpers";
+import { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
-const withErrorHandling = async (
-  res: ServerResponse,
-  handler: () => Promise<unknown>,
-) => {
+const withErrorHandling = async (res: ServerResponse, handler: () => Promise<unknown>) => {
   try {
     const data = await handler();
     send(res, HTTP_STATUS.OK, data);

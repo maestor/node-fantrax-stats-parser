@@ -1,19 +1,6 @@
 import fs from "fs";
 import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
-
-const START_SEASON = 2012;
-const REPORT_TYPES: Report[] = ["playoffs", "regular"];
-
-export const HTTP_STATUS = {
-  OK: 200,
-  BAD_REQUEST: 400,
-  INTERNAL_SERVER_ERROR: 500,
-} as const;
-
-export const ERROR_MESSAGES = {
-  INVALID_REPORT_TYPE: "Invalid report type",
-  SEASON_NOT_AVAILABLE: "Stats for given season are not available",
-};
+import { REPORT_TYPES, START_SEASON } from "./constants";
 
 // Check how many regular season files we have
 const seasonsTotal = fs.readdirSync("./csv").filter((file) => file.includes("regular"));
@@ -34,11 +21,15 @@ export const sortItemsByStatField = (
 
   if (kind === "players") {
     return (data as Player[]).sort((a, b) =>
-      sortBy ? (b[sortBy as PlayerFields] as number) - (a[sortBy as PlayerFields] as number) : defaultSortPlayers(a, b)
+      sortBy
+        ? (b[sortBy as PlayerFields] as number) - (a[sortBy as PlayerFields] as number)
+        : defaultSortPlayers(a, b)
     );
   } else if (kind === "goalies") {
     return (data as Goalie[]).sort((a, b) =>
-      sortBy ? (b[sortBy as GoalieFields] as number) - (a[sortBy as GoalieFields] as number) : defaultSortGoalies(a, b)
+      sortBy
+        ? (b[sortBy as GoalieFields] as number) - (a[sortBy as GoalieFields] as number)
+        : defaultSortGoalies(a, b)
     );
   } else {
     return data;

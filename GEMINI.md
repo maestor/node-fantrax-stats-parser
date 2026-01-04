@@ -16,7 +16,6 @@ The project is built with TypeScript and uses the `micro` library for creating a
 - **Runtime:** Node.js
 - **HTTP Server:** `micro`, `micro-cors`, `microrouter`
 - **CSV Parsing:** `csvtojson`
-- **Deployment:** AWS Lambda (indicated by `aws-lambda` and `aws-sdk` dependencies)
 - **Development Tools:** `eslint`, `prettier`, `typescript`
 
 ## 3. Coding Style
@@ -26,12 +25,12 @@ The project enforces a consistent coding style through a combination of ESLint a
 - **Formatting**: Code formatting is handled by Prettier, which ensures a consistent style across the codebase. The `npm run format` command can be used to format the code.
 - **Linting**: ESLint is used for static code analysis, with rules configured in `eslint.config.mjs`. The configuration extends the recommended rules from ESLint and TypeScript ESLint.
 - **Key Linting Rules**:
-    - **Variables**: `const` is preferred over `let`, and `var` is disallowed. Unused variables result in an error, unless prefixed with an underscore (`_`).
-    - **Types**: The `any` type is discouraged and will raise a warning. Explicit function return types are not required.
-    - **General**: `console` statements will raise a warning. Object shorthand and template literals are enforced.
+  - **Variables**: `const` is preferred over `let`, and `var` is disallowed. Unused variables result in an error, unless prefixed with an underscore (`_`).
+  - **Types**: The `any` type is discouraged and will raise a warning. Explicit function return types are not required.
+  - **General**: `console` statements will raise a warning. Object shorthand and template literals are enforced.
 - **TypeScript Usage**:
-    - **Types**: The project makes extensive use of TypeScript for type safety. Type definitions are centralized in `src/types.ts`.
-    - **Async/Await**: Asynchronous operations are handled using `async/await`.
+  - **Types**: The project makes extensive use of TypeScript for type safety. Type definitions are centralized in `src/types.ts`.
+  - **Async/Await**: Asynchronous operations are handled using `async/await`.
 - **Imports**: Imports are grouped at the top of each file.
 
 ## 4. Project Structure
@@ -45,7 +44,6 @@ The project is organized into the following key directories and files:
   - **`helpers.ts`**: Utility functions.
   - **`mappings.ts`**: Data mappings.
   - **`types.ts`**: TypeScript type definitions.
-  - **`lambdas/`**: Contains the AWS Lambda function handlers, which are the primary entry points for the API when deployed.
 - **`csv/`**: Stores the raw CSV data files, categorized by season and report type (regular season or playoffs).
 - **`package.json`**: Lists the project's dependencies, scripts, and metadata.
 - **`tsconfig.json`**: The TypeScript compiler configuration.
@@ -70,10 +68,6 @@ The API provides the following endpoints to access the parsed data:
 - **`/goalies/combined/:reportType/:sortBy`**: Returns combined goalie stats for all available seasons, including a `seasons` array with individual season stats.
 
 The endpoints support parameters for filtering by `reportType` (regular or playoffs), `season`, and `sortBy` for sorting the results.
-
-### Deployment
-
-The project is set up to be deployed as AWS Lambda functions, as indicated by the presence of the `aws-lambda` and `aws-sdk` dependencies and the `lambdas/` directory.
 
 ## 6. How to Run
 
