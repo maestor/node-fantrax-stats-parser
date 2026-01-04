@@ -80,6 +80,7 @@ The project is set up to be deployed as AWS Lambda functions, as indicated by th
 1.  Install Node.js (at least version 18.x is recommended).
 2.  Clone the repository.
 3.  Install dependencies with `npm install`.
-4.  Build the project with `npm run build`.
-5.  Run the development server with `npm run dev`.
-6.  Access the API endpoints in your browser or with an API client.
+4.  Lint the project with `npm run lint`.
+5.  Build the project with `npm run build`.
+6.  Run the development server with `npm run dev`.
+7.  Access the API endpoints in your browser or with an API client.

@@ -15,7 +15,7 @@ export default [
       // TypeScript specific rules
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_' },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/explicit-function-return-type': 0,
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -33,6 +33,17 @@ export default [
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    ignores: ['lib/**/*', 'node_modules/**/*', '*.config.js', 'csv/**/*'],
+    ignores: [
+      'lib/**/*',
+      'dist/**/*',
+      'node_modules/**/*',
+      '.env',
+      '.env.local',
+      '.env.*.local',
+      '*.log',
+      'npm-debug.log*',
+      'csv/**/*',
+      '*.config.js',
+    ],
   },
 ];
