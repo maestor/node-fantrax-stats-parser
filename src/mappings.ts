@@ -1,14 +1,24 @@
-import { RawData, Player, PlayerFields, Goalie, GoalieFields } from "./types";
+import {
+  RawData,
+  Player,
+  PlayerFields,
+  Goalie,
+  GoalieFields,
+  PlayerWithSeason,
+  CombinedPlayer,
+  GoalieWithSeason,
+  CombinedGoalie,
+} from "./types";
 import { availableSeasons } from "./helpers";
 
-export const mapPlayerData = (data: RawData[]): Player[] => {
+export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) =>
         i !== 0 && item.field2 !== "" && item.Skaters !== "G" && Number(item.field7) > 0
     )
     .map(
-      (item: RawData): Player => ({
+      (item: RawData): PlayerWithSeason => ({
         // Data have commas in thousands, pre-remove those that Number won't fail
         name: item.field2,
         games: Number(item.field7.replace(",", "")) || 0,
@@ -22,33 +32,58 @@ export const mapPlayerData = (data: RawData[]): Player[] => {
         shp: Number(item.field15.replace(",", "")) || 0,
         hits: Number(item.field16.replace(",", "")) || 0,
         blocks: Number(item.field17.replace(",", "")) || 0,
+        season: item.season,
       })
     );
 };
 
-export const mapCombinedPlayerData = (rawData: RawData[]): Player[] => [
+export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
   ...mapPlayerData(rawData)
-    .reduce((r, currentItem: Player) => {
+    .reduce((r, currentItem: PlayerWithSeason) => {
       // Helper to get statfields for initializing and combining
-      const itemKeys = Object.keys(currentItem) as PlayerFields[];
-      // Name field we don't need for this purposes
-      delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === "name")];
+      const itemKeys = Object.keys(currentItem).filter(
+        (key) => key !== "name" && key !== "season"
+      ) as PlayerFields[];
 
-      // Initialize item (grouped by name) or use already existing one
-      const item: Player = r.get(currentItem.name) || {
-        ...currentItem,
-        ...itemKeys.reduce((o, field) => ({ ...o, [field]: 0 }), {}),
-      };
+      let item = r.get(currentItem.name);
+
+      if (!item) {
+        item = {
+          name: currentItem.name,
+          games: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          seasons: [],
+        };
+        r.set(currentItem.name, item);
+      }
 
       // Sum statfields to previously combined data
-      itemKeys.forEach((itemKey) => ((item[itemKey] as number) += currentItem[itemKey] as number));
+      itemKeys.forEach((itemKey) => {
+        const key = itemKey as keyof Player;
+        if (typeof item[key] === "number") {
+          (item[key] as number) += currentItem[key] as number;
+        }
+      });
 
-      return r.set(currentItem.name, item);
-    }, new Map())
+      // Add season data, with season as the first property
+      const { name: _, season, ...restOfSeasonData } = currentItem;
+      item.seasons.push({ season, ...restOfSeasonData });
+
+      return r;
+    }, new Map<string, CombinedPlayer>())
     .values(),
 ];
 
-export const mapGoalieData = (data: RawData[]): Goalie[] => {
+export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) =>
@@ -57,7 +92,7 @@ export const mapGoalieData = (data: RawData[]): Goalie[] => {
         item.Skaters === "G" &&
         (Number(item.field7) > 0 || Number(item.field8) > 0)
     )
-    .map((item: RawData): Goalie => {
+    .map((item: RawData): GoalieWithSeason => {
       let wins = 0;
       let games = 0;
 
@@ -70,7 +105,7 @@ export const mapGoalieData = (data: RawData[]): Goalie[] => {
         games = Number(item.field8.replace(",", "")) || 0;
       }
 
-      const base = {
+      return {
         name: item.field2,
         games,
         wins,
@@ -82,31 +117,55 @@ export const mapGoalieData = (data: RawData[]): Goalie[] => {
         penalties: Number(item.field13.replace(",", "")) || 0,
         ppp: Number(item.field17.replace(",", "")) || 0,
         shp: item.field18 ? Number(item.field18.replace(",", "")) : 0,
+        season: item.season,
+        gaa: item.field9,
+        savePercent: item.field11,
       };
-
-      return item.isSeason ? { ...base, gaa: item.field9, savePercent: item.field11 } : base;
     });
 };
 
-export const mapCombinedGoalieData = (rawData: RawData[]): Goalie[] => [
+export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
   ...mapGoalieData(rawData)
-    .reduce((r, currentItem: Goalie) => {
+    .reduce((r, currentItem: GoalieWithSeason) => {
       // Helper to get statfields for initializing and combining
-      const itemKeys = Object.keys(currentItem) as GoalieFields[];
-      // Name field we don't need for this purposes
-      delete itemKeys[itemKeys.findIndex((itemKey) => itemKey === "name")];
+      const itemKeys = Object.keys(currentItem).filter(
+        (key) => key !== "name" && key !== "season" && key !== "gaa" && key !== "savePercent"
+      ) as GoalieFields[];
 
-      // Initialize item (grouped by name) or use already existing one
-      const item: Goalie = r.get(currentItem.name) || {
-        ...currentItem,
-        ...itemKeys.reduce((o, field) => ({ ...o, [field]: 0 }), {}),
-      };
+      let item = r.get(currentItem.name);
+
+      if (!item) {
+        item = {
+          name: currentItem.name,
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          seasons: [],
+        };
+        r.set(currentItem.name, item);
+      }
 
       // Sum statfields to previously combined data
-      itemKeys.forEach((itemKey) => ((item[itemKey] as number) += currentItem[itemKey] as number));
+      itemKeys.forEach((itemKey) => {
+        const key = itemKey as keyof Goalie;
+        if (typeof item[key] === "number") {
+          (item[key] as number) += currentItem[key] as number;
+        }
+      });
 
-      return r.set(currentItem.name, item);
-    }, new Map())
+      // Add season data, with season as the first property
+      const { name: _, season, ...restOfSeasonData } = currentItem;
+      item.seasons.push({ season, ...restOfSeasonData });
+
+      return r;
+    }, new Map<string, CombinedGoalie>())
     .values(),
 ];
 

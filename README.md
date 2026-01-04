@@ -20,13 +20,13 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
 
-`/players/season/:reportType/:season/:sortBy` - Get player stats for single season
+`/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
 
-`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season)
+`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats.
 
-`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for single season
+`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
 
-`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!)
+`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats.
 
 ### Parameters
 

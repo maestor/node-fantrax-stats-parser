@@ -24,6 +24,26 @@ export interface Goalie extends Common {
   savePercent?: string;
 }
 
+export interface PlayerWithSeason extends Player {
+  season: number;
+}
+
+export type PlayerSeasonData = Omit<PlayerWithSeason, "name">;
+
+export interface CombinedPlayer extends Player {
+  seasons: PlayerSeasonData[];
+}
+
+export interface GoalieWithSeason extends Goalie {
+  season: number;
+}
+
+export type GoalieSeasonData = Omit<GoalieWithSeason, "name">;
+
+export interface CombinedGoalie extends Goalie {
+  seasons: GoalieSeasonData[];
+}
+
 export type PlayerFields =
   | "name"
   | "games"
@@ -54,7 +74,6 @@ export type GoalieFields =
 export interface RawData {
   Skaters: string;
   season: number;
-  isSeason: boolean;
   field2: string;
   field3: string;
   field4: string;
