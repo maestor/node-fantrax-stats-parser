@@ -18,11 +18,11 @@
     "start": "npm run build && micro",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "verify": "npm run lint:check && npm run build && npm test",
+    "verify:coverage": "npm run lint:check && npm run build && npm run test:coverage"
   },
   "dependencies": {
-    "aws-lambda": "^1.0.7",
-    "aws-sdk": "^2.1693.0",
     "csvtojson": "^2.0.14",
     "micro": "^10.0.1",
     "micro-cors": "^0.1.1",
@@ -30,8 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
-    "@types/aws-lambda": "^8.10.159",
     "@types/eslint__js": "^8.42.3",
+    "@types/express": "^5.0.6",
     "@types/jest": "^29.5.14",
     "@types/microrouter": "^3.1.6",
     "@types/node": "^24.10.4",

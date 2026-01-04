@@ -10,28 +10,40 @@ import {
   CombinedGoalie,
 } from "./types";
 import { availableSeasons } from "./helpers";
+import { CSV, GOALIE_SCHEMA_CHANGE_YEAR } from "./constants";
+
+// Data have commas in thousands, pre-remove those that Number won't fail
+const parseNumber = (value: string) => {
+  try {
+    return Number(value.replace(",", ""));
+  } catch {
+    return 0;
+  }
+};
 
 export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) =>
-        i !== 0 && item.field2 !== "" && item.Skaters !== "G" && Number(item.field7) > 0
+        i !== 0 &&
+        item[CSV.NAME] !== "" &&
+        item[CSV.SKATER_TYPE] !== "G" &&
+        parseNumber(item[CSV.PLAYER_GAMES]) > 0
     )
     .map(
       (item: RawData): PlayerWithSeason => ({
-        // Data have commas in thousands, pre-remove those that Number won't fail
-        name: item.field2,
-        games: Number(item.field7.replace(",", "")) || 0,
-        goals: Number(item.field8.replace(",", "")) || 0,
-        assists: Number(item.field9.replace(",", "")) || 0,
-        points: Number(item.field10.replace(",", "")) || 0,
-        plusMinus: Number(item.field11.replace(",", "")) || 0,
-        penalties: Number(item.field12.replace(",", "")) || 0,
-        shots: Number(item.field13.replace(",", "")) || 0,
-        ppp: Number(item.field14.replace(",", "")) || 0,
-        shp: Number(item.field15.replace(",", "")) || 0,
-        hits: Number(item.field16.replace(",", "")) || 0,
-        blocks: Number(item.field17.replace(",", "")) || 0,
+        name: item[CSV.NAME],
+        games: parseNumber(item[CSV.PLAYER_GAMES]),
+        goals: parseNumber(item[CSV.PLAYER_GOALS]),
+        assists: parseNumber(item[CSV.PLAYER_ASSISTS]),
+        points: parseNumber(item[CSV.PLAYER_POINTS]),
+        plusMinus: parseNumber(item[CSV.PLAYER_PLUS_MINUS]),
+        penalties: parseNumber(item[CSV.PLAYER_PENALTIES]),
+        shots: parseNumber(item[CSV.PLAYER_SHOTS]),
+        ppp: parseNumber(item[CSV.PLAYER_PPP]),
+        shp: parseNumber(item[CSV.PLAYER_SHP]),
+        hits: parseNumber(item[CSV.PLAYER_HITS]),
+        blocks: parseNumber(item[CSV.PLAYER_BLOCKS]),
         season: item.season,
       })
     );
@@ -88,38 +100,39 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
     .filter(
       (item: RawData, i: number) =>
         i !== 0 &&
-        item.field2 !== "" &&
-        item.Skaters === "G" &&
-        (Number(item.field7) > 0 || Number(item.field8) > 0)
+        item[CSV.NAME] !== "" &&
+        item[CSV.SKATER_TYPE] === "G" &&
+        (parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]) > 0 ||
+          parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]) > 0)
     )
     .map((item: RawData): GoalieWithSeason => {
       let wins = 0;
       let games = 0;
 
       // Wins and games are different orders in different seasons -> dirty hack
-      if (item.season <= 2013) {
-        wins = Number(item.field8.replace(",", "")) || 0;
-        games = Number(item.field7.replace(",", "")) || 0;
+      if (item.season <= GOALIE_SCHEMA_CHANGE_YEAR) {
+        wins = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
+        games = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
       } else {
-        wins = Number(item.field7.replace(",", "")) || 0;
-        games = Number(item.field8.replace(",", "")) || 0;
+        wins = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
+        games = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
       }
 
       return {
-        name: item.field2,
+        name: item[CSV.NAME],
         games,
         wins,
-        saves: Number(item.field10.replace(",", "")) || 0,
-        shutouts: Number(item.field12.replace(",", "")) || 0,
-        goals: Number(item.field14.replace(",", "")) || 0,
-        assists: Number(item.field15.replace(",", "")) || 0,
-        points: Number(item.field16.replace(",", "")) || 0,
-        penalties: Number(item.field13.replace(",", "")) || 0,
-        ppp: Number(item.field17.replace(",", "")) || 0,
-        shp: item.field18 ? Number(item.field18.replace(",", "")) : 0,
+        saves: parseNumber(item[CSV.GOALIE_SAVES]),
+        shutouts: parseNumber(item[CSV.GOALIE_SHUTOUTS]),
+        goals: parseNumber(item[CSV.GOALIE_GOALS]),
+        assists: parseNumber(item[CSV.GOALIE_ASSISTS]),
+        points: parseNumber(item[CSV.GOALIE_POINTS]),
+        penalties: parseNumber(item[CSV.GOALIE_PENALTIES]),
+        ppp: parseNumber(item[CSV.GOALIE_PPP]),
+        shp: parseNumber(item[CSV.GOALIE_SHP]),
         season: item.season,
-        gaa: item.field9,
-        savePercent: item.field11,
+        gaa: item[CSV.GOALIE_GAA],
+        savePercent: item[CSV.GOALIE_SAVE_PERCENT],
       };
     });
 };

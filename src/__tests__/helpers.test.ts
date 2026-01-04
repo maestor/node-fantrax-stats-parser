@@ -7,7 +7,7 @@ jest.mock("fs", () => ({
 }));
 
 import fs from "fs";
-import { sortItemsByStatField, availableSeasons, seasonAvailable, reportTypeAvailable } from "../helpers";
+import { sortItemsByStatField, availableSeasons, seasonAvailable, reportTypeAvailable, parseSeasonParam } from "../helpers";
 import { Player, Goalie, Report } from "../types";
 
 describe("helpers", () => {
@@ -152,6 +152,7 @@ describe("helpers", () => {
     });
 
     test("returns data unsorted for unknown kind", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = sortItemsByStatField([...players], "unknown" as any);
       expect(result[0].name).toBe("Player A");
       expect(result[1].name).toBe("Player B");
@@ -177,7 +178,7 @@ describe("helpers", () => {
       expect(result.length).toBe(3);
     });
 
-    test("returns empty array when no files exist", () => {
+    test("returns empty array when no files exist", async () => {
       // Mock fs with empty array for this specific test
       jest.resetModules();
       jest.doMock("fs", () => ({
@@ -185,7 +186,7 @@ describe("helpers", () => {
       }));
 
       // Re-import helpers with the new mock
-      const { availableSeasons: emptyAvailableSeasons } = require("../helpers");
+      const { availableSeasons: emptyAvailableSeasons } = await import("../helpers");
 
       const result = emptyAvailableSeasons();
       expect(result).toEqual([]);
@@ -235,6 +236,37 @@ describe("helpers", () => {
 
     test("returns false for undefined", () => {
       expect(reportTypeAvailable(undefined)).toBe(false);
+    });
+  });
+
+  describe("parseSeasonParam", () => {
+    test("returns number for valid numeric string", () => {
+      expect(parseSeasonParam("2024")).toBe(2024);
+      expect(parseSeasonParam("2012")).toBe(2012);
+    });
+
+    test("returns undefined for undefined", () => {
+      expect(parseSeasonParam(undefined)).toBe(undefined);
+    });
+
+    test("returns undefined for empty string", () => {
+      expect(parseSeasonParam("")).toBe(undefined);
+    });
+
+    test("returns undefined for null", () => {
+      expect(parseSeasonParam(null)).toBe(undefined);
+    });
+
+    test("returns undefined for non-numeric string", () => {
+      expect(parseSeasonParam("abc")).toBe(undefined);
+    });
+
+    test("returns undefined for NaN", () => {
+      expect(parseSeasonParam(NaN)).toBe(undefined);
+    });
+
+    test("handles number input correctly", () => {
+      expect(parseSeasonParam(2024)).toBe(2024);
     });
   });
 });
