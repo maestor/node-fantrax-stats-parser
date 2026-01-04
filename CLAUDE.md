@@ -85,9 +85,9 @@ The codebase follows these quality patterns established through systematic refac
 
 **Constants Over Magic Values**:
 
-- `GOALIE_SCHEMA_CHANGE_YEAR = 2013` (mappings.ts:14) - Documents the year goalie CSV schema changed
-- `CSV` object (mappings.ts:17-45) - Self-documenting field mappings replace generic field2, field7, etc.
-- `HTTP_STATUS` object (helpers.ts:7-11) - Named constants for 200, 400, 500 status codes
+- `GOALIE_SCHEMA_CHANGE_YEAR = 2013` (constants.ts:5) - Documents the year goalie CSV schema changed
+- `CSV` object (constants.ts:21-49) - Self-documenting field mappings replace generic field2, field7, etc.
+- `HTTP_STATUS` object (constants.ts:9-13) - Named constants for 200, 400, 500 status codes
 
 **Error Handling**:
 
