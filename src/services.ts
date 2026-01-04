@@ -9,7 +9,7 @@ import {
   mapCombinedPlayerData,
   mapCombinedGoalieData,
 } from './mappings';
-import { PlayerFields, GoalieFields, RawData, Report } from './types';
+import { PlayerFields, GoalieFields, RawData, Report, Player, Goalie } from './types';
 
 // Parser want seasons as array even in one season cases
 const getSeasonParam = (season?: number): number[] => [
@@ -21,16 +21,17 @@ const getRawDataFromFiles = async (
   seasons: number[],
 ): Promise<RawData[]> => {
   const sources = seasons.map(async (season) => {
+    const filePath = `${path.join(__dirname, '../csv')}/${report}-${season}-${season + 1}.csv`;
     try {
-      const sourceToJson = await csv().fromFile(
-        `${path.join(__dirname, '../csv')}/${report}-${season}-${season + 1}.csv`,
-      );
+      const sourceToJson = await csv().fromFile(filePath);
 
       return sourceToJson.map((item) => ({
         ...item,
         season,
       }));
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to read CSV file: ${filePath}`, error);
       return [];
     }
   });
@@ -59,26 +60,22 @@ export const getGoaliesStatsSeason = async (
   return sortItemsByStatField(mapGoalieData(rawData), 'goalies', sortBy);
 };
 
+const getCombinedStats = async (
+  report: Report,
+  mapper: (data: RawData[]) => (Player | Goalie)[],
+  kind: 'players' | 'goalies',
+  sortBy?: PlayerFields | GoalieFields,
+) => {
+  const rawData = await getRawDataFromFiles(report, availableSeasons());
+  return sortItemsByStatField(mapper(rawData) as Player[] | Goalie[], kind, sortBy);
+};
+
 export const getPlayersStatsCombined = async (
   report: Report,
   sortBy?: PlayerFields,
-) => {
-  const rawData = await getRawDataFromFiles(report, availableSeasons());
-  return sortItemsByStatField(
-    mapCombinedPlayerData(rawData),
-    'players',
-    sortBy,
-  );
-};
+) => getCombinedStats(report, mapCombinedPlayerData, 'players', sortBy);
 
 export const getGoaliesStatsCombined = async (
   report: Report,
   sortBy?: GoalieFields,
-) => {
-  const rawData = await getRawDataFromFiles(report, availableSeasons());
-  return sortItemsByStatField(
-    mapCombinedGoalieData(rawData),
-    'goalies',
-    sortBy,
-  );
-};
+) => getCombinedStats(report, mapCombinedGoalieData, 'goalies', sortBy);

@@ -74,6 +74,29 @@ Both deployment models share the same core business logic (services.ts, mappings
 
 **Combined Stats Logic**: When combining seasons, stats are summed by player name using a Map for efficient deduplication. Each combined record includes a `seasons` array with individual season breakdowns.
 
+### Code Quality Patterns
+
+The codebase follows these quality patterns established through systematic refactoring:
+
+**Constants Over Magic Values**:
+- `GOALIE_SCHEMA_CHANGE_YEAR = 2013` (mappings.ts:14) - Documents the year goalie CSV schema changed
+- `CSV_FIELD` object (mappings.ts:17-45) - Self-documenting field mappings replace generic field2, field7, etc.
+- `HTTP_STATUS` object (helpers.ts:7-11) - Named constants for 200, 400, 500 status codes
+
+**Error Handling**:
+- CSV file reading errors are logged with `console.error` including file path (services.ts:33)
+- Route handlers use `withErrorHandling` wrapper to consistently handle errors (routes.ts:13-23)
+- Early returns after validation errors prevent code execution after error responses (routes.ts)
+
+**Type Safety**:
+- No `any` types in production code except necessary test cases
+- Proper type assertions instead of `any` in sort functions (helpers.ts:30-36)
+- Season parameter parsing with `parseSeasonParam` correctly handles undefined (helpers.ts:51-55)
+
+**DRY Principles**:
+- `getCombinedStats` generic helper eliminates duplication between player/goalie combined endpoints (services.ts:62-70)
+- `withErrorHandling` wrapper eliminates repeated try/catch blocks in route handlers (routes.ts:13-23)
+
 ### TypeScript Configuration
 
 - Target: ES2017, CommonJS modules

@@ -1,5 +1,5 @@
 import { send } from "micro";
-import { AugmentedRequestHandler } from "microrouter";
+import { AugmentedRequestHandler, ServerResponse } from "microrouter";
 import {
   getAvailableSeasons,
   getPlayersStatsSeason,
@@ -10,13 +10,20 @@ import {
 import { PlayerFields, GoalieFields, Report } from "./types";
 import { reportTypeAvailable, seasonAvailable, parseSeasonParam, ERROR_MESSAGES, HTTP_STATUS } from "./helpers";
 
-export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
+const withErrorHandling = async (
+  res: ServerResponse,
+  handler: () => Promise<unknown>,
+) => {
   try {
-    const data = await getAvailableSeasons();
+    const data = await handler();
     send(res, HTTP_STATUS.OK, data);
   } catch (error) {
     send(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
   }
+};
+
+export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
+  await withErrorHandling(res, () => getAvailableSeasons());
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
@@ -34,12 +41,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  try {
-    const data = await getPlayersStatsSeason(report, season, sortBy);
-    send(res, HTTP_STATUS.OK, data);
-  } catch (error) {
-    send(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-  }
+  await withErrorHandling(res, () => getPlayersStatsSeason(report, season, sortBy));
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
@@ -51,12 +53,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  try {
-    const data = await getPlayersStatsCombined(report, sortBy);
-    send(res, HTTP_STATUS.OK, data);
-  } catch (error) {
-    send(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-  }
+  await withErrorHandling(res, () => getPlayersStatsCombined(report, sortBy));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
@@ -74,12 +71,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  try {
-    const data = await getGoaliesStatsSeason(report, season, sortBy);
-    send(res, HTTP_STATUS.OK, data);
-  } catch (error) {
-    send(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-  }
+  await withErrorHandling(res, () => getGoaliesStatsSeason(report, season, sortBy));
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
@@ -91,10 +83,5 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  try {
-    const data = await getGoaliesStatsCombined(report, sortBy);
-    send(res, HTTP_STATUS.OK, data);
-  } catch (error) {
-    send(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-  }
+  await withErrorHandling(res, () => getGoaliesStatsCombined(report, sortBy));
 };
