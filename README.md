@@ -40,6 +40,16 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
+## Testing
+
+```
+npm test              # Run all tests
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+```
+
+Test coverage: 100% statements, 100% functions, 100% lines, 97% branches. Coverage reports are generated in the `coverage/` directory.
+
 ## Todo
 
 - Start using database and CSV import tool
