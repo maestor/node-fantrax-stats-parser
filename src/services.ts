@@ -29,7 +29,6 @@ const getRawDataFromFiles = async (
       return sourceToJson.map((item) => ({
         ...item,
         season,
-        isSeason: seasons.length === 1,
       }));
     } catch {
       return [];
