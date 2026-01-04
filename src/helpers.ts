@@ -4,6 +4,12 @@ import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
 const START_SEASON = 2012;
 const REPORT_TYPES: Report[] = ["playoffs", "regular"];
 
+export const HTTP_STATUS = {
+  OK: 200,
+  BAD_REQUEST: 400,
+  INTERNAL_SERVER_ERROR: 500,
+} as const;
+
 export const ERROR_MESSAGES = {
   INVALID_REPORT_TYPE: "Invalid report type",
   SEASON_NOT_AVAILABLE: "Stats for given season are not available",
@@ -27,12 +33,12 @@ export const sortItemsByStatField = (
   }
 
   if (kind === "players") {
-    return data.sort((a: any, b: any) =>
-      sortBy ? b[sortBy] - a[sortBy] : defaultSortPlayers(a, b)
+    return (data as Player[]).sort((a, b) =>
+      sortBy ? (b[sortBy as PlayerFields] as number) - (a[sortBy as PlayerFields] as number) : defaultSortPlayers(a, b)
     );
   } else if (kind === "goalies") {
-    return data.sort((a: any, b: any) =>
-      sortBy ? b[sortBy] - a[sortBy] : defaultSortGoalies(a, b)
+    return (data as Goalie[]).sort((a, b) =>
+      sortBy ? (b[sortBy as GoalieFields] as number) - (a[sortBy as GoalieFields] as number) : defaultSortGoalies(a, b)
     );
   } else {
     return data;
@@ -47,3 +53,9 @@ export const seasonAvailable = (season?: number) =>
 
 export const reportTypeAvailable = (report?: Report) =>
   (report && REPORT_TYPES.includes(report)) ?? false;
+
+export const parseSeasonParam = (value: unknown): number | undefined => {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};

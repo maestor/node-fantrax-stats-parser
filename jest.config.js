@@ -21,4 +21,9 @@ module.exports = {
   coverageDirectory: 'coverage',
   moduleFileExtensions: ['ts', 'js'],
   verbose: true,
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
+      isolatedModules: true,
+    }],
+  },
 };

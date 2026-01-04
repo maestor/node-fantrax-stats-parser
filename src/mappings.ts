@@ -11,27 +11,60 @@ import {
 } from "./types";
 import { availableSeasons } from "./helpers";
 
+const GOALIE_SCHEMA_CHANGE_YEAR = 2013;
+
+// CSV field mapping constants
+const CSV_FIELD = {
+  NAME: "field2" as const,
+  SKATER_TYPE: "Skaters" as const,
+  // Player fields
+  PLAYER_GAMES: "field7" as const,
+  PLAYER_GOALS: "field8" as const,
+  PLAYER_ASSISTS: "field9" as const,
+  PLAYER_POINTS: "field10" as const,
+  PLAYER_PLUS_MINUS: "field11" as const,
+  PLAYER_PENALTIES: "field12" as const,
+  PLAYER_SHOTS: "field13" as const,
+  PLAYER_PPP: "field14" as const,
+  PLAYER_SHP: "field15" as const,
+  PLAYER_HITS: "field16" as const,
+  PLAYER_BLOCKS: "field17" as const,
+  // Goalie fields (note: wins/games swap based on year)
+  GOALIE_WINS_OR_GAMES_OLD: "field7" as const,
+  GOALIE_GAMES_OR_WINS_OLD: "field8" as const,
+  GOALIE_GAA: "field9" as const,
+  GOALIE_SAVES: "field10" as const,
+  GOALIE_SAVE_PERCENT: "field11" as const,
+  GOALIE_SHUTOUTS: "field12" as const,
+  GOALIE_PENALTIES: "field13" as const,
+  GOALIE_GOALS: "field14" as const,
+  GOALIE_ASSISTS: "field15" as const,
+  GOALIE_POINTS: "field16" as const,
+  GOALIE_PPP: "field17" as const,
+  GOALIE_SHP: "field18" as const,
+} as const;
+
 export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) =>
-        i !== 0 && item.field2 !== "" && item.Skaters !== "G" && Number(item.field7) > 0
+        i !== 0 && item[CSV_FIELD.NAME] !== "" && item[CSV_FIELD.SKATER_TYPE] !== "G" && Number(item[CSV_FIELD.PLAYER_GAMES]) > 0
     )
     .map(
       (item: RawData): PlayerWithSeason => ({
         // Data have commas in thousands, pre-remove those that Number won't fail
-        name: item.field2,
-        games: Number(item.field7.replace(",", "")) || 0,
-        goals: Number(item.field8.replace(",", "")) || 0,
-        assists: Number(item.field9.replace(",", "")) || 0,
-        points: Number(item.field10.replace(",", "")) || 0,
-        plusMinus: Number(item.field11.replace(",", "")) || 0,
-        penalties: Number(item.field12.replace(",", "")) || 0,
-        shots: Number(item.field13.replace(",", "")) || 0,
-        ppp: Number(item.field14.replace(",", "")) || 0,
-        shp: Number(item.field15.replace(",", "")) || 0,
-        hits: Number(item.field16.replace(",", "")) || 0,
-        blocks: Number(item.field17.replace(",", "")) || 0,
+        name: item[CSV_FIELD.NAME],
+        games: Number(item[CSV_FIELD.PLAYER_GAMES].replace(",", "")) || 0,
+        goals: Number(item[CSV_FIELD.PLAYER_GOALS].replace(",", "")) || 0,
+        assists: Number(item[CSV_FIELD.PLAYER_ASSISTS].replace(",", "")) || 0,
+        points: Number(item[CSV_FIELD.PLAYER_POINTS].replace(",", "")) || 0,
+        plusMinus: Number(item[CSV_FIELD.PLAYER_PLUS_MINUS].replace(",", "")) || 0,
+        penalties: Number(item[CSV_FIELD.PLAYER_PENALTIES].replace(",", "")) || 0,
+        shots: Number(item[CSV_FIELD.PLAYER_SHOTS].replace(",", "")) || 0,
+        ppp: Number(item[CSV_FIELD.PLAYER_PPP].replace(",", "")) || 0,
+        shp: Number(item[CSV_FIELD.PLAYER_SHP].replace(",", "")) || 0,
+        hits: Number(item[CSV_FIELD.PLAYER_HITS].replace(",", "")) || 0,
+        blocks: Number(item[CSV_FIELD.PLAYER_BLOCKS].replace(",", "")) || 0,
         season: item.season,
       })
     );
@@ -88,38 +121,38 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
     .filter(
       (item: RawData, i: number) =>
         i !== 0 &&
-        item.field2 !== "" &&
-        item.Skaters === "G" &&
-        (Number(item.field7) > 0 || Number(item.field8) > 0)
+        item[CSV_FIELD.NAME] !== "" &&
+        item[CSV_FIELD.SKATER_TYPE] === "G" &&
+        (Number(item[CSV_FIELD.GOALIE_WINS_OR_GAMES_OLD]) > 0 || Number(item[CSV_FIELD.GOALIE_GAMES_OR_WINS_OLD]) > 0)
     )
     .map((item: RawData): GoalieWithSeason => {
       let wins = 0;
       let games = 0;
 
       // Wins and games are different orders in different seasons -> dirty hack
-      if (item.season <= 2013) {
-        wins = Number(item.field8.replace(",", "")) || 0;
-        games = Number(item.field7.replace(",", "")) || 0;
+      if (item.season <= GOALIE_SCHEMA_CHANGE_YEAR) {
+        wins = Number(item[CSV_FIELD.GOALIE_GAMES_OR_WINS_OLD].replace(",", "")) || 0;
+        games = Number(item[CSV_FIELD.GOALIE_WINS_OR_GAMES_OLD].replace(",", "")) || 0;
       } else {
-        wins = Number(item.field7.replace(",", "")) || 0;
-        games = Number(item.field8.replace(",", "")) || 0;
+        wins = Number(item[CSV_FIELD.GOALIE_WINS_OR_GAMES_OLD].replace(",", "")) || 0;
+        games = Number(item[CSV_FIELD.GOALIE_GAMES_OR_WINS_OLD].replace(",", "")) || 0;
       }
 
       return {
-        name: item.field2,
+        name: item[CSV_FIELD.NAME],
         games,
         wins,
-        saves: Number(item.field10.replace(",", "")) || 0,
-        shutouts: Number(item.field12.replace(",", "")) || 0,
-        goals: Number(item.field14.replace(",", "")) || 0,
-        assists: Number(item.field15.replace(",", "")) || 0,
-        points: Number(item.field16.replace(",", "")) || 0,
-        penalties: Number(item.field13.replace(",", "")) || 0,
-        ppp: Number(item.field17.replace(",", "")) || 0,
-        shp: item.field18 ? Number(item.field18.replace(",", "")) : 0,
+        saves: Number(item[CSV_FIELD.GOALIE_SAVES].replace(",", "")) || 0,
+        shutouts: Number(item[CSV_FIELD.GOALIE_SHUTOUTS].replace(",", "")) || 0,
+        goals: Number(item[CSV_FIELD.GOALIE_GOALS].replace(",", "")) || 0,
+        assists: Number(item[CSV_FIELD.GOALIE_ASSISTS].replace(",", "")) || 0,
+        points: Number(item[CSV_FIELD.GOALIE_POINTS].replace(",", "")) || 0,
+        penalties: Number(item[CSV_FIELD.GOALIE_PENALTIES].replace(",", "")) || 0,
+        ppp: Number(item[CSV_FIELD.GOALIE_PPP].replace(",", "")) || 0,
+        shp: item[CSV_FIELD.GOALIE_SHP] ? Number(item[CSV_FIELD.GOALIE_SHP].replace(",", "")) : 0,
         season: item.season,
-        gaa: item.field9,
-        savePercent: item.field11,
+        gaa: item[CSV_FIELD.GOALIE_GAA],
+        savePercent: item[CSV_FIELD.GOALIE_SAVE_PERCENT],
       };
     });
 };

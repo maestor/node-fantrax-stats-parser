@@ -25,6 +25,10 @@ This is a TypeScript-based API that parses NHL fantasy league stats from CSV fil
 - `npm run test:watch` - Run tests in watch mode for development
 - `npm run test:coverage` - Run tests with coverage report (HTML report at coverage/index.html)
 
+### Verification (Quality Gates)
+- `npm run verify` - **REQUIRED BEFORE COMMITS**: Run lint → build → test (must all pass)
+- `npm run verify:coverage` - Run lint → build → test with coverage report
+
 ## Architecture
 
 ### Dual Deployment Model
@@ -75,6 +79,9 @@ Both deployment models share the same core business logic (services.ts, mappings
 - Target: ES2017, CommonJS modules
 - Output: lib/ directory
 - Strict mode enabled with noUnusedLocals and noUnusedParameters
+- **Test files excluded from build**: tsconfig.json excludes `src/**/*.test.ts` and `src/__tests__/` from compilation
+  - Test files are only compiled by ts-jest when running tests
+  - Build output in lib/ contains only production code (routes, services, mappings, helpers, lambdas, types, index)
 
 ### ESLint Rules
 
@@ -82,22 +89,39 @@ Both deployment models share the same core business logic (services.ts, mappings
 - `@typescript-eslint/no-explicit-any` is set to warn (not error)
 - Enforces prefer-const, no-var, object-shorthand, prefer-template
 
+## Quality Gates (CRITICAL)
+
+**All code changes MUST pass these checks before committing:**
+
+1. **Lint Check**: `npm run lint:check` - Zero warnings or errors allowed
+2. **Build**: `npm run build` - TypeScript compilation must succeed
+3. **Tests**: `npm test` - All 94 tests must pass with 100%/100%/100%/97% coverage
+
+**Use `npm run verify` to run all three checks in sequence.** This is the gate for all commits.
+
+### Build Requirements
+
+- Test files (`src/__tests__/**`, `src/**/*.test.ts`) are excluded from TypeScript compilation
+- Production build creates clean output in `lib/` with only runtime code
+- Jest runs with `isolatedModules: true` for faster test compilation
+- Express types (`@types/express`) required as devDependency for node-mocks-http compatibility
+
 ## Testing
 
 ### Test Suite Overview
 
-Comprehensive test suite using Jest with TypeScript support via ts-jest. **87 tests** covering all business logic and micro server routes.
+Comprehensive test suite using Jest with TypeScript support via ts-jest. **94 tests** covering all business logic and micro server routes.
 
 **Coverage:** 100% statements, 100% functions, 100% lines, 97% branches
 - Lambda handlers are excluded from coverage (tested separately if needed)
-- The 2 uncovered branches are defensive programming that can't be reached (helpers.ts:43, mappings.ts:24)
+- The 2 uncovered branches are defensive programming that can't be reached (helpers.ts:49, mappings.ts:57)
 
 ### Test Structure
 
 ```
 src/__tests__/
 ├── fixtures.ts          # Reusable test data and mock objects
-├── helpers.test.ts      # Sorting, validation, season discovery (16 tests)
+├── helpers.test.ts      # Sorting, validation, season discovery (23 tests - includes parseSeasonParam)
 ├── mappings.test.ts     # CSV data transformation (33 tests)
 ├── services.test.ts     # Business logic, CSV reading (17 tests)
 └── routes.test.ts       # HTTP route handlers (21 tests)

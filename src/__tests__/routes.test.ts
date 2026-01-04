@@ -14,7 +14,7 @@ import {
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
 } from "../services";
-import { reportTypeAvailable, seasonAvailable, ERROR_MESSAGES } from "../helpers";
+import { reportTypeAvailable, seasonAvailable, parseSeasonParam, ERROR_MESSAGES, HTTP_STATUS } from "../helpers";
 
 jest.mock("micro");
 jest.mock("../services");
@@ -35,7 +35,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 200, mockSeasons);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
     test("returns 500 on service error", async () => {
@@ -47,7 +47,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 500, error);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
   });
 
@@ -56,6 +56,7 @@ describe("routes", () => {
       const mockPlayers = [{ name: "Test Player", goals: 50 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
       (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getPlayersStatsSeason as jest.Mock).mockResolvedValue(mockPlayers);
 
       const req = createRequest({
@@ -72,7 +73,7 @@ describe("routes", () => {
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024);
       expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "goals");
-      expect(send).toHaveBeenCalledWith(res, 200, mockPlayers);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
     test("returns 400 for invalid report type", async () => {
@@ -86,7 +87,7 @@ describe("routes", () => {
 
       await getPlayersSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
 
     test("returns 400 for unavailable season", async () => {
@@ -100,7 +101,7 @@ describe("routes", () => {
 
       await getPlayersSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     });
 
     test("returns 500 on service error", async () => {
@@ -116,13 +117,14 @@ describe("routes", () => {
 
       await getPlayersSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 500, error);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
     test("works without sortBy parameter", async () => {
       const mockPlayers = [{ name: "Test Player", goals: 50 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
       (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getPlayersStatsSeason as jest.Mock).mockResolvedValue(mockPlayers);
 
       const req = createRequest({
@@ -133,7 +135,7 @@ describe("routes", () => {
       await getPlayersSeason(req, res);
 
       expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined);
-      expect(send).toHaveBeenCalledWith(res, 200, mockPlayers);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
   });
 
@@ -152,7 +154,7 @@ describe("routes", () => {
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "points");
-      expect(send).toHaveBeenCalledWith(res, 200, mockPlayers);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
     test("returns 400 for invalid report type", async () => {
@@ -165,7 +167,7 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
 
     test("returns 500 on service error", async () => {
@@ -180,7 +182,7 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 500, error);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
     test("passes sortBy to service correctly", async () => {
@@ -219,6 +221,7 @@ describe("routes", () => {
       const mockGoalies = [{ name: "Test Goalie", wins: 40 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
       (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
 
       const req = createRequest({
@@ -231,7 +234,7 @@ describe("routes", () => {
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024);
       expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "wins");
-      expect(send).toHaveBeenCalledWith(res, 200, mockGoalies);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
     test("returns 400 for invalid report type", async () => {
@@ -245,7 +248,7 @@ describe("routes", () => {
 
       await getGoaliesSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
 
     test("returns 400 for unavailable season", async () => {
@@ -259,7 +262,7 @@ describe("routes", () => {
 
       await getGoaliesSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     });
 
     test("returns 500 on service error", async () => {
@@ -275,13 +278,14 @@ describe("routes", () => {
 
       await getGoaliesSeason(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 500, error);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
     test("works without sortBy parameter", async () => {
       const mockGoalies = [{ name: "Test Goalie", wins: 40 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
       (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
 
       const req = createRequest({
@@ -310,7 +314,7 @@ describe("routes", () => {
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "wins");
-      expect(send).toHaveBeenCalledWith(res, 200, mockGoalies);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
     test("returns 400 for invalid report type", async () => {
@@ -323,7 +327,7 @@ describe("routes", () => {
 
       await getGoaliesCombined(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 400, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
 
     test("returns 500 on service error", async () => {
@@ -338,7 +342,7 @@ describe("routes", () => {
 
       await getGoaliesCombined(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, 500, error);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
     test("works without sortBy parameter", async () => {
