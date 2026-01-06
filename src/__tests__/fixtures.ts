@@ -218,6 +218,7 @@ export const mockPlayer: Player = {
   hits: 30,
   blocks: 25,
   score: 0,
+  scoreAdjustedByGames: 0,
 };
 
 export const mockPlayerWithSeason: PlayerWithSeason = {
@@ -240,6 +241,7 @@ export const mockGoalie: Goalie = {
   gaa: "2.50",
   savePercent: "0.920",
   score: 0,
+  scoreAdjustedByGames: 0,
 };
 
 export const mockGoalieWithSeason: GoalieWithSeason = {

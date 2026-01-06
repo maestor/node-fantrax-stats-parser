@@ -72,7 +72,7 @@ Both deployment models share the same core business logic (services.ts, mappings
 
 **Scoring**:
 
-- Player and goalie items include a `score` field (0–100, two decimals) computed from their stats, plus a `scores` object with per-stat normalized values.
+- Player and goalie items include a `score` field (0–100, two decimals) computed from their total stats, a `scoreAdjustedByGames` field computed from per-game stats (with a minimum games threshold), plus a `scores` object with per-stat normalized values.
 - Player scoring fields: goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks.
 - Goalie scoring fields: wins, saves, shutouts, plus optional gaa and savePercent when present (goalie goals/assists/points/PIM/PP/SHP are tracked but not used in scoring).
 - For non-negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring normalizes from a baseline of 0 up to the maximum value seen in the current result set: 0 maps to 0, the maximum to 100, and values in between are placed linearly between them. For goalies, only wins, saves, and shutouts participate in this part of the score.
@@ -153,7 +153,7 @@ The codebase follows these quality patterns established through systematic refac
 
 Comprehensive test suite using Jest with TypeScript support via ts-jest. **100+ tests** covering all business logic and micro server routes.
 
-**Coverage:** 100% statements, 100% functions, 100% lines, ~95% branches
+**Coverage:** 100% statements, 100% functions, 100% lines, 100% branches
 
 - Lambda handlers are excluded from coverage (tested separately if needed)
 

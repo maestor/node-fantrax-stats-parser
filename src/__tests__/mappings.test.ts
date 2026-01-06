@@ -71,6 +71,7 @@ describe("mappings", () => {
         hits: 30,
         blocks: 25,
         score: 0,
+        scoreAdjustedByGames: 0,
         season: 2024,
       });
     });
@@ -214,6 +215,7 @@ describe("mappings", () => {
         ppp: 2,
         shp: 1,
         score: 0,
+        scoreAdjustedByGames: 0,
         season: 2014,
         gaa: "2.30",
         savePercent: "0.920",

@@ -98,3 +98,6 @@ export const GOALIE_GAA_MAX_DIFF_RATIO = 0.5;
 
 // Baseline save percentage for scoring (used to avoid extreme 0 scores)
 export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850
+
+// Minimum games required for games-adjusted scoring (players and goalies)
+export const MIN_GAMES_FOR_ADJUSTED_SCORE = 3;
