@@ -1,4 +1,10 @@
-import { Report } from "./types";
+import {
+  Report,
+  PlayerScoreField,
+  GoalieScoreField,
+  PlayerScoreWeights,
+  GoalieScoreWeights,
+} from "./types";
 
 export const START_SEASON = 2012;
 
@@ -47,3 +53,56 @@ export const CSV = {
   GOALIE_PPP: "field17" as const,
   GOALIE_SHP: "field18" as const,
 } as const;
+
+export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
+  "goals",
+  "assists",
+  "points",
+  "plusMinus",
+  "penalties",
+  "shots",
+  "ppp",
+  "shp",
+  "hits",
+  "blocks",
+];
+
+export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = [
+  "wins",
+  "saves",
+  "shutouts",
+  "goals",
+  "assists",
+  "points",
+  "penalties",
+  "ppp",
+  "shp",
+];
+
+// Weights for score calculation: all fields contribute equally. Adjust these values (0-1) to change weighting.
+export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
+  goals: 1,
+  assists: 1,
+  points: 1,
+  plusMinus: 0.8,
+  penalties: 1,
+  shots: 1,
+  ppp: 1,
+  shp: 0.5,
+  hits: 1,
+  blocks: 1,
+};
+
+export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
+  wins: 1,
+  saves: 1,
+  shutouts: 0.8,
+  goals: 0.5,
+  assists: 0.5,
+  points: 0.5,
+  penalties: 0.8,
+  ppp: 0.6,
+  shp: 0.5,
+  gaa: 1,
+  savePercent: 1,
+};

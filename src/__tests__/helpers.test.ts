@@ -229,6 +229,88 @@ describe("helpers", () => {
       const result = applyPlayerScores([]);
       expect(result).toEqual([]);
     });
+
+    test("uses dataset minimum as 0 baseline for always-positive stats", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Top Scorer",
+          games: 0,
+          goals: 40,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+        },
+        {
+          name: "Lowest With Goals",
+          games: 0,
+          goals: 3,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+        },
+      ];
+
+      const [top, lowest] = applyPlayerScores(testPlayers);
+
+      expect(lowest.score).toBe(0);
+      expect((top.score as number) > 0).toBe(true);
+    });
+
+    test("handles equal positive values for always-positive stats", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Player One",
+          games: 0,
+          goals: 10,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+        },
+        {
+          name: "Player Two",
+          games: 0,
+          goals: 10,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+        },
+      ];
+
+      const [one, two] = applyPlayerScores(testPlayers);
+
+      expect(one.score).toBeDefined();
+      expect(two.score).toBeDefined();
+      expect(one.score).toBe(two.score);
+      expect((one.score as number) > 0).toBe(true);
+    });
   });
 
   describe("applyPlayerScores plusMinus handling", () => {
@@ -440,6 +522,126 @@ describe("helpers", () => {
     test("returns empty array unchanged when no goalies", () => {
       const result = applyGoalieScores([]);
       expect(result).toEqual([]);
+    });
+
+    test("uses dataset minimum as 0 baseline for goalie always-positive stats", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Top Goalie",
+          games: 0,
+          wins: 40,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+        },
+        {
+          name: "Lowest With Wins",
+          games: 0,
+          wins: 3,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+        },
+      ];
+
+      const [top, lowest] = applyGoalieScores(testGoalies);
+
+      expect(lowest.score).toBe(0);
+      expect((top.score as number) > 0).toBe(true);
+    });
+
+    test("handles equal positive values for goalie always-positive stats", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Goalie One",
+          games: 0,
+          wins: 10,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+        },
+        {
+          name: "Goalie Two",
+          games: 0,
+          wins: 10,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+        },
+      ];
+
+      const [one, two] = applyGoalieScores(testGoalies);
+
+      expect(one.score).toBeDefined();
+      expect(two.score).toBeDefined();
+      expect(one.score).toBe(two.score);
+      expect((one.score as number) > 0).toBe(true);
+    });
+
+    test("handles equal savePercent values using full contribution", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Equal A",
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.920",
+          score: 0,
+        },
+        {
+          name: "Equal B",
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.920",
+          score: 0,
+        },
+      ];
+
+      const [a, b] = applyGoalieScores(testGoalies);
+
+      expect(a.score).toBeDefined();
+      expect(b.score).toBeDefined();
+      expect(a.score).toBe(b.score);
+      expect(a.score).toBe(100);
     });
 
     test("includes savePercent and gaa contributions when present, including invalid values", () => {

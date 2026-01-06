@@ -47,9 +47,9 @@ Each player and goalie item returned by the stats endpoints includes a computed 
 Scoring is calculated in two steps:
 
 1. **Per‑stat normalization**
-   - For most fields, the best value in the result set gets 100.0 points for that field, and every other item gets a value relative to the best. For example, if the top `goals` value is 50, a player with 25 goals gets 50.0 points for the `goals` component.
-   - For `plusMinus`, scoring uses both the minimum and maximum values observed in the result set. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
-   - For goalies, `savePercent` is treated like other "higher is better" stats, while `gaa` is inverted so that the lowest GAA maps to 100, the highest to 0, and values in between are placed linearly between them.
+   - For most always‑positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses both the minimum and maximum values observed in the current result set. The minimum value in that dataset maps to 0, the maximum to 100, and values in between are placed linearly between them. This means the worst stat line in that result set always contributes 0 for that component, even if it is not literally 0 in absolute terms.
+   - For `plusMinus`, scoring also uses the minimum and maximum values observed in the result set, but the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
+   - For goalies, `savePercent` follows the same "higher is better" min/max normalization as other positive stats, while `gaa` is inverted so that the lowest GAA maps to 100, the highest to 0, and values in between are placed linearly between them.
 
 2. **Overall score**
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).

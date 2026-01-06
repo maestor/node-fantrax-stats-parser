@@ -75,7 +75,8 @@ Both deployment models share the same core business logic (services.ts, mappings
 - Player and goalie items include a `score` field (0–100, two decimals) computed from their stats.
 - Player scoring fields: goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks.
 - Goalie scoring fields: wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, plus optional gaa and savePercent when present.
-- For most fields, the best value gets 100 and others are scaled relative to it; plusMinus, gaa, and savePercent use min/max-based normalization (plusMinus and gaa have special handling where lower can be better).
+- For always-positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses per-dataset min/max normalization: the minimum value seen in the current result set maps to 0, the maximum to 100, and values in between are placed linearly between them.
+- `plusMinus` also uses per-dataset min/max, but the minimum can be negative; `gaa` is inverted min/max (lower is better), and `savePercent` follows the standard "higher is better" min/max normalization.
 - Per-field scores are averaged (with configurable weights in helpers.ts) to produce the final `score` for each item.
 
 **Data Quirks**:

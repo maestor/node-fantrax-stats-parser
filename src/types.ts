@@ -95,6 +95,34 @@ export interface RawData {
   field19?: string;
 }
 
+export type PlayerScoreField =
+  | "goals"
+  | "assists"
+  | "points"
+  | "plusMinus"
+  | "penalties"
+  | "shots"
+  | "ppp"
+  | "shp"
+  | "hits"
+  | "blocks";
+
+export type GoalieScoreField =
+  | "wins"
+  | "saves"
+  | "shutouts"
+  | "goals"
+  | "assists"
+  | "points"
+  | "penalties"
+  | "ppp"
+  | "shp";
+
+export type GoalieOptionalScoreField = "gaa" | "savePercent";
+
+export type PlayerScoreWeights = Record<PlayerScoreField, number>;
+export type GoalieScoreWeights = Record<GoalieScoreField | GoalieOptionalScoreField, number>;
+
 export type Report = "regular" | "playoffs";
 
 export type QueryParams = {

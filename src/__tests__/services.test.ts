@@ -201,6 +201,16 @@ describe("services", () => {
   });
 
   describe("CSV error handling", () => {
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
     test("returns empty array for missing file in single season", async () => {
       const mockCsv = jest.fn().mockReturnValue({
         fromFile: jest.fn().mockRejectedValue(new Error("File not found")),

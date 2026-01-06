@@ -1,6 +1,13 @@
 import fs from "fs";
-import { Player, PlayerFields, Goalie, GoalieFields, Report } from "./types";
-import { REPORT_TYPES, START_SEASON } from "./constants";
+import { Player, PlayerFields, Goalie, GoalieFields, Report, GoalieScoreField } from "./types";
+import {
+  REPORT_TYPES,
+  START_SEASON,
+  PLAYER_SCORE_FIELDS,
+  GOALIE_SCORE_FIELDS,
+  PLAYER_SCORE_WEIGHTS,
+  GOALIE_SCORE_WEIGHTS,
+} from "./constants";
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
@@ -12,87 +19,6 @@ const defaultSortPlayers = (a: Player, b: Player): number =>
 
 const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
   b.score - a.score || b.wins - a.wins || b.games - a.games;
-
-type PlayerScoreField =
-  | "goals"
-  | "assists"
-  | "points"
-  | "plusMinus"
-  | "penalties"
-  | "shots"
-  | "ppp"
-  | "shp"
-  | "hits"
-  | "blocks";
-
-type GoalieScoreField =
-  | "wins"
-  | "saves"
-  | "shutouts"
-  | "goals"
-  | "assists"
-  | "points"
-  | "penalties"
-  | "ppp"
-  | "shp";
-
-type GoalieOptionalScoreField = "gaa" | "savePercent";
-
-const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
-  "goals",
-  "assists",
-  "points",
-  "plusMinus",
-  "penalties",
-  "shots",
-  "ppp",
-  "shp",
-  "hits",
-  "blocks",
-];
-
-const GOALIE_SCORE_FIELDS: GoalieScoreField[] = [
-  "wins",
-  "saves",
-  "shutouts",
-  "goals",
-  "assists",
-  "points",
-  "penalties",
-  "ppp",
-  "shp",
-];
-
-type PlayerScoreWeights = Record<PlayerScoreField, number>;
-type GoalieScoreWeights = Record<GoalieScoreField | GoalieOptionalScoreField, number>;
-
-// Default weights: all fields contribute equally. Adjust these values (0-1) to change weighting.
-const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
-  goals: 1,
-  assists: 1,
-  points: 1,
-  plusMinus: 0.8,
-  penalties: 1,
-  shots: 1,
-  ppp: 1,
-  shp: 0.5,
-  hits: 1,
-  blocks: 1,
-};
-
-const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
-  wins: 1,
-  saves: 1,
-  shutouts: 0.8,
-  goals: 0.5,
-  assists: 0.5,
-  points: 0.5,
-  penalties: 0.8,
-  ppp: 0.6,
-  shp: 0.5,
-  gaa: 1,
-  savePercent: 1,
-};
 
 const toTwoDecimals = (value: number): number => Number(value.toFixed(2));
 
@@ -117,7 +43,7 @@ const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
 const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
-      let min = 0;
+      let min = Infinity;
       for (const item of items) {
         const raw = Number((item as unknown as Record<K, number>)[field] ?? 0);
         const value = Number.isFinite(raw) ? raw : 0;
@@ -125,7 +51,7 @@ const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
           min = value;
         }
       }
-      acc[field] = min;
+      acc[field] = Number.isFinite(min) ? min : 0;
       return acc;
     },
     {} as Record<K, number>
@@ -165,7 +91,13 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
       } else {
         if (max <= 0) continue;
         const value = Math.max(0, safeRaw);
-        relative = (value / max) * 100;
+        const range = max - min;
+
+        if (range <= 0) {
+          relative = 100;
+        } else {
+          relative = ((value - min) / range) * 100;
+        }
       }
 
       const weight = weights[field];
@@ -214,17 +146,24 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   const baseFields: GoalieScoreField[] = GOALIE_SCORE_FIELDS;
 
   const maxByBase = getMaxByField(goalies, baseFields);
+  const minByBase = getMinByField(goalies, baseFields);
 
   // Save percentage: higher is better
   let maxSavePercent = 0;
+  let minSavePercent = Infinity;
   for (const goalie of goalies) {
     const raw = goalie.savePercent;
     if (!raw) continue;
     const value = Number(raw);
-    if (Number.isFinite(value) && value > maxSavePercent) {
+    if (!Number.isFinite(value) || value <= 0) continue;
+    if (value > maxSavePercent) {
       maxSavePercent = value;
     }
+    if (value < minSavePercent) {
+      minSavePercent = value;
+    }
   }
+  const hasSavePercent = Number.isFinite(minSavePercent) && maxSavePercent > 0;
 
   // Goals against average: lower is better
   let minGaa = Infinity;
@@ -247,11 +186,19 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     // Base numeric fields where higher is better
     for (const field of baseFields) {
       const max = maxByBase[field];
+      const min = minByBase[field];
       if (max <= 0) continue;
 
       const raw = Number((goalie as unknown as Record<string, number>)[field] ?? 0);
       const value = Number.isFinite(raw) ? Math.max(0, raw) : 0;
-      const relative = (value / max) * 100;
+      const range = max - min;
+
+      let relative = 0;
+      if (range <= 0) {
+        relative = 100;
+      } else {
+        relative = ((value - min) / range) * 100;
+      }
       const weight = GOALIE_SCORE_WEIGHTS[field];
 
       total += relative * weight;
@@ -259,10 +206,17 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     }
 
     // Save percentage (".917" -> 0.917, higher is better)
-    if (maxSavePercent > 0 && goalie.savePercent) {
+    if (hasSavePercent && goalie.savePercent) {
       const raw = Number(goalie.savePercent);
       if (Number.isFinite(raw) && raw > 0) {
-        const relative = (raw / maxSavePercent) * 100;
+        const range = maxSavePercent - minSavePercent;
+        let relative = 0;
+
+        if (range <= 0) {
+          relative = 100;
+        } else {
+          relative = ((raw - minSavePercent) / range) * 100;
+        }
         const weight = GOALIE_SCORE_WEIGHTS.savePercent;
         total += relative * weight;
         count += 1;
