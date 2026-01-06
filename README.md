@@ -38,7 +38,7 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 ## Scoring algorithm
 
-Each player and goalie item returned by the stats endpoints includes a computed `score` field, plus a per-stat breakdown in a `scores` object.
+Each player and goalie item returned by the stats endpoints includes a computed `score` field, an additional games-adjusted `scoreAdjustedByGames` field, plus a per-stat breakdown in a `scores` object.
 
 - **Range and precision**: `score` is a number between 0 and 100, rounded to two decimals.
 - **Player scoring fields**: `goals`, `assists`, `points`, `plusMinus`, `penalties`, `shots`, `ppp`, `shp`, `hits`, `blocks`.
@@ -54,6 +54,11 @@ Scoring is calculated in two steps:
 2. **Overall score**
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).
    - The result is clamped to the `[0, 100]` range and rounded to two decimals.
+
+3. **Games‑adjusted score (`scoreAdjustedByGames`)**
+   - `scoreAdjustedByGames` uses the same scoring fields and weights as the main `score`, but works on per‑game values instead of totals (for example, `goalsPerGame = goals / games`).
+   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 3) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
+   - For eligible players, per‑game values for each stat are normalized in the same way as totals (including per‑game plusMinus), then averaged into a 0–100 score. For goalies, only per‑game `wins`, `saves`, and `shutouts` are used; advanced stats (`gaa`, `savePercent`) do not contribute to `scoreAdjustedByGames`.
 
 In addition to the overall `score`, each item exposes a `scores` object containing the normalized 0–100 value for every individual scoring stat before weights are applied (for example, `scores.goals`, `scores.hits`, `scores.wins`, `scores.savePercent`, `scores.gaa`). This makes it easy to see which categories drive a player’s or goalie’s total score.
 
@@ -80,7 +85,7 @@ npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 ```
 
-Test coverage: 100% statements, 100% functions, 100% lines, ~95% branches. Coverage reports are generated in the `coverage/` directory.
+Test coverage: 100% statements, 100% functions, 100% lines, 100% branches. Coverage reports are generated in the `coverage/` directory.
 
 ## Todo
 

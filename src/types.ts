@@ -8,6 +8,7 @@ interface Common {
   ppp: number;
   shp: number;
   score: number;
+   scoreAdjustedByGames: number;
   scores?: Record<string, number>;
 }
 
@@ -30,7 +31,10 @@ export interface PlayerWithSeason extends Player {
   season: number;
 }
 
-export type PlayerSeasonData = Omit<PlayerWithSeason, "name" | "score" | "scores">;
+export type PlayerSeasonData = Omit<
+  PlayerWithSeason,
+  "name" | "score" | "scoreAdjustedByGames" | "scores"
+>;
 
 export interface CombinedPlayer extends Player {
   seasons: PlayerSeasonData[];
@@ -40,7 +44,10 @@ export interface GoalieWithSeason extends Goalie {
   season: number;
 }
 
-export type GoalieSeasonData = Omit<GoalieWithSeason, "name" | "score" | "scores">;
+export type GoalieSeasonData = Omit<
+  GoalieWithSeason,
+  "name" | "score" | "scoreAdjustedByGames" | "scores"
+>;
 
 export interface CombinedGoalie extends Goalie {
   seasons: GoalieSeasonData[];

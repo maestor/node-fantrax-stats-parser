@@ -234,6 +234,89 @@ describe("helpers", () => {
       expect(result).toEqual([]);
     });
 
+    test("sets scoreAdjustedByGames to 0 for players under minimum games", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Few Games High Stats",
+          games: 2,
+          goals: 5,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Eligible Player",
+          games: 10,
+          goals: 5,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [fewGames, eligible] = applyPlayerScores(testPlayers);
+
+      expect(fewGames.scoreAdjustedByGames).toBe(0);
+      expect(eligible.scoreAdjustedByGames).toBeGreaterThan(0);
+    });
+
+    test("sets scoreAdjustedByGames to 0 when no players meet minimum games", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Under Min A",
+          games: 1,
+          goals: 5,
+          assists: 3,
+          points: 8,
+          plusMinus: 2,
+          penalties: 1,
+          shots: 10,
+          ppp: 1,
+          shp: 0,
+          hits: 2,
+          blocks: 1,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Under Min B",
+          games: 2,
+          goals: 4,
+          assists: 2,
+          points: 6,
+          plusMinus: -1,
+          penalties: 2,
+          shots: 8,
+          ppp: 1,
+          shp: 0,
+          hits: 1,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScores(testPlayers);
+
+      expect(result.every((p) => p.scoreAdjustedByGames === 0)).toBe(true);
+    });
+
     test("uses 0 baseline for always-positive stats", () => {
       const testPlayers: Player[] = [
         {
@@ -442,6 +525,76 @@ describe("helpers", () => {
       expect(result[0].score).toBeDefined();
       expect(result[1].score).toBeDefined();
     });
+
+    test("uses per-game plusMinus in scoreAdjustedByGames", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Best PlusMinus",
+          games: 10,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 20,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Middle PlusMinus",
+          games: 10,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 5,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Worst PlusMinus",
+          games: 10,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: -10,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [best, middle, worst] = applyPlayerScores(testPlayers);
+
+      expect(best.scoreAdjustedByGames).toBeDefined();
+      expect(middle.scoreAdjustedByGames).toBeDefined();
+      expect(worst.scoreAdjustedByGames).toBeDefined();
+
+      const bestAdj = best.scoreAdjustedByGames as number;
+      const middleAdj = middle.scoreAdjustedByGames as number;
+      const worstAdj = worst.scoreAdjustedByGames as number;
+
+      expect(bestAdj).toBeGreaterThan(middleAdj);
+      expect(middleAdj).toBeGreaterThan(worstAdj);
+      expect(bestAdj).toBeGreaterThanOrEqual(0);
+      expect(bestAdj).toBeLessThanOrEqual(100);
+      expect(worstAdj).toBeGreaterThanOrEqual(0);
+      expect(worstAdj).toBeLessThanOrEqual(100);
+    });
   });
 
   describe("applyPlayerScores with invalid numbers", () => {
@@ -545,6 +698,85 @@ describe("helpers", () => {
     test("returns empty array unchanged when no goalies", () => {
       const result = applyGoalieScores([]);
       expect(result).toEqual([]);
+    });
+
+    test("sets scoreAdjustedByGames to 0 for goalies under minimum games", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Few Games Goalie",
+          games: 2,
+          wins: 5,
+          saves: 200,
+          shutouts: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Eligible Goalie",
+          games: 10,
+          wins: 5,
+          saves: 200,
+          shutouts: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [fewGames, eligible] = applyGoalieScores(testGoalies);
+
+      expect(fewGames.scoreAdjustedByGames).toBe(0);
+      expect(eligible.scoreAdjustedByGames).toBeGreaterThan(0);
+    });
+
+    test("sets scoreAdjustedByGames to 0 when no goalies meet minimum games", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Under Min Goalie A",
+          games: 1,
+          wins: 2,
+          saves: 50,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Under Min Goalie B",
+          games: 2,
+          wins: 3,
+          saves: 60,
+          shutouts: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyGoalieScores(testGoalies);
+
+      expect(result.every((g) => g.scoreAdjustedByGames === 0)).toBe(true);
     });
 
     test("uses 0 baseline for goalie always-positive stats", () => {
@@ -682,6 +914,46 @@ describe("helpers", () => {
       expect(a.score).toBe(100);
     });
 
+    test("sets savePercent contribution to 0 when below baseline", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Above Baseline",
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.900",
+          score: 0,
+        },
+        {
+          name: "Below Baseline",
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.840",
+          score: 0,
+        },
+      ];
+
+      const [above, below] = applyGoalieScores(testGoalies);
+
+      expect(above.scores?.savePercent).toBeGreaterThan(0);
+      expect(below.scores?.savePercent).toBe(0);
+    });
+
     test("includes savePercent and gaa contributions when present, including invalid values", () => {
       const testGoalies: Goalie[] = [
         {
@@ -698,6 +970,22 @@ describe("helpers", () => {
           shp: 0,
           savePercent: "0.930",
           gaa: "2.0",
+          score: 0,
+        },
+        {
+          name: "Goalie Slightly Worse GAA",
+          games: 0,
+          wins: 10,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.925",
+          gaa: "2.4",
           score: 0,
         },
         {
@@ -748,19 +1036,24 @@ describe("helpers", () => {
         },
       ];
 
-      const [best, worseAdvanced, invalidAdvanced, noAdvanced] = applyGoalieScores(testGoalies);
+      const [best, slightlyWorseGaa, worseAdvanced, invalidAdvanced, noAdvanced] =
+        applyGoalieScores(testGoalies);
 
       expect(best.score).toBeDefined();
+      expect(slightlyWorseGaa.score).toBeDefined();
       expect(worseAdvanced.score).toBeDefined();
       expect(invalidAdvanced.score).toBeDefined();
       expect(noAdvanced.score).toBeDefined();
 
       const bestScore = best.score as number;
+      const slightlyWorseGaaScore = slightlyWorseGaa.score as number;
       const worseAdvancedScore = worseAdvanced.score as number;
       const invalidAdvancedScore = invalidAdvanced.score as number;
       const noAdvancedScore = noAdvanced.score as number;
       expect(bestScore).toBeGreaterThanOrEqual(0);
       expect(bestScore).toBeLessThanOrEqual(100);
+      expect(slightlyWorseGaaScore).toBeGreaterThanOrEqual(0);
+      expect(slightlyWorseGaaScore).toBeLessThanOrEqual(100);
       expect(worseAdvancedScore).toBeGreaterThanOrEqual(0);
       expect(worseAdvancedScore).toBeLessThanOrEqual(100);
       expect(invalidAdvancedScore).toBeGreaterThanOrEqual(0);

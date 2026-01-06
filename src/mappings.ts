@@ -46,6 +46,7 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
         hits: parseNumber(item[CSV.PLAYER_HITS]),
         blocks: parseNumber(item[CSV.PLAYER_BLOCKS]),
         score: 0,
+        scoreAdjustedByGames: 0,
         season: item.season,
       })
     );
@@ -76,6 +77,7 @@ export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
           seasons: [],
         };
         r.set(currentItem.name, item);
@@ -134,6 +136,7 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
         ppp: parseNumber(item[CSV.GOALIE_PPP]),
         shp: parseNumber(item[CSV.GOALIE_SHP]),
         score: 0,
+        scoreAdjustedByGames: 0,
         season: item.season,
         gaa: item[CSV.GOALIE_GAA],
         savePercent: item[CSV.GOALIE_SAVE_PERCENT],
@@ -170,6 +173,7 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
           seasons: [],
         };
         r.set(currentItem.name, item);
