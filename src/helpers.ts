@@ -28,9 +28,9 @@ const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
   return fields.reduce(
     (acc, field) => {
       let max = 0;
-        for (const item of items) {
-          const raw = Number((item as unknown as Record<K, number>)[field]);
-          const value = Number.isFinite(raw) ? Math.max(0, raw) : 0;
+      for (const item of items) {
+        const raw = Number((item as unknown as Record<K, number>)[field]);
+        const value = Number.isFinite(raw) ? Math.max(0, raw) : 0;
         if (value > max) {
           max = value;
         }
@@ -46,9 +46,9 @@ const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
   return fields.reduce(
     (acc, field) => {
       let min = 0;
-        for (const item of items) {
-          const raw = Number((item as unknown as Record<K, number>)[field]);
-          const value = Number.isFinite(raw) ? raw : 0;
+      for (const item of items) {
+        const raw = Number((item as unknown as Record<K, number>)[field]);
+        const value = Number.isFinite(raw) ? raw : 0;
         if (value < min) {
           min = value;
         }
@@ -153,10 +153,13 @@ const applyPlayerScoresByGames = (players: Player[]): void => {
   }
 
   const fieldCount = PLAYER_SCORE_FIELDS.length;
-  const maxPerGameByField = PLAYER_SCORE_FIELDS.reduce((acc, field) => {
-    acc[field as PlayerFields] = 0;
-    return acc;
-  }, {} as Record<PlayerFields, number>);
+  const maxPerGameByField = PLAYER_SCORE_FIELDS.reduce(
+    (acc, field) => {
+      acc[field as PlayerFields] = 0;
+      return acc;
+    },
+    {} as Record<PlayerFields, number>
+  );
 
   let minPlusMinusPerGame = 0;
   let maxPlusMinusPerGame = 0;
@@ -164,8 +167,8 @@ const applyPlayerScoresByGames = (players: Player[]): void => {
   for (const player of eligible) {
     const games = player.games;
 
-      for (const field of PLAYER_SCORE_FIELDS) {
-        const raw = Number((player as unknown as Record<PlayerFields, number>)[field]);
+    for (const field of PLAYER_SCORE_FIELDS) {
+      const raw = Number((player as unknown as Record<PlayerFields, number>)[field]);
       const perGame = raw / games;
 
       if (field === "plusMinus") {
@@ -350,10 +353,13 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   }
 
   const fieldCount = baseFields.length;
-  const maxPerGameByField = baseFields.reduce((acc, field) => {
-    acc[field] = 0;
-    return acc;
-  }, {} as Record<GoalieScoreField, number>);
+  const maxPerGameByField = baseFields.reduce(
+    (acc, field) => {
+      acc[field] = 0;
+      return acc;
+    },
+    {} as Record<GoalieScoreField, number>
+  );
 
   for (const goalie of eligible) {
     const games = goalie.games;

@@ -8,7 +8,7 @@ interface Common {
   ppp: number;
   shp: number;
   score: number;
-   scoreAdjustedByGames: number;
+  scoreAdjustedByGames: number;
   scores?: Record<string, number>;
 }
 

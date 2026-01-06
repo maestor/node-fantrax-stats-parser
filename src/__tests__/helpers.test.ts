@@ -33,6 +33,7 @@ describe("helpers", () => {
         hits: 100,
         blocks: 50,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
       {
         name: "Player B",
@@ -48,6 +49,7 @@ describe("helpers", () => {
         hits: 80,
         blocks: 40,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
       {
         name: "Player C",
@@ -63,6 +65,7 @@ describe("helpers", () => {
         hits: 90,
         blocks: 45,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
     ];
 
@@ -80,6 +83,7 @@ describe("helpers", () => {
         ppp: 1,
         shp: 0,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
       {
         name: "Goalie B",
@@ -94,6 +98,7 @@ describe("helpers", () => {
         ppp: 2,
         shp: 1,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
       {
         name: "Goalie C",
@@ -108,6 +113,7 @@ describe("helpers", () => {
         ppp: 1,
         shp: 0,
         score: 0,
+        scoreAdjustedByGames: 0,
       },
     ];
 
@@ -189,6 +195,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Player Half",
@@ -204,6 +211,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -333,6 +341,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Zero Goals",
@@ -348,6 +357,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Lowest With Goals",
@@ -363,6 +373,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -389,6 +400,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Player Two",
@@ -404,6 +416,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -433,6 +446,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Worst",
@@ -448,6 +462,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Middle",
@@ -463,6 +478,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -502,6 +518,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Equal B",
@@ -517,6 +534,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -614,6 +632,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Valid Player",
@@ -629,6 +648,7 @@ describe("helpers", () => {
           hits: 0,
           blocks: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -657,6 +677,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie Half",
@@ -671,6 +692,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -794,6 +816,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Zero Wins",
@@ -808,6 +831,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Lowest With Wins",
@@ -822,6 +846,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -847,6 +872,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie Two",
@@ -861,6 +887,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -888,6 +915,7 @@ describe("helpers", () => {
           shp: 0,
           savePercent: "0.920",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Equal B",
@@ -903,6 +931,7 @@ describe("helpers", () => {
           shp: 0,
           savePercent: "0.920",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -930,6 +959,7 @@ describe("helpers", () => {
           shp: 0,
           savePercent: "0.900",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Below Baseline",
@@ -945,6 +975,7 @@ describe("helpers", () => {
           shp: 0,
           savePercent: "0.840",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -971,6 +1002,7 @@ describe("helpers", () => {
           savePercent: "0.930",
           gaa: "2.0",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie Slightly Worse GAA",
@@ -987,6 +1019,7 @@ describe("helpers", () => {
           savePercent: "0.925",
           gaa: "2.4",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie Worse Advanced",
@@ -1003,6 +1036,7 @@ describe("helpers", () => {
           savePercent: "0.910",
           gaa: "3.0",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie Invalid Advanced",
@@ -1019,6 +1053,7 @@ describe("helpers", () => {
           savePercent: "not-a-number",
           gaa: "not-a-number",
           score: 0,
+          scoreAdjustedByGames: 0,
         },
         {
           name: "Goalie No Advanced",
@@ -1033,6 +1068,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 0,
+          scoreAdjustedByGames: 0,
         },
       ];
 
@@ -1077,6 +1113,7 @@ describe("helpers", () => {
           ppp: 0,
           shp: 0,
           score: 5,
+          scoreAdjustedByGames: 0,
         },
       ];
 
