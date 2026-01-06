@@ -92,7 +92,13 @@ export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
       });
 
       // Add season data, with season as the first property and without score
-      const { name: _name, season, score: _score, ...restOfSeasonData } = currentItem;
+      const {
+        name: _name,
+        season,
+        score: _score,
+        scoreAdjustedByGames: _scoreAdjustedByGames,
+        ...restOfSeasonData
+      } = currentItem;
       item.seasons.push({ season, ...restOfSeasonData });
 
       return r;
@@ -194,7 +200,13 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
       });
 
       // Add season data, with season as the first property and without score
-      const { name: _name, season, score: _score, ...restOfSeasonData } = currentItem;
+      const {
+        name: _name,
+        season,
+        score: _score,
+        scoreAdjustedByGames: _scoreAdjustedByGames,
+        ...restOfSeasonData
+      } = currentItem;
       item.seasons.push({ season, ...restOfSeasonData });
 
       return r;
