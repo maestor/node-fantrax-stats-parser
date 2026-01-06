@@ -61,7 +61,7 @@ Scoring is calculated in three steps:
 
 4. **Games‑adjusted score (`scoreAdjustedByGames`)**
    - `scoreAdjustedByGames` uses the same scoring fields and weights as the main `score`, but works on per‑game values instead of totals (for example, `goalsPerGame = goals / games`).
-   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 3) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
+   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 1) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
    - For eligible players, per‑game values for each stat are normalized in the same way as totals (including per‑game plusMinus), then averaged into a 0–100 score.
    - For eligible goalies, only per‑game `wins`, `saves`, and `shutouts` are used; advanced stats (`gaa`, `savePercent`) do not contribute to `scoreAdjustedByGames`.
    - Finally, among all eligible players or goalies in the result set, the best `scoreAdjustedByGames` is normalized to exactly 100, and all other positive `scoreAdjustedByGames` values are scaled proportionally relative to that best per‑game score. Items below the minimum games threshold always remain at 0.
