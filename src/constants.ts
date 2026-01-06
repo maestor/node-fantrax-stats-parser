@@ -79,16 +79,16 @@ export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = [
   "shp",
 ];
 
-// Weights for score calculation: all fields contribute equally. Adjust these values (0-1) to change weighting.
+// Weights for score calculation (banger-leaning league). Adjust these values (0-1) to change weighting.
 export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
   goals: 1,
   assists: 1,
   points: 1,
-  plusMinus: 0.8,
+  plusMinus: 1,
   penalties: 1,
   shots: 1,
   ppp: 1,
-  shp: 0.5,
+  shp: 1,
   hits: 1,
   blocks: 1,
 };
@@ -96,13 +96,13 @@ export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
 export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
   wins: 1,
   saves: 1,
-  shutouts: 0.8,
-  goals: 0.5,
-  assists: 0.5,
-  points: 0.5,
-  penalties: 0.8,
-  ppp: 0.6,
-  shp: 0.5,
+  shutouts: 1,
+  goals: 0.1,
+  assists: 0.3,
+  points: 0.3,
+  penalties: 0.3,
+  ppp: 0.3,
+  shp: 0.3,
   gaa: 1,
   savePercent: 1,
 };
