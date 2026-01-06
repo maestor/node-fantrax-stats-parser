@@ -212,6 +212,10 @@ describe("helpers", () => {
       expect(result[0].score).toBeDefined();
       expect(result[1].score).toBeDefined();
 
+      expect(result[0].scores).toBeDefined();
+      expect(result[0].scores?.goals).toBeDefined();
+      expect(result[1].scores?.goals).toBeDefined();
+
       const highScore = result[0].score as number;
       const halfScore = result[1].score as number;
 
@@ -505,6 +509,9 @@ describe("helpers", () => {
 
       expect(result[0].score).toBeDefined();
       expect(result[1].score).toBeDefined();
+      expect(result[0].scores).toBeDefined();
+      expect(result[0].scores?.wins).toBeDefined();
+      expect(result[1].scores?.wins).toBeDefined();
 
       const highScore = result[0].score as number;
       const halfScore = result[1].score as number;

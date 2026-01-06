@@ -72,12 +72,12 @@ Both deployment models share the same core business logic (services.ts, mappings
 
 **Scoring**:
 
-- Player and goalie items include a `score` field (0–100, two decimals) computed from their stats.
+- Player and goalie items include a `score` field (0–100, two decimals) computed from their stats, plus a `scores` object with per-stat normalized values.
 - Player scoring fields: goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks.
-- Goalie scoring fields: wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, plus optional gaa and savePercent when present.
-- For always-positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses per-dataset min/max normalization: the minimum value seen in the current result set maps to 0, the maximum to 100, and values in between are placed linearly between them.
+- Goalie scoring fields: wins, saves, shutouts, plus optional gaa and savePercent when present (goalie goals/assists/points/PIM/PP/SHP are tracked but not used in scoring).
+- For always-positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses per-dataset min/max normalization: the minimum value seen in the current result set maps to 0, the maximum to 100, and values in between are placed linearly between them. For goalies, only wins, saves, and shutouts participate in this part of the score.
 - `plusMinus` also uses per-dataset min/max, but the minimum can be negative; `gaa` is inverted min/max (lower is better), and `savePercent` follows the standard "higher is better" min/max normalization.
-- Per-field scores are averaged (with configurable weights in helpers.ts) to produce the final `score` for each item.
+- Per-field scores are averaged (with configurable weights in constants.ts) to produce the final `score` for each item, while the raw normalized 0–100 values per stat are exposed via the `scores` map on each player/goalie.
 
 **Data Quirks**:
 

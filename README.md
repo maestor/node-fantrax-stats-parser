@@ -38,16 +38,16 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 ## Scoring algorithm
 
-Each player and goalie item returned by the stats endpoints includes a computed `score` field.
+Each player and goalie item returned by the stats endpoints includes a computed `score` field, plus a per-stat breakdown in a `scores` object.
 
 - **Range and precision**: `score` is a number between 0 and 100, rounded to two decimals.
 - **Player scoring fields**: `goals`, `assists`, `points`, `plusMinus`, `penalties`, `shots`, `ppp`, `shp`, `hits`, `blocks`.
-- **Goalie scoring fields**: `wins`, `saves`, `shutouts`, `goals`, `assists`, `points`, `penalties`, `ppp`, `shp`, and when available `gaa` (goals against average) and `savePercent`.
+- **Goalie scoring fields**: `wins`, `saves`, `shutouts`, and when available `gaa` (goals against average) and `savePercent`.
 
 Scoring is calculated in two steps:
 
 1. **Per‑stat normalization**
-   - For most always‑positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses both the minimum and maximum values observed in the current result set. The minimum value in that dataset maps to 0, the maximum to 100, and values in between are placed linearly between them. This means the worst stat line in that result set always contributes 0 for that component, even if it is not literally 0 in absolute terms.
+   - For most always‑positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses both the minimum and maximum values observed in the current result set. For goalies, only `wins`, `saves`, and `shutouts` are included in scoring. The minimum value in that dataset maps to 0, the maximum to 100, and values in between are placed linearly between them. This means the worst stat line in that result set always contributes 0 for that component, even if it is not literally 0 in absolute terms.
    - For `plusMinus`, scoring also uses the minimum and maximum values observed in the result set, but the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
    - For goalies, `savePercent` follows the same "higher is better" min/max normalization as other positive stats, while `gaa` is inverted so that the lowest GAA maps to 100, the highest to 0, and values in between are placed linearly between them.
 
@@ -55,11 +55,13 @@ Scoring is calculated in two steps:
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).
    - The result is clamped to the `[0, 100]` range and rounded to two decimals.
 
+In addition to the overall `score`, each item exposes a `scores` object containing the normalized 0–100 value for every individual scoring stat before weights are applied (for example, `scores.goals`, `scores.hits`, `scores.wins`, `scores.savePercent`, `scores.gaa`). This makes it easy to see which categories drive a player’s or goalie’s total score.
+
 ### Weights
 
 By default every scoring field has weight `1.0` (full value), so they all contribute equally.
 
-Weights are defined in `src/helpers.ts`:
+Weights are defined in `src/constants.ts`:
 
 - `PLAYER_SCORE_WEIGHTS` controls player fields.
 - `GOALIE_SCORE_WEIGHTS` controls goalie fields.

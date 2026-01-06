@@ -67,17 +67,7 @@ export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
   "blocks",
 ];
 
-export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = [
-  "wins",
-  "saves",
-  "shutouts",
-  "goals",
-  "assists",
-  "points",
-  "penalties",
-  "ppp",
-  "shp",
-];
+export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = ["wins", "saves", "shutouts"];
 
 // Weights for score calculation (banger-leaning league). Adjust these values (0-1) to change weighting.
 export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
@@ -97,12 +87,6 @@ export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
   wins: 1,
   saves: 1,
   shutouts: 1,
-  goals: 0.1,
-  assists: 0.3,
-  points: 0.3,
-  penalties: 0.3,
-  ppp: 0.3,
-  shp: 0.3,
   gaa: 1,
   savePercent: 1,
 };

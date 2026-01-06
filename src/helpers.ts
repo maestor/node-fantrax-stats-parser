@@ -72,6 +72,9 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
   for (const item of items) {
     let total = 0;
 
+    // Initialize per-stat score breakdown container
+    (item as unknown as { scores?: Record<string, number> }).scores = {};
+
     for (const field of fields) {
       const max = maxByField[field];
       const min = minByField[field];
@@ -98,6 +101,13 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
         } else {
           relative = ((value - min) / range) * 100;
         }
+      }
+
+      // Store per-stat normalized score (0-100) before applying weight
+      const scoresContainer = (item as unknown as { scores?: Record<string, number> }).scores;
+      if (scoresContainer) {
+        const clamped = Math.min(Math.max(relative, 0), 100);
+        scoresContainer[String(field)] = toTwoDecimals(clamped);
       }
 
       const weight = weights[field];
@@ -183,6 +193,9 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     let total = 0;
     let count = 0;
 
+    // Initialize per-stat score breakdown container
+    (goalie as unknown as { scores?: Record<string, number> }).scores = {};
+
     // Base numeric fields where higher is better
     for (const field of baseFields) {
       const max = maxByBase[field];
@@ -200,6 +213,12 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         relative = ((value - min) / range) * 100;
       }
       const weight = GOALIE_SCORE_WEIGHTS[field];
+
+      const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
+      if (scoresContainer) {
+        const clamped = Math.min(Math.max(relative, 0), 100);
+        scoresContainer[String(field)] = toTwoDecimals(clamped);
+      }
 
       total += relative * weight;
       count += 1;
@@ -220,6 +239,12 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         const weight = GOALIE_SCORE_WEIGHTS.savePercent;
         total += relative * weight;
         count += 1;
+
+        const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
+        if (scoresContainer) {
+          const clamped = Math.min(Math.max(relative, 0), 100);
+          scoresContainer.savePercent = toTwoDecimals(clamped);
+        }
       }
     }
 
@@ -233,6 +258,12 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
           const weight = GOALIE_SCORE_WEIGHTS.gaa;
           total += relative * weight;
           count += 1;
+
+          const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
+          if (scoresContainer) {
+            const clamped = Math.min(Math.max(relative, 0), 100);
+            scoresContainer.gaa = toTwoDecimals(clamped);
+          }
         }
       }
     }
