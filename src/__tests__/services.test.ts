@@ -6,7 +6,12 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsCombined,
 } from "../services";
-import { availableSeasons, sortItemsByStatField } from "../helpers";
+import {
+  availableSeasons,
+  sortItemsByStatField,
+  applyPlayerScores,
+  applyGoalieScores,
+} from "../helpers";
 import {
   mapAvailableSeasons,
   mapPlayerData,
@@ -48,6 +53,7 @@ describe("services", () => {
       (csv as unknown as jest.Mock).mockImplementation(mockCsv);
       (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
       (mapPlayerData as jest.Mock).mockReturnValue([mockPlayer]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
@@ -93,6 +99,7 @@ describe("services", () => {
       (csv as unknown as jest.Mock).mockImplementation(mockCsv);
       (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
       (mapGoalieData as jest.Mock).mockReturnValue([mockGoalie]);
+      (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
@@ -129,6 +136,7 @@ describe("services", () => {
       (csv as unknown as jest.Mock).mockImplementation(mockCsv);
       (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
       (mapCombinedPlayerData as jest.Mock).mockReturnValue([mockPlayer]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
@@ -164,6 +172,7 @@ describe("services", () => {
       (csv as unknown as jest.Mock).mockImplementation(mockCsv);
       (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
       (mapCombinedGoalieData as jest.Mock).mockReturnValue([mockGoalie]);
+      (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 

@@ -70,6 +70,7 @@ describe("mappings", () => {
         shp: 5,
         hits: 30,
         blocks: 25,
+        score: 0,
         season: 2024,
       });
     });
@@ -77,16 +78,16 @@ describe("mappings", () => {
     test("defaults to 0 when Number() fails", () => {
       const invalidData = {
         ...mockRawDataPlayer,
-        field8: "invalid",   // goals
-        field9: "",          // assists
-        field10: "",         // points
-        field11: "",         // plusMinus
-        field12: "",         // penalties
-        field13: "",         // shots
-        field14: "",         // ppp
-        field15: "",         // shp
-        field16: "",         // hits
-        field17: "",         // blocks
+        field8: "invalid", // goals
+        field9: "", // assists
+        field10: "", // points
+        field11: "", // plusMinus
+        field12: "", // penalties
+        field13: "", // shots
+        field14: "", // ppp
+        field15: "", // shp
+        field16: "", // hits
+        field17: "", // blocks
       };
       const result = mapPlayerData([mockRawDataFirstRow, invalidData]);
       expect(result[0].goals).toBe(0);
@@ -104,8 +105,20 @@ describe("mappings", () => {
 
   describe("mapCombinedPlayerData", () => {
     test("sums stats for player across multiple seasons", () => {
-      const season1 = { ...mockRawDataPlayer, season: 2023, field2: "Player A", field7: "50", field8: "30" };
-      const season2 = { ...mockRawDataPlayer, season: 2024, field2: "Player A", field7: "32", field8: "20" };
+      const season1 = {
+        ...mockRawDataPlayer,
+        season: 2023,
+        field2: "Player A",
+        field7: "50",
+        field8: "30",
+      };
+      const season2 = {
+        ...mockRawDataPlayer,
+        season: 2024,
+        field2: "Player A",
+        field7: "32",
+        field8: "20",
+      };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
 
@@ -143,17 +156,13 @@ describe("mappings", () => {
       const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
 
       expect(result.length).toBe(2);
-      expect(result.map(p => p.name).sort()).toEqual(["Player A", "Player B"]);
+      expect(result.map((p) => p.name).sort()).toEqual(["Player A", "Player B"]);
     });
   });
 
   describe("mapGoalieData", () => {
     test("only includes goalies with valid data", () => {
-      const result = mapGoalieData([
-        mockRawDataFirstRow,
-        mockRawDataPlayer,
-        mockRawDataGoalie,
-      ]);
+      const result = mapGoalieData([mockRawDataFirstRow, mockRawDataPlayer, mockRawDataGoalie]);
 
       expect(result.length).toBe(1);
       expect(result[0].name).toBe("Test Goalie");
@@ -204,6 +213,7 @@ describe("mappings", () => {
         penalties: 15,
         ppp: 2,
         shp: 1,
+        score: 0,
         season: 2014,
         gaa: "2.30",
         savePercent: "0.920",
@@ -266,15 +276,15 @@ describe("mappings", () => {
     test("defaults goalie stats to 0 when Number() fails", () => {
       const invalidGoalie = {
         ...mockRawDataGoalie2014,
-        field7: "",          // wins (for 2014+) - will be 0
-        field8: "10",        // games (for 2014+) - keep valid to pass filter
-        field10: "invalid",  // saves
-        field12: "",         // shutouts
-        field13: "",         // penalties
-        field14: "",         // goals
-        field15: "",         // assists
-        field16: "",         // points
-        field17: "",         // ppp
+        field7: "", // wins (for 2014+) - will be 0
+        field8: "10", // games (for 2014+) - keep valid to pass filter
+        field10: "invalid", // saves
+        field12: "", // shutouts
+        field13: "", // penalties
+        field14: "", // goals
+        field15: "", // assists
+        field16: "", // points
+        field17: "", // ppp
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie]);
 
@@ -291,8 +301,8 @@ describe("mappings", () => {
     test("defaults goalie games to 0 for season 2012 when Number() fails", () => {
       const invalidGoalie2012Games = {
         ...mockRawDataGoalie2012,
-        field7: "",    // games (for <=2013) - will be 0
-        field8: "10",  // wins (for <=2013) - keep valid to pass filter
+        field7: "", // games (for <=2013) - will be 0
+        field8: "10", // wins (for <=2013) - keep valid to pass filter
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie2012Games]);
 
@@ -303,8 +313,8 @@ describe("mappings", () => {
     test("defaults goalie wins to 0 for season 2012 when Number() fails", () => {
       const invalidGoalie2012Wins = {
         ...mockRawDataGoalie2012,
-        field7: "10",  // games (for <=2013) - keep valid to pass filter
-        field8: "",    // wins (for <=2013) - will be 0
+        field7: "10", // games (for <=2013) - keep valid to pass filter
+        field8: "", // wins (for <=2013) - will be 0
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie2012Wins]);
 
@@ -325,8 +335,20 @@ describe("mappings", () => {
 
   describe("mapCombinedGoalieData", () => {
     test("sums goalie stats for multiple seasons", () => {
-      const season1 = { ...mockRawDataGoalie2014, season: 2023, field2: "Goalie A", field7: "30", field8: "60" };
-      const season2 = { ...mockRawDataGoalie2014, season: 2024, field2: "Goalie A", field7: "20", field8: "40" };
+      const season1 = {
+        ...mockRawDataGoalie2014,
+        season: 2023,
+        field2: "Goalie A",
+        field7: "30",
+        field8: "60",
+      };
+      const season2 = {
+        ...mockRawDataGoalie2014,
+        season: 2024,
+        field2: "Goalie A",
+        field7: "20",
+        field8: "40",
+      };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
 
@@ -364,7 +386,7 @@ describe("mappings", () => {
       const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
 
       expect(result.length).toBe(2);
-      expect(result.map(g => g.name).sort()).toEqual(["Goalie A", "Goalie B"]);
+      expect(result.map((g) => g.name).sort()).toEqual(["Goalie A", "Goalie B"]);
     });
 
     test("handles mixed season data with year boundary", () => {

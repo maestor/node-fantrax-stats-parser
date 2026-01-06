@@ -14,11 +14,12 @@ import { CSV, GOALIE_SCHEMA_CHANGE_YEAR } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
 const parseNumber = (value: string) => {
-  try {
-    return Number(value.replace(",", ""));
-  } catch {
+  if (!value) {
     return 0;
   }
+  const normalized = value.replace(/,/g, "");
+  const result = Number(normalized);
+  return Number.isNaN(result) ? 0 : result;
 };
 
 export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
@@ -44,6 +45,7 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
         shp: parseNumber(item[CSV.PLAYER_SHP]),
         hits: parseNumber(item[CSV.PLAYER_HITS]),
         blocks: parseNumber(item[CSV.PLAYER_BLOCKS]),
+        score: 0,
         season: item.season,
       })
     );
@@ -51,10 +53,10 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
 
 export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
   ...mapPlayerData(rawData)
-    .reduce((r, currentItem: PlayerWithSeason) => {
+    .reduce<Map<string, CombinedPlayer>>((r, currentItem: PlayerWithSeason) => {
       // Helper to get statfields for initializing and combining
       const itemKeys = Object.keys(currentItem).filter(
-        (key) => key !== "name" && key !== "season"
+        (key) => key !== "name" && key !== "season" && key !== "score"
       ) as PlayerFields[];
 
       let item = r.get(currentItem.name);
@@ -73,6 +75,7 @@ export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
           shp: 0,
           hits: 0,
           blocks: 0,
+          score: 0,
           seasons: [],
         };
         r.set(currentItem.name, item);
@@ -86,8 +89,8 @@ export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
         }
       });
 
-      // Add season data, with season as the first property
-      const { name: _, season, ...restOfSeasonData } = currentItem;
+      // Add season data, with season as the first property and without score
+      const { name: _name, season, score: _score, ...restOfSeasonData } = currentItem;
       item.seasons.push({ season, ...restOfSeasonData });
 
       return r;
@@ -130,6 +133,7 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
         penalties: parseNumber(item[CSV.GOALIE_PENALTIES]),
         ppp: parseNumber(item[CSV.GOALIE_PPP]),
         shp: parseNumber(item[CSV.GOALIE_SHP]),
+        score: 0,
         season: item.season,
         gaa: item[CSV.GOALIE_GAA],
         savePercent: item[CSV.GOALIE_SAVE_PERCENT],
@@ -139,10 +143,15 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
 
 export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
   ...mapGoalieData(rawData)
-    .reduce((r, currentItem: GoalieWithSeason) => {
+    .reduce<Map<string, CombinedGoalie>>((r, currentItem: GoalieWithSeason) => {
       // Helper to get statfields for initializing and combining
       const itemKeys = Object.keys(currentItem).filter(
-        (key) => key !== "name" && key !== "season" && key !== "gaa" && key !== "savePercent"
+        (key) =>
+          key !== "name" &&
+          key !== "season" &&
+          key !== "gaa" &&
+          key !== "savePercent" &&
+          key !== "score"
       ) as GoalieFields[];
 
       let item = r.get(currentItem.name);
@@ -160,6 +169,7 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
           penalties: 0,
           ppp: 0,
           shp: 0,
+          score: 0,
           seasons: [],
         };
         r.set(currentItem.name, item);
@@ -173,8 +183,8 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
         }
       });
 
-      // Add season data, with season as the first property
-      const { name: _, season, ...restOfSeasonData } = currentItem;
+      // Add season data, with season as the first property and without score
+      const { name: _name, season, score: _score, ...restOfSeasonData } = currentItem;
       item.seasons.push({ season, ...restOfSeasonData });
 
       return r;

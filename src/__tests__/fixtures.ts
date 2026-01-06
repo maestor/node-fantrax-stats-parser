@@ -31,8 +31,8 @@ export const mockRawDataPlayerWithCommas: RawData = {
   field4: "F",
   field5: "Act",
   field6: "@MTL",
-  field7: "82",         // No comma in games field (used in filter)
-  field8: "5,678",      // Commas in other fields
+  field7: "82", // No comma in games field (used in filter)
+  field8: "5,678", // Commas in other fields
   field9: "9,012",
   field10: "14,690",
   field11: "100",
@@ -76,8 +76,8 @@ export const mockRawDataGoalie2012: RawData = {
   field4: "G",
   field5: "Act",
   field6: "vs TOR",
-  field7: "70",    // games in 2012
-  field8: "40",    // wins in 2012
+  field7: "70", // games in 2012
+  field8: "40", // wins in 2012
   field9: "2.30",
   field10: "2000",
   field11: "0.920",
@@ -99,8 +99,8 @@ export const mockRawDataGoalie2014: RawData = {
   field4: "G",
   field5: "Act",
   field6: "vs TOR",
-  field7: "40",    // wins in 2014+
-  field8: "70",    // games in 2014+
+  field7: "40", // wins in 2014+
+  field8: "70", // games in 2014+
   field9: "2.30",
   field10: "2000",
   field11: "0.920",
@@ -217,6 +217,7 @@ export const mockPlayer: Player = {
   shp: 5,
   hits: 30,
   blocks: 25,
+  score: 0,
 };
 
 export const mockPlayerWithSeason: PlayerWithSeason = {
@@ -238,6 +239,7 @@ export const mockGoalie: Goalie = {
   shp: 1,
   gaa: "2.50",
   savePercent: "0.920",
+  score: 0,
 };
 
 export const mockGoalieWithSeason: GoalieWithSeason = {

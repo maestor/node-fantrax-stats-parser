@@ -7,6 +7,7 @@ interface Common {
   penalties: number;
   ppp: number;
   shp: number;
+  score: number;
 }
 
 export interface Player extends Common {
@@ -28,7 +29,7 @@ export interface PlayerWithSeason extends Player {
   season: number;
 }
 
-export type PlayerSeasonData = Omit<PlayerWithSeason, "name">;
+export type PlayerSeasonData = Omit<PlayerWithSeason, "name" | "score">;
 
 export interface CombinedPlayer extends Player {
   seasons: PlayerSeasonData[];
@@ -38,7 +39,7 @@ export interface GoalieWithSeason extends Goalie {
   season: number;
 }
 
-export type GoalieSeasonData = Omit<GoalieWithSeason, "name">;
+export type GoalieSeasonData = Omit<GoalieWithSeason, "name" | "score">;
 
 export interface CombinedGoalie extends Goalie {
   seasons: GoalieSeasonData[];
