@@ -5,6 +5,7 @@ jest.mock("fs", () => ({
 }));
 
 import fs from "fs";
+import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../constants";
 import {
   sortItemsByStatField,
   applyPlayerScores,
@@ -233,6 +234,8 @@ describe("helpers", () => {
       expect(halfScore).toBeGreaterThanOrEqual(0);
       expect(halfScore).toBeLessThanOrEqual(100);
 
+      expect(highScore).toBe(100);
+
       expect(parseFloat(highScore.toFixed(2))).toBe(highScore);
       expect(parseFloat(halfScore.toFixed(2))).toBe(halfScore);
     });
@@ -243,10 +246,13 @@ describe("helpers", () => {
     });
 
     test("sets scoreAdjustedByGames to 0 for players under minimum games", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+      const belowMinGames = Math.max(minGames - 1, 0);
+
       const testPlayers: Player[] = [
         {
           name: "Few Games High Stats",
-          games: 2,
+          games: belowMinGames,
           goals: 5,
           assists: 0,
           points: 0,
@@ -262,7 +268,7 @@ describe("helpers", () => {
         },
         {
           name: "Eligible Player",
-          games: 10,
+          games: minGames,
           goals: 5,
           assists: 0,
           points: 0,
@@ -285,10 +291,14 @@ describe("helpers", () => {
     });
 
     test("sets scoreAdjustedByGames to 0 when no players meet minimum games", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+      const belowMinGamesA = Math.max(minGames - 1, 0);
+      const belowMinGamesB = Math.max(minGames - 2, 0);
+
       const testPlayers: Player[] = [
         {
           name: "Under Min A",
-          games: 1,
+          games: belowMinGamesA,
           goals: 5,
           assists: 3,
           points: 8,
@@ -304,7 +314,7 @@ describe("helpers", () => {
         },
         {
           name: "Under Min B",
-          games: 2,
+          games: belowMinGamesB,
           goals: 4,
           assists: 2,
           points: 6,
@@ -545,10 +555,12 @@ describe("helpers", () => {
     });
 
     test("uses per-game plusMinus in scoreAdjustedByGames", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+
       const testPlayers: Player[] = [
         {
           name: "Best PlusMinus",
-          games: 10,
+          games: minGames,
           goals: 0,
           assists: 0,
           points: 0,
@@ -564,7 +576,7 @@ describe("helpers", () => {
         },
         {
           name: "Middle PlusMinus",
-          games: 10,
+          games: minGames,
           goals: 0,
           assists: 0,
           points: 0,
@@ -580,7 +592,7 @@ describe("helpers", () => {
         },
         {
           name: "Worst PlusMinus",
-          games: 10,
+          games: minGames,
           goals: 0,
           assists: 0,
           points: 0,
@@ -612,6 +624,51 @@ describe("helpers", () => {
       expect(bestAdj).toBeLessThanOrEqual(100);
       expect(worstAdj).toBeGreaterThanOrEqual(0);
       expect(worstAdj).toBeLessThanOrEqual(100);
+
+      expect(bestAdj).toBe(100);
+    });
+
+    test("keeps scoreAdjustedByGames at 0 when all per-game stats are zero", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+
+      const testPlayers: Player[] = [
+        {
+          name: "Zero Stats Eligible A",
+          games: minGames,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Zero Stats Eligible B",
+          games: minGames + 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScores(testPlayers);
+
+      expect(result.every((p) => p.scoreAdjustedByGames === 0)).toBe(true);
     });
   });
 
@@ -713,6 +770,8 @@ describe("helpers", () => {
       expect(halfScore).toBeGreaterThanOrEqual(0);
       expect(halfScore).toBeLessThanOrEqual(100);
 
+      expect(highScore).toBe(100);
+
       expect(parseFloat(highScore.toFixed(2))).toBe(highScore);
       expect(parseFloat(halfScore.toFixed(2))).toBe(halfScore);
     });
@@ -723,10 +782,13 @@ describe("helpers", () => {
     });
 
     test("sets scoreAdjustedByGames to 0 for goalies under minimum games", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+      const belowMinGames = Math.max(minGames - 1, 0);
+
       const testGoalies: Goalie[] = [
         {
           name: "Few Games Goalie",
-          games: 2,
+          games: belowMinGames,
           wins: 5,
           saves: 200,
           shutouts: 1,
@@ -741,7 +803,7 @@ describe("helpers", () => {
         },
         {
           name: "Eligible Goalie",
-          games: 10,
+          games: minGames,
           wins: 5,
           saves: 200,
           shutouts: 1,
@@ -763,10 +825,14 @@ describe("helpers", () => {
     });
 
     test("sets scoreAdjustedByGames to 0 when no goalies meet minimum games", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+      const belowMinGamesA = Math.max(minGames - 1, 0);
+      const belowMinGamesB = Math.max(minGames - 2, 0);
+
       const testGoalies: Goalie[] = [
         {
           name: "Under Min Goalie A",
-          games: 1,
+          games: belowMinGamesA,
           wins: 2,
           saves: 50,
           shutouts: 0,
@@ -781,7 +847,7 @@ describe("helpers", () => {
         },
         {
           name: "Under Min Goalie B",
-          games: 2,
+          games: belowMinGamesB,
           wins: 3,
           saves: 60,
           shutouts: 1,

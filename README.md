@@ -40,25 +40,31 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 Each player and goalie item returned by the stats endpoints includes a computed `score` field, an additional games-adjusted `scoreAdjustedByGames` field, plus a per-stat breakdown in a `scores` object.
 
-- **Range and precision**: `score` is a number between 0 and 100, rounded to two decimals.
+- **Range and precision**: `score` and `scoreAdjustedByGames` are numbers between 0 and 100, rounded to two decimals.
 - **Player scoring fields**: `goals`, `assists`, `points`, `plusMinus`, `penalties`, `shots`, `ppp`, `shp`, `hits`, `blocks`.
 - **Goalie scoring fields**: `wins`, `saves`, `shutouts`, and when available `gaa` (goals against average) and `savePercent`.
 
-Scoring is calculated in two steps:
+Scoring is calculated in three steps:
 
 1. **Per‑stat normalization**
    - For most non‑negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring normalizes from a baseline of 0 up to the maximum value observed in the current result set. For goalies, only `wins`, `saves`, and `shutouts` are included in this part of the score. A value of 0 maps to 0, the maximum maps to 100, and values in between are placed linearly between them.
    - For `plusMinus`, scoring uses the minimum and maximum values observed in the result set, and the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
    - For goalies, `savePercent` and `gaa` are scored relative to the best value in the dataset using more stable scaling rather than raw min/max. For `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in `src/constants.ts` (default .850) maps to 0 points and the best save% in the result set maps to 100, with other values placed linearly between; for `gaa`, the lowest GAA maps to 100 and other goalies are down‑weighted linearly based on how much worse they are than the best, up to a configurable cutoff defined by `GOALIE_GAA_MAX_DIFF_RATIO` in `src/constants.ts`. This avoids extreme 0/100 scores when all available goalies have very similar advanced stats.
 
-2. **Overall score**
+2. **Overall score (per item)**
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).
    - The result is clamped to the `[0, 100]` range and rounded to two decimals.
 
-3. **Games‑adjusted score (`scoreAdjustedByGames`)**
+3. **Best‑in‑set normalization**
+   - After per-item scores are computed, the best `score` in the current result set is always mapped to exactly 100.
+   - All other positive `score` values are scaled proportionally relative to that best score, preserving ordering (for example, if one player originally scored 80 and the best scored 90, they end up at roughly 88.89 after normalization).
+
+4. **Games‑adjusted score (`scoreAdjustedByGames`)**
    - `scoreAdjustedByGames` uses the same scoring fields and weights as the main `score`, but works on per‑game values instead of totals (for example, `goalsPerGame = goals / games`).
-   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 3) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
-   - For eligible players, per‑game values for each stat are normalized in the same way as totals (including per‑game plusMinus), then averaged into a 0–100 score. For goalies, only per‑game `wins`, `saves`, and `shutouts` are used; advanced stats (`gaa`, `savePercent`) do not contribute to `scoreAdjustedByGames`.
+   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 1) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
+   - For eligible players, per‑game values for each stat are normalized in the same way as totals (including per‑game plusMinus), then averaged into a 0–100 score.
+   - For eligible goalies, only per‑game `wins`, `saves`, and `shutouts` are used; advanced stats (`gaa`, `savePercent`) do not contribute to `scoreAdjustedByGames`.
+   - Finally, among all eligible players or goalies in the result set, the best `scoreAdjustedByGames` is normalized to exactly 100, and all other positive `scoreAdjustedByGames` values are scaled proportionally relative to that best per‑game score. Items below the minimum games threshold always remain at 0.
 
 In addition to the overall `score`, each item exposes a `scores` object containing the normalized 0–100 value for every individual scoring stat before weights are applied (for example, `scores.goals`, `scores.hits`, `scores.wins`, `scores.savePercent`, `scores.gaa`). This makes it easy to see which categories drive a player’s or goalie’s total score.
 

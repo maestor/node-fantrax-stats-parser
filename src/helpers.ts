@@ -24,6 +24,30 @@ const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
 
 const toTwoDecimals = (value: number): number => Number(value.toFixed(2));
 
+// Normalize a numeric field so that the highest positive value becomes 100
+// and all other positive values are scaled proportionally into the 0–100 range.
+// Used for both total scores (score) and games-adjusted scores (scoreAdjustedByGames).
+const normalizeFieldToBest = <T, K extends keyof T & string>(items: T[], field: K): void => {
+  let max = 0;
+
+  for (const item of items as Array<Record<string, unknown>>) {
+    const current = item[field];
+    if (typeof current === "number" && current > max) {
+      max = current;
+    }
+  }
+
+  if (max <= 0) return;
+
+  for (const item of items as Array<Record<string, unknown>>) {
+    const current = item[field];
+    if (typeof current === "number" && current > 0) {
+      const normalized = (current / max) * 100;
+      item[field] = toTwoDecimals(Math.min(Math.max(normalized, 0), 100));
+    }
+  }
+};
+
 const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
@@ -111,6 +135,7 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
     item.score = toTwoDecimals(Math.min(Math.max(average, 0), 100));
   }
 
+  normalizeFieldToBest(items, "score");
   return items;
 };
 
@@ -217,6 +242,8 @@ const applyPlayerScoresByGames = (players: Player[]): void => {
     const average = total / fieldCount;
     player.scoreAdjustedByGames = toTwoDecimals(Math.min(Math.max(average, 0), 100));
   }
+
+  normalizeFieldToBest(players, "scoreAdjustedByGames");
 };
 
 export const applyPlayerScores = (players: Player[]): Player[] => {
@@ -343,6 +370,8 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     const average = total / count;
     goalie.score = toTwoDecimals(Math.min(Math.max(average, 0), 100));
   }
+
+  normalizeFieldToBest(goalies, "score");
   const eligible = goalies.filter((goalie) => goalie.games >= MIN_GAMES_FOR_ADJUSTED_SCORE);
 
   if (!eligible.length) {
@@ -397,6 +426,8 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     const average = total / fieldCount;
     goalie.scoreAdjustedByGames = toTwoDecimals(Math.min(Math.max(average, 0), 100));
   }
+
+  normalizeFieldToBest(goalies, "scoreAdjustedByGames");
 
   return goalies;
 };

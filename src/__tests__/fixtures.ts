@@ -113,6 +113,30 @@ export const mockRawDataGoalie2014: RawData = {
   field18: "1",
 };
 
+// Raw data for goalie with newest column order (season >= 2025)
+// Matches Fantrax export where field7 = GP and field8 = W-G
+export const mockRawDataGoalie2025: RawData = {
+  Skaters: "G",
+  season: 2025,
+  field2: "Jake Oettinger",
+  field3: "DAL",
+  field4: "G",
+  field5: "Act",
+  field6: "",
+  field7: "23", // GP
+  field8: "15", // W-G (wins)
+  field9: "2.44",
+  field10: "570",
+  field11: ".911",
+  field12: "2",
+  field13: "0",
+  field14: "0",
+  field15: "1",
+  field16: "1",
+  field17: "0",
+  field18: "0",
+};
+
 // Raw data for goalie without field18 (empty string to test ternary)
 export const mockRawDataGoalieNoField18: RawData = {
   Skaters: "G",
