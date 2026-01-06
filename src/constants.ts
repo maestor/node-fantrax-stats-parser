@@ -1,4 +1,10 @@
-import { Report } from "./types";
+import {
+  Report,
+  PlayerScoreField,
+  GoalieScoreField,
+  PlayerScoreWeights,
+  GoalieScoreWeights,
+} from "./types";
 
 export const START_SEASON = 2012;
 
@@ -47,3 +53,48 @@ export const CSV = {
   GOALIE_PPP: "field17" as const,
   GOALIE_SHP: "field18" as const,
 } as const;
+
+export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
+  "goals",
+  "assists",
+  "points",
+  "plusMinus",
+  "penalties",
+  "shots",
+  "ppp",
+  "shp",
+  "hits",
+  "blocks",
+];
+
+export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = ["wins", "saves", "shutouts"];
+
+// Weights for score calculation (banger-leaning league). Adjust these values (0-1) to change weighting.
+export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
+  goals: 1,
+  assists: 1,
+  points: 1,
+  plusMinus: 1,
+  penalties: 1,
+  shots: 1,
+  ppp: 1,
+  shp: 1,
+  hits: 1,
+  blocks: 1,
+};
+
+export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
+  wins: 1,
+  saves: 1,
+  shutouts: 1,
+  gaa: 1,
+  savePercent: 1,
+};
+
+// Advanced goalie stat scaling (used to avoid extreme 0/100 scores when values are close)
+// If a goalie's GAA is worse than the best GAA by this ratio or more, they get 0 for the GAA component.
+// Example: ratio 0.5 means a goalie with 50% worse GAA than the best maps to 0.
+export const GOALIE_GAA_MAX_DIFF_RATIO = 0.5;
+
+// Baseline save percentage for scoring (used to avoid extreme 0 scores)
+export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850

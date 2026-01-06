@@ -36,6 +36,38 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 `sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, penalties, ppp, shp for both. shots, plusMinus, hits, blocks for players only and wins, saves, shutouts for goalies only. If not specified, sort by points (players) and by wins (goalies).
 
+## Scoring algorithm
+
+Each player and goalie item returned by the stats endpoints includes a computed `score` field, plus a per-stat breakdown in a `scores` object.
+
+- **Range and precision**: `score` is a number between 0 and 100, rounded to two decimals.
+- **Player scoring fields**: `goals`, `assists`, `points`, `plusMinus`, `penalties`, `shots`, `ppp`, `shp`, `hits`, `blocks`.
+- **Goalie scoring fields**: `wins`, `saves`, `shutouts`, and when available `gaa` (goals against average) and `savePercent`.
+
+Scoring is calculated in two steps:
+
+1. **Per‑stat normalization**
+   - For most non‑negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring normalizes from a baseline of 0 up to the maximum value observed in the current result set. For goalies, only `wins`, `saves`, and `shutouts` are included in this part of the score. A value of 0 maps to 0, the maximum maps to 100, and values in between are placed linearly between them.
+   - For `plusMinus`, scoring uses the minimum and maximum values observed in the result set, and the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
+   - For goalies, `savePercent` and `gaa` are scored relative to the best value in the dataset using more stable scaling rather than raw min/max. For `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in `src/constants.ts` (default .850) maps to 0 points and the best save% in the result set maps to 100, with other values placed linearly between; for `gaa`, the lowest GAA maps to 100 and other goalies are down‑weighted linearly based on how much worse they are than the best, up to a configurable cutoff defined by `GOALIE_GAA_MAX_DIFF_RATIO` in `src/constants.ts`. This avoids extreme 0/100 scores when all available goalies have very similar advanced stats.
+
+2. **Overall score**
+   - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).
+   - The result is clamped to the `[0, 100]` range and rounded to two decimals.
+
+In addition to the overall `score`, each item exposes a `scores` object containing the normalized 0–100 value for every individual scoring stat before weights are applied (for example, `scores.goals`, `scores.hits`, `scores.wins`, `scores.savePercent`, `scores.gaa`). This makes it easy to see which categories drive a player’s or goalie’s total score.
+
+### Weights
+
+By default every scoring field has weight `1.0` (full value), so they all contribute equally.
+
+Weights are defined in `src/constants.ts`:
+
+- `PLAYER_SCORE_WEIGHTS` controls player fields.
+- `GOALIE_SCORE_WEIGHTS` controls goalie fields.
+
+Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact of that stat on the final `score` without changing the 0–100 range. To change the scoring model, adjust these weight constants and restart the server.
+
 ## Technology
 
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
@@ -48,7 +80,7 @@ npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 ```
 
-Test coverage: 100% statements, 100% functions, 100% lines, 97% branches. Coverage reports are generated in the `coverage/` directory.
+Test coverage: 100% statements, 100% functions, 100% lines, ~95% branches. Coverage reports are generated in the `coverage/` directory.
 
 ## Todo
 
