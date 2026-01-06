@@ -90,3 +90,11 @@ export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
   gaa: 1,
   savePercent: 1,
 };
+
+// Advanced goalie stat scaling (used to avoid extreme 0/100 scores when values are close)
+// If a goalie's GAA is worse than the best GAA by this ratio or more, they get 0 for the GAA component.
+// Example: ratio 0.5 means a goalie with 50% worse GAA than the best maps to 0.
+export const GOALIE_GAA_MAX_DIFF_RATIO = 0.5;
+
+// Baseline save percentage for scoring (used to avoid extreme 0 scores)
+export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850

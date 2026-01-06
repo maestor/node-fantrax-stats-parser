@@ -7,6 +7,8 @@ import {
   GOALIE_SCORE_FIELDS,
   PLAYER_SCORE_WEIGHTS,
   GOALIE_SCORE_WEIGHTS,
+  GOALIE_GAA_MAX_DIFF_RATIO,
+  GOALIE_SAVE_PERCENT_BASELINE,
 } from "./constants";
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
@@ -152,7 +154,6 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   const baseFields: GoalieScoreField[] = GOALIE_SCORE_FIELDS;
 
   const maxByBase = getMaxByField(goalies, baseFields);
-  const minByBase = getMinByField(goalies, baseFields);
 
   // Save percentage: higher is better
   let maxSavePercent = 0;
@@ -173,17 +174,14 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
 
   // Goals against average: lower is better
   let minGaa = Infinity;
-  let maxGaa = -Infinity;
   for (const goalie of goalies) {
     const raw = goalie.gaa;
     if (!raw) continue;
     const value = Number(raw);
     if (!Number.isFinite(value)) continue;
     if (value < minGaa) minGaa = value;
-    if (value > maxGaa) maxGaa = value;
   }
-
-  const hasGaaRange = Number.isFinite(minGaa) && Number.isFinite(maxGaa) && maxGaa > minGaa;
+  const hasGaa = Number.isFinite(minGaa) && minGaa > 0;
 
   for (const goalie of goalies) {
     let total = 0;
@@ -195,7 +193,6 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     // Base numeric fields where higher is better (0 → max baseline)
     for (const field of baseFields) {
       const max = maxByBase[field];
-      const min = minByBase[field];
       if (max <= 0) continue;
 
       const raw = Number((goalie as unknown as Record<string, number>)[field] ?? 0);
@@ -215,17 +212,21 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
       count += 1;
     }
 
-    // Save percentage (".917" -> 0.917, higher is better)
+    // Save percentage (".917" -> 0.917, higher is better, scaled between fixed baseline and best)
     if (hasSavePercent && goalie.savePercent) {
       const raw = Number(goalie.savePercent);
       if (Number.isFinite(raw) && raw > 0) {
-        const range = maxSavePercent - minSavePercent;
-        let relative = 0;
+        const best = maxSavePercent;
+        const baseline = GOALIE_SAVE_PERCENT_BASELINE;
 
-        if (range <= 0) {
-          relative = 100;
-        } else {
-          relative = ((raw - minSavePercent) / range) * 100;
+        let relative = 0;
+        if (best > baseline) {
+          if (raw <= baseline) {
+            relative = 0;
+          } else {
+            const ratio = (raw - baseline) / (best - baseline);
+            relative = Math.min(Math.max(ratio, 0), 1) * 100;
+          }
         }
         const weight = GOALIE_SCORE_WEIGHTS.savePercent;
         total += relative * weight;
@@ -239,22 +240,28 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
       }
     }
 
-    // Goals against average (lower is better)
-    if (hasGaaRange && goalie.gaa) {
+    // Goals against average (lower is better, scaled by relative diff from best)
+    if (hasGaa && goalie.gaa) {
       const raw = Number(goalie.gaa);
       if (Number.isFinite(raw)) {
-        const range = maxGaa - minGaa;
-        if (range > 0) {
-          const relative = ((maxGaa - raw) / range) * 100;
-          const weight = GOALIE_SCORE_WEIGHTS.gaa;
-          total += relative * weight;
-          count += 1;
+        const best = minGaa;
+        const diff = raw - best;
 
-          const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
-          if (scoresContainer) {
-            const clamped = Math.min(Math.max(relative, 0), 100);
-            scoresContainer.gaa = toTwoDecimals(clamped);
-          }
+        let relative = 100;
+        if (diff > 0 && GOALIE_GAA_MAX_DIFF_RATIO > 0 && best > 0) {
+          const ratio = diff / best; // how much worse than best, as a fraction
+          relative =
+            ratio >= GOALIE_GAA_MAX_DIFF_RATIO ? 0 : (1 - ratio / GOALIE_GAA_MAX_DIFF_RATIO) * 100;
+        }
+
+        const weight = GOALIE_SCORE_WEIGHTS.gaa;
+        total += relative * weight;
+        count += 1;
+
+        const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
+        if (scoresContainer) {
+          const clamped = Math.min(Math.max(relative, 0), 100);
+          scoresContainer.gaa = toTwoDecimals(clamped);
         }
       }
     }
