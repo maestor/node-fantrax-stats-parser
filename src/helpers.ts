@@ -8,9 +8,10 @@ export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 const seasonsTotal = fs.readdirSync("./csv").filter((file) => file.includes("regular"));
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
-  b.points - a.points || b.goals - a.goals;
+  b.score - a.score || b.points - a.points || b.goals - a.goals;
 
-const defaultSortGoalies = (a: Goalie, b: Goalie): number => b.wins - a.wins || b.games - a.games;
+const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
+  b.score - a.score || b.wins - a.wins || b.games - a.games;
 
 type PlayerScoreField =
   | "goals"
@@ -70,11 +71,11 @@ const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
   goals: 1,
   assists: 1,
   points: 1,
-  plusMinus: 1,
+  plusMinus: 0.8,
   penalties: 1,
   shots: 1,
   ppp: 1,
-  shp: 1,
+  shp: 0.5,
   hits: 1,
   blocks: 1,
 };
@@ -82,13 +83,13 @@ const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
 const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
   wins: 1,
   saves: 1,
-  shutouts: 1,
-  goals: 1,
-  assists: 1,
-  points: 1,
-  penalties: 1,
-  ppp: 1,
-  shp: 1,
+  shutouts: 0.8,
+  goals: 0.5,
+  assists: 0.5,
+  points: 0.5,
+  penalties: 0.8,
+  ppp: 0.6,
+  shp: 0.5,
   gaa: 1,
   savePercent: 1,
 };

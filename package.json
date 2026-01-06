@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "build": "rimraf lib && tsc",
-    "dev": "npm run build && concurrently \"tsc --watch\" \"micro\"",
+    "dev": "npm run build && concurrently \"tsc --watch\" \"nodemon --watch lib --ext js --exec micro\"",
     "dev-start": "npm run build && micro",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "lint": "eslint src/**/*.ts",
@@ -39,6 +39,7 @@
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
     "node-mocks-http": "^1.17.2",
     "prettier": "^3.7.4",
     "rimraf": "^6.1.2",
