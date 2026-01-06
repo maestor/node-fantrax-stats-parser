@@ -47,9 +47,9 @@ Each player and goalie item returned by the stats endpoints includes a computed 
 Scoring is calculated in two steps:
 
 1. **Per‑stat normalization**
-   - For most always‑positive fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring uses both the minimum and maximum values observed in the current result set. For goalies, only `wins`, `saves`, and `shutouts` are included in scoring. The minimum value in that dataset maps to 0, the maximum to 100, and values in between are placed linearly between them. This means the worst stat line in that result set always contributes 0 for that component, even if it is not literally 0 in absolute terms.
-   - For `plusMinus`, scoring also uses the minimum and maximum values observed in the result set, but the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
-   - For goalies, `savePercent` follows the same "higher is better" min/max normalization as other positive stats, while `gaa` is inverted so that the lowest GAA maps to 100, the highest to 0, and values in between are placed linearly between them.
+   - For most non‑negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring normalizes from a baseline of 0 up to the maximum value observed in the current result set. For goalies, only `wins`, `saves`, and `shutouts` are included in this part of the score. A value of 0 maps to 0, the maximum maps to 100, and values in between are placed linearly between them.
+   - For `plusMinus`, scoring uses the minimum and maximum values observed in the result set, and the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
+   - For goalies, `savePercent` follows the same "higher is better" min/max normalization (dataset min to max), while `gaa` is inverted so that the lowest GAA maps to 100, the highest to 0, and values in between are placed linearly between them.
 
 2. **Overall score**
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).

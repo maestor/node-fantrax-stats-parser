@@ -43,7 +43,7 @@ const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
 const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
-      let min = Infinity;
+      let min = 0;
       for (const item of items) {
         const raw = Number((item as unknown as Record<K, number>)[field] ?? 0);
         const value = Number.isFinite(raw) ? raw : 0;
@@ -51,7 +51,7 @@ const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
           min = value;
         }
       }
-      acc[field] = Number.isFinite(min) ? min : 0;
+      acc[field] = min;
       return acc;
     },
     {} as Record<K, number>
