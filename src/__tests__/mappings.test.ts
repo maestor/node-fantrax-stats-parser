@@ -193,6 +193,15 @@ describe("mappings", () => {
       expect(result[0].season).toBe(2014);
     });
 
+    test("maps wins and games correctly for season 2025", () => {
+      const { mockRawDataGoalie2025 } = jest.requireActual("./fixtures");
+      const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalie2025]);
+
+      expect(result[0].games).toBe(23);
+      expect(result[0].wins).toBe(15);
+      expect(result[0].season).toBe(2025);
+    });
+
     test("defaults shp to 0 when field18 is missing", () => {
       const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalieNoField18]);
 

@@ -10,7 +10,7 @@ import {
   CombinedGoalie,
 } from "./types";
 import { availableSeasons } from "./helpers";
-import { CSV, GOALIE_SCHEMA_CHANGE_YEAR } from "./constants";
+import { CSV, GOALIE_SCHEMA_CHANGE_YEAR, GOALIE_GAMES_WINS_REVERSE_YEAR } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
 const parseNumber = (value: string) => {
@@ -116,9 +116,15 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
 
       // Wins and games are different orders in different seasons -> dirty hack
       if (item.season <= GOALIE_SCHEMA_CHANGE_YEAR) {
+        // Older schema: field7 = games, field8 = wins
         wins = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
         games = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
+      } else if (item.season >= GOALIE_GAMES_WINS_REVERSE_YEAR) {
+        // Newest schema (2025+): field7 = games (GP), field8 = wins (W-G)
+        games = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
+        wins = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
       } else {
+        // Middle schema (2014-2024): field7 = wins, field8 = games
         wins = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
         games = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
       }

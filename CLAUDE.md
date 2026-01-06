@@ -72,12 +72,13 @@ Both deployment models share the same core business logic (services.ts, mappings
 
 **Scoring**:
 
-- Player and goalie items include a `score` field (0–100, two decimals) computed from their total stats, a `scoreAdjustedByGames` field computed from per-game stats (with a minimum games threshold), plus a `scores` object with per-stat normalized values.
+- Player and goalie items include a `score` field (0–100, two decimals) computed from their total stats, a `scoreAdjustedByGames` field (0–100, two decimals) computed from per-game stats (with a minimum games threshold), plus a `scores` object with per-stat normalized values.
 - Player scoring fields: goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks.
 - Goalie scoring fields: wins, saves, shutouts, plus optional gaa and savePercent when present (goalie goals/assists/points/PIM/PP/SHP are tracked but not used in scoring).
 - For non-negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts), scoring normalizes from a baseline of 0 up to the maximum value seen in the current result set: 0 maps to 0, the maximum to 100, and values in between are placed linearly between them. For goalies, only wins, saves, and shutouts participate in this part of the score.
 - `plusMinus` uses per-dataset min/max, where the minimum can be negative. Advanced goalie stats use more stable scaling: for `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in constants.ts (default .850) maps to 0 points and the best save% in the dataset maps to 100 with linear interpolation between; for `gaa`, the lowest GAA maps to 100 and other goalies are down-weighted linearly based on how much worse they are than the best, using `GOALIE_GAA_MAX_DIFF_RATIO` in constants.ts as the cutoff for reaching 0.
-- Per-field scores are averaged (with configurable weights in constants.ts) to produce the final `score` for each item, while the raw normalized 0–100 values per stat are exposed via the `scores` map on each player/goalie.
+- Per-field scores are averaged (with configurable weights in constants.ts) to produce an initial `score` for each item. Then, within each result set, the best `score` is normalized to exactly 100 and all other positive `score` values are scaled proportionally relative to that best value. The raw normalized 0–100 values per stat are exposed via the `scores` map on each player/goalie.
+- `scoreAdjustedByGames` follows the same weighting model but is computed from per-game stats for items meeting `MIN_GAMES_FOR_ADJUSTED_SCORE`. After per-game scores are computed, the best `scoreAdjustedByGames` in the result set is normalized to 100 and other positive values are scaled to be percentages of that best per-game result; under-minimum items always remain at 0.
 
 **Data Quirks**:
 
