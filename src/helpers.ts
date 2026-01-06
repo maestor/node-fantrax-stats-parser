@@ -94,13 +94,9 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
       } else {
         if (max <= 0) continue;
         const value = Math.max(0, safeRaw);
-        const range = max - min;
+        const range = max; // baseline 0 → max for non-negative stats
 
-        if (range <= 0) {
-          relative = 100;
-        } else {
-          relative = ((value - min) / range) * 100;
-        }
+        relative = range > 0 ? (value / range) * 100 : 0;
       }
 
       // Store per-stat normalized score (0-100) before applying weight
@@ -196,7 +192,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     // Initialize per-stat score breakdown container
     (goalie as unknown as { scores?: Record<string, number> }).scores = {};
 
-    // Base numeric fields where higher is better
+    // Base numeric fields where higher is better (0 → max baseline)
     for (const field of baseFields) {
       const max = maxByBase[field];
       const min = minByBase[field];
@@ -204,14 +200,9 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
 
       const raw = Number((goalie as unknown as Record<string, number>)[field] ?? 0);
       const value = Number.isFinite(raw) ? Math.max(0, raw) : 0;
-      const range = max - min;
+      const range = max;
 
-      let relative = 0;
-      if (range <= 0) {
-        relative = 100;
-      } else {
-        relative = ((value - min) / range) * 100;
-      }
+      const relative = range > 0 ? (value / range) * 100 : 0;
       const weight = GOALIE_SCORE_WEIGHTS[field];
 
       const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;

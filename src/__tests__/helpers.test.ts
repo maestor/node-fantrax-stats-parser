@@ -234,12 +234,27 @@ describe("helpers", () => {
       expect(result).toEqual([]);
     });
 
-    test("uses dataset minimum as 0 baseline for always-positive stats", () => {
+    test("uses 0 baseline for always-positive stats", () => {
       const testPlayers: Player[] = [
         {
           name: "Top Scorer",
           games: 0,
           goals: 40,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+        },
+        {
+          name: "Zero Goals",
+          games: 0,
+          goals: 0,
           assists: 0,
           points: 0,
           plusMinus: 0,
@@ -268,10 +283,11 @@ describe("helpers", () => {
         },
       ];
 
-      const [top, lowest] = applyPlayerScores(testPlayers);
+      const [top, zero, lowest] = applyPlayerScores(testPlayers);
 
-      expect(lowest.score).toBe(0);
-      expect((top.score as number) > 0).toBe(true);
+      expect(zero.score).toBe(0);
+      expect((lowest.score as number) > 0).toBe(true);
+      expect((top.score as number) > (lowest.score as number)).toBe(true);
     });
 
     test("handles equal positive values for always-positive stats", () => {
@@ -531,12 +547,26 @@ describe("helpers", () => {
       expect(result).toEqual([]);
     });
 
-    test("uses dataset minimum as 0 baseline for goalie always-positive stats", () => {
+    test("uses 0 baseline for goalie always-positive stats", () => {
       const testGoalies: Goalie[] = [
         {
           name: "Top Goalie",
           games: 0,
           wins: 40,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+        },
+        {
+          name: "Zero Wins",
+          games: 0,
+          wins: 0,
           saves: 0,
           shutouts: 0,
           goals: 0,
@@ -563,10 +593,11 @@ describe("helpers", () => {
         },
       ];
 
-      const [top, lowest] = applyGoalieScores(testGoalies);
+      const [top, zero, lowest] = applyGoalieScores(testGoalies);
 
-      expect(lowest.score).toBe(0);
-      expect((top.score as number) > 0).toBe(true);
+      expect(zero.score).toBe(0);
+      expect((lowest.score as number) > 0).toBe(true);
+      expect((top.score as number) > (lowest.score as number)).toBe(true);
     });
 
     test("handles equal positive values for goalie always-positive stats", () => {
