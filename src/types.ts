@@ -31,10 +31,10 @@ export interface PlayerWithSeason extends Player {
   season: number;
 }
 
-export type PlayerSeasonData = Omit<
-  PlayerWithSeason,
-  "name" | "score" | "scoreAdjustedByGames" | "scores"
->;
+// Single-season snapshot used inside CombinedPlayer.seasons.
+// Includes per-season score, scoreAdjustedByGames and scores, but omits name
+// (name is available at the CombinedPlayer root level).
+export type PlayerSeasonData = Omit<PlayerWithSeason, "name">;
 
 export interface CombinedPlayer extends Player {
   seasons: PlayerSeasonData[];
@@ -44,10 +44,10 @@ export interface GoalieWithSeason extends Goalie {
   season: number;
 }
 
-export type GoalieSeasonData = Omit<
-  GoalieWithSeason,
-  "name" | "score" | "scoreAdjustedByGames" | "scores"
->;
+// Single-season snapshot used inside CombinedGoalie.seasons.
+// Includes per-season score, scoreAdjustedByGames and scores, but omits name
+// (name is available at the CombinedGoalie root level).
+export type GoalieSeasonData = Omit<GoalieWithSeason, "name">;
 
 export interface CombinedGoalie extends Goalie {
   seasons: GoalieSeasonData[];

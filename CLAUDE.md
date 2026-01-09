@@ -60,8 +60,8 @@ Both deployment models share the same core business logic (services.ts, mappings
    - getPlayersStatsSeason/getPlayersCombined: Process player stats
    - getGoaliesStatsSeason/getGoaliesCombined: Process goalie stats
 3. **Mappings** (src/mappings.ts) - Transform raw CSV data to typed objects:
-   - mapPlayerData/mapGoalieData: Single season mapping
-   - mapCombinedPlayerData/mapCombinedGoalieData: Aggregate multiple seasons using Map for deduplication by player name
+   - mapPlayerData/mapGoalieData: Single season mapping with initial zero scores
+   - mapCombinedPlayerData/mapCombinedGoalieData: Aggregate multiple seasons using Map for deduplication by player name and attach per-season scoring metadata to each `seasons` entry
 4. **Helpers** (src/helpers.ts) - Utilities for sorting, validation, season discovery, and fantasy scoring
 
 ### Key Implementation Details
@@ -79,6 +79,7 @@ Both deployment models share the same core business logic (services.ts, mappings
 - `plusMinus` uses per-dataset min/max, where the minimum can be negative. Advanced goalie stats use more stable scaling: for `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in constants.ts (default .850) maps to 0 points and the best save% in the dataset maps to 100 with linear interpolation between; for `gaa`, the lowest GAA maps to 100 and other goalies are down-weighted linearly based on how much worse they are than the best, using `GOALIE_GAA_MAX_DIFF_RATIO` in constants.ts as the cutoff for reaching 0.
 - Per-field scores are averaged (with configurable weights in constants.ts) to produce an initial `score` for each item. Then, within each result set, the best `score` is normalized to exactly 100 and all other positive `score` values are scaled proportionally relative to that best value. The raw normalized 0–100 values per stat are exposed via the `scores` map on each player/goalie.
 - `scoreAdjustedByGames` follows the same weighting model but is computed from per-game stats for items meeting `MIN_GAMES_FOR_ADJUSTED_SCORE`. After per-game scores are computed, the best `scoreAdjustedByGames` in the result set is normalized to 100 and other positive values are scaled to be percentages of that best per-game result; under-minimum items always remain at 0.
+- For combined endpoints (`getPlayersStatsCombined` / `getGoaliesStatsCombined`), root-level items are scored from season-aggregated totals, and each entry in the nested `seasons` array also gets its own per-season `score`, `scoreAdjustedByGames`, and `scores` computed using the single-season scoring model within that season’s cohort.
 
 **Data Quirks**:
 
@@ -87,7 +88,7 @@ Both deployment models share the same core business logic (services.ts, mappings
 - Players with 0 games are filtered out
 - GAA and save percentage are not included in combined goalie stats
 
-**Combined Stats Logic**: When combining seasons, stats are summed by player name using a Map for efficient deduplication. Each combined record includes a `seasons` array with individual season breakdowns.
+**Combined Stats Logic**: When combining seasons, stats are summed by player name using a Map for efficient deduplication. Each combined record includes a `seasons` array with individual season breakdowns, and those season entries now carry full scoring metadata (per-season `score`, `scoreAdjustedByGames`, and `scores`) alongside their raw stats.
 
 ### Code Quality Patterns
 
@@ -154,7 +155,7 @@ The codebase follows these quality patterns established through systematic refac
 
 Comprehensive test suite using Jest with TypeScript support via ts-jest. **100+ tests** covering all business logic and micro server routes.
 
-**Coverage:** 100% statements, 100% functions, 100% lines, 100% branches
+**Coverage:** 100% statements, 100% functions, 100% lines, 100% branches (enforced via Jest global coverage thresholds)
 
 - Lambda handlers are excluded from coverage (tested separately if needed)
 
@@ -164,7 +165,7 @@ Comprehensive test suite using Jest with TypeScript support via ts-jest. **100+ 
 src/__tests__/
 ├── fixtures.ts          # Reusable test data and mock objects
 ├── helpers.test.ts      # Sorting, validation, season discovery, scoring (includes parseSeasonParam)
-├── mappings.test.ts     # CSV data transformation (33 tests)
+├── mappings.test.ts     # CSV data transformation + combined per-season scoring (33+ tests)
 ├── services.test.ts     # Business logic, CSV reading (17 tests)
 └── routes.test.ts       # HTTP route handlers (21 tests)
 ```

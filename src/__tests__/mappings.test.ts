@@ -5,7 +5,7 @@ import {
   mapCombinedGoalieData,
   mapAvailableSeasons,
 } from "../mappings";
-import { availableSeasons } from "../helpers";
+import { availableSeasons, applyPlayerScores, applyGoalieScores } from "../helpers";
 import {
   mockRawDataPlayer,
   mockRawDataPlayerWithCommas,
@@ -158,6 +158,38 @@ describe("mappings", () => {
 
       expect(result.length).toBe(2);
       expect(result.map((p) => p.name).sort()).toEqual(["Player A", "Player B"]);
+    });
+
+    test("applies per-season scores to seasons entries", () => {
+      jest.clearAllMocks();
+      (applyPlayerScores as jest.Mock).mockImplementation((players) => {
+        // Simulate scoring that depends only on season to verify wiring
+        players.forEach((player: any) => {
+          player.score = player.season === 2023 ? 10 : 20;
+          player.scoreAdjustedByGames = player.season === 2023 ? 1 : 2;
+          player.scores = { goals: player.season };
+        });
+        return players;
+      });
+
+      const season1 = { ...mockRawDataPlayer, season: 2023, field2: "Player A" };
+      const season2 = { ...mockRawDataPlayer, season: 2024, field2: "Player A" };
+
+      const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
+
+      expect(applyPlayerScores).toHaveBeenCalledTimes(2);
+
+      const seasons = result[0].seasons.sort((a, b) => a.season - b.season);
+
+      expect(seasons[0].season).toBe(2023);
+      expect(seasons[0].score).toBe(10);
+      expect(seasons[0].scoreAdjustedByGames).toBe(1);
+      expect(seasons[0].scores).toEqual({ goals: 2023 });
+
+      expect(seasons[1].season).toBe(2024);
+      expect(seasons[1].score).toBe(20);
+      expect(seasons[1].scoreAdjustedByGames).toBe(2);
+      expect(seasons[1].scores).toEqual({ goals: 2024 });
     });
   });
 
@@ -410,6 +442,41 @@ describe("mappings", () => {
       expect(result[0].name).toBe("Carey Price");
       expect(result[0].wins).toBe(80);
       expect(result[0].games).toBe(140);
+    });
+
+    test("applies per-season scores to goalie seasons entries and keeps advanced stats", () => {
+      jest.clearAllMocks();
+      (applyGoalieScores as jest.Mock).mockImplementation((goalies) => {
+        goalies.forEach((goalie: any) => {
+          goalie.score = goalie.season === 2023 ? 15 : 25;
+          goalie.scoreAdjustedByGames = goalie.season === 2023 ? 3 : 4;
+          goalie.scores = { wins: goalie.season };
+        });
+        return goalies;
+      });
+
+      const season1 = { ...mockRawDataGoalie2014, season: 2023, field2: "Goalie A" };
+      const season2 = { ...mockRawDataGoalie2014, season: 2024, field2: "Goalie A" };
+
+      const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
+
+      expect(applyGoalieScores).toHaveBeenCalledTimes(2);
+
+      const seasons = result[0].seasons.sort((a, b) => a.season - b.season);
+
+      expect(seasons[0].season).toBe(2023);
+      expect(seasons[0].score).toBe(15);
+      expect(seasons[0].scoreAdjustedByGames).toBe(3);
+      expect(seasons[0].scores).toEqual({ wins: 2023 });
+      expect(seasons[0].gaa).toBe("2.30");
+      expect(seasons[0].savePercent).toBe("0.920");
+
+      expect(seasons[1].season).toBe(2024);
+      expect(seasons[1].score).toBe(25);
+      expect(seasons[1].scoreAdjustedByGames).toBe(4);
+      expect(seasons[1].scores).toEqual({ wins: 2024 });
+      expect(seasons[1].gaa).toBe("2.30");
+      expect(seasons[1].savePercent).toBe("0.920");
     });
   });
 
