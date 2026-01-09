@@ -22,11 +22,11 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 `/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
 
-`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats.
+`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
 
 `/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
 
-`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats.
+`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
 
 ### Parameters
 
@@ -67,6 +67,8 @@ Scoring is calculated in three steps:
    - Finally, among all eligible players or goalies in the result set, the best `scoreAdjustedByGames` is normalized to exactly 100, and all other positive `scoreAdjustedByGames` values are scaled proportionally relative to that best per‑game score. Items below the minimum games threshold always remain at 0.
 
 In addition to the overall `score`, each item exposes a `scores` object containing the normalized 0–100 value for every individual scoring stat before weights are applied (for example, `scores.goals`, `scores.hits`, `scores.wins`, `scores.savePercent`, `scores.gaa`). This makes it easy to see which categories drive a player’s or goalie’s total score.
+
+For the combined endpoints (`/players/combined` and `/goalies/combined`), the root-level items are scored using their full combined stats across all seasons, and each entry in the `seasons` array also includes its own per-season `score`, `scoreAdjustedByGames`, and `scores` object computed exactly as in the single-season endpoints, but normalized within that specific season.
 
 ### Weights
 

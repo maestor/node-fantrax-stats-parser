@@ -9,7 +9,7 @@ import {
   GoalieWithSeason,
   CombinedGoalie,
 } from "./types";
-import { availableSeasons } from "./helpers";
+import { availableSeasons, applyPlayerScores, applyGoalieScores } from "./helpers";
 import { CSV, GOALIE_SCHEMA_CHANGE_YEAR, GOALIE_GAMES_WINS_REVERSE_YEAR } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
@@ -52,59 +52,101 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
     );
 };
 
-export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => [
-  ...mapPlayerData(rawData)
-    .reduce<Map<string, CombinedPlayer>>((r, currentItem: PlayerWithSeason) => {
-      // Helper to get statfields for initializing and combining
-      const itemKeys = Object.keys(currentItem).filter(
-        (key) => key !== "name" && key !== "season" && key !== "score"
-      ) as PlayerFields[];
+export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => {
+  const playersWithSeason = mapPlayerData(rawData);
 
-      let item = r.get(currentItem.name);
+  // Compute per-season scores so that each season entry in the combined
+  // response reflects the same scoring model as the single-season endpoints.
+  const seasonScoreLookup = new Map<
+    string,
+    { score: number; scoreAdjustedByGames: number; scores?: Record<string, number> }
+  >();
 
-      if (!item) {
-        item = {
-          name: currentItem.name,
-          games: 0,
-          goals: 0,
-          assists: 0,
-          points: 0,
-          plusMinus: 0,
-          penalties: 0,
-          shots: 0,
-          ppp: 0,
-          shp: 0,
-          hits: 0,
-          blocks: 0,
-          score: 0,
-          scoreAdjustedByGames: 0,
-          seasons: [],
-        };
-        r.set(currentItem.name, item);
-      }
+  const playersBySeason = new Map<number, PlayerWithSeason[]>();
+  for (const player of playersWithSeason) {
+    const seasonPlayers = playersBySeason.get(player.season) ?? [];
+    seasonPlayers.push(player);
+    playersBySeason.set(player.season, seasonPlayers);
+  }
 
-      // Sum statfields to previously combined data
-      itemKeys.forEach((itemKey) => {
-        const key = itemKey as keyof Player;
-        if (typeof item[key] === "number") {
-          (item[key] as number) += currentItem[key] as number;
-        }
+  for (const [season, players] of playersBySeason) {
+    applyPlayerScores(players);
+    for (const player of players) {
+      seasonScoreLookup.set(`${player.name}-${season}`, {
+        score: player.score,
+        scoreAdjustedByGames: player.scoreAdjustedByGames,
+        scores: player.scores,
       });
+    }
+  }
 
-      // Add season data, with season as the first property and without score
-      const {
-        name: _name,
-        season,
-        score: _score,
-        scoreAdjustedByGames: _scoreAdjustedByGames,
-        ...restOfSeasonData
-      } = currentItem;
-      item.seasons.push({ season, ...restOfSeasonData });
+  const combined = [
+    ...playersWithSeason
+      .reduce<Map<string, CombinedPlayer>>((r, currentItem: PlayerWithSeason) => {
+        // Helper to get statfields for initializing and combining
+        const itemKeys = Object.keys(currentItem).filter(
+          (key) => key !== "name" && key !== "season" && key !== "score"
+        ) as PlayerFields[];
 
-      return r;
-    }, new Map<string, CombinedPlayer>())
-    .values(),
-];
+        let item = r.get(currentItem.name);
+
+        if (!item) {
+          item = {
+            name: currentItem.name,
+            games: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            plusMinus: 0,
+            penalties: 0,
+            shots: 0,
+            ppp: 0,
+            shp: 0,
+            hits: 0,
+            blocks: 0,
+            score: 0,
+            scoreAdjustedByGames: 0,
+            seasons: [],
+          };
+          r.set(currentItem.name, item);
+        }
+
+        // Sum statfields to previously combined data
+        itemKeys.forEach((itemKey) => {
+          const key = itemKey as keyof Player;
+          if (typeof item[key] === "number") {
+            (item[key] as number) += currentItem[key] as number;
+          }
+        });
+
+        const seasonKey = `${currentItem.name}-${currentItem.season}`;
+        const seasonScores = seasonScoreLookup.get(seasonKey);
+
+        // Add season data with per-season score information
+        const {
+          name: _name,
+          season,
+          score: _score,
+          scoreAdjustedByGames: _scoreAdjustedByGames,
+          scores: _scores,
+          ...restOfSeasonData
+        } = currentItem;
+
+        item.seasons.push({
+          season,
+          ...restOfSeasonData,
+          score: seasonScores?.score ?? 0,
+          scoreAdjustedByGames: seasonScores?.scoreAdjustedByGames ?? 0,
+          scores: seasonScores?.scores,
+        });
+
+        return r;
+      }, new Map<string, CombinedPlayer>())
+      .values(),
+  ];
+
+  return combined;
+};
 
 export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
   return data
@@ -156,63 +198,105 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
     });
 };
 
-export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => [
-  ...mapGoalieData(rawData)
-    .reduce<Map<string, CombinedGoalie>>((r, currentItem: GoalieWithSeason) => {
-      // Helper to get statfields for initializing and combining
-      const itemKeys = Object.keys(currentItem).filter(
-        (key) =>
-          key !== "name" &&
-          key !== "season" &&
-          key !== "gaa" &&
-          key !== "savePercent" &&
-          key !== "score"
-      ) as GoalieFields[];
+export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => {
+  const goaliesWithSeason = mapGoalieData(rawData);
 
-      let item = r.get(currentItem.name);
+  // Compute per-season scores for goalies so that each season entry in the
+  // combined response matches the single-season goalie scoring model.
+  const seasonScoreLookup = new Map<
+    string,
+    { score: number; scoreAdjustedByGames: number; scores?: Record<string, number> }
+  >();
 
-      if (!item) {
-        item = {
-          name: currentItem.name,
-          games: 0,
-          wins: 0,
-          saves: 0,
-          shutouts: 0,
-          goals: 0,
-          assists: 0,
-          points: 0,
-          penalties: 0,
-          ppp: 0,
-          shp: 0,
-          score: 0,
-          scoreAdjustedByGames: 0,
-          seasons: [],
-        };
-        r.set(currentItem.name, item);
-      }
+  const goaliesBySeason = new Map<number, GoalieWithSeason[]>();
+  for (const goalie of goaliesWithSeason) {
+    const seasonGoalies = goaliesBySeason.get(goalie.season) ?? [];
+    seasonGoalies.push(goalie);
+    goaliesBySeason.set(goalie.season, seasonGoalies);
+  }
 
-      // Sum statfields to previously combined data
-      itemKeys.forEach((itemKey) => {
-        const key = itemKey as keyof Goalie;
-        if (typeof item[key] === "number") {
-          (item[key] as number) += currentItem[key] as number;
-        }
+  for (const [season, goalies] of goaliesBySeason) {
+    applyGoalieScores(goalies);
+    for (const goalie of goalies) {
+      seasonScoreLookup.set(`${goalie.name}-${season}`, {
+        score: goalie.score,
+        scoreAdjustedByGames: goalie.scoreAdjustedByGames,
+        scores: goalie.scores,
       });
+    }
+  }
 
-      // Add season data, with season as the first property and without score
-      const {
-        name: _name,
-        season,
-        score: _score,
-        scoreAdjustedByGames: _scoreAdjustedByGames,
-        ...restOfSeasonData
-      } = currentItem;
-      item.seasons.push({ season, ...restOfSeasonData });
+  const combined = [
+    ...goaliesWithSeason
+      .reduce<Map<string, CombinedGoalie>>((r, currentItem: GoalieWithSeason) => {
+        // Helper to get statfields for initializing and combining
+        const itemKeys = Object.keys(currentItem).filter(
+          (key) =>
+            key !== "name" &&
+            key !== "season" &&
+            key !== "gaa" &&
+            key !== "savePercent" &&
+            key !== "score"
+        ) as GoalieFields[];
 
-      return r;
-    }, new Map<string, CombinedGoalie>())
-    .values(),
-];
+        let item = r.get(currentItem.name);
+
+        if (!item) {
+          item = {
+            name: currentItem.name,
+            games: 0,
+            wins: 0,
+            saves: 0,
+            shutouts: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            penalties: 0,
+            ppp: 0,
+            shp: 0,
+            score: 0,
+            scoreAdjustedByGames: 0,
+            seasons: [],
+          };
+          r.set(currentItem.name, item);
+        }
+
+        // Sum statfields to previously combined data
+        itemKeys.forEach((itemKey) => {
+          const key = itemKey as keyof Goalie;
+          if (typeof item[key] === "number") {
+            (item[key] as number) += currentItem[key] as number;
+          }
+        });
+
+        const seasonKey = `${currentItem.name}-${currentItem.season}`;
+        const seasonScores = seasonScoreLookup.get(seasonKey);
+
+        // Add season data with per-season score information and advanced stats
+        const {
+          name: _name,
+          season,
+          score: _score,
+          scoreAdjustedByGames: _scoreAdjustedByGames,
+          scores: _scores,
+          ...restOfSeasonData
+        } = currentItem;
+
+        item.seasons.push({
+          season,
+          ...restOfSeasonData,
+          score: seasonScores?.score ?? 0,
+          scoreAdjustedByGames: seasonScores?.scoreAdjustedByGames ?? 0,
+          scores: seasonScores?.scores,
+        });
+
+        return r;
+      }, new Map<string, CombinedGoalie>())
+      .values(),
+  ];
+
+  return combined;
+};
 
 export const mapAvailableSeasons = () =>
   availableSeasons().map((season) => ({
