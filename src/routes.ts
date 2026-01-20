@@ -20,6 +20,14 @@ const withErrorHandling = async (res: ServerResponse, handler: () => Promise<unk
   }
 };
 
+export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
+  send(res, HTTP_STATUS.OK, {
+    status: "ok",
+    uptimeSeconds: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+};
+
 export const getSeasons: AugmentedRequestHandler = async (_req, res) => {
   await withErrorHandling(res, () => getAvailableSeasons());
 };

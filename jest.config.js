@@ -3,7 +3,13 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   testMatch: ["**/__tests__/**/*.test.ts"],
-  collectCoverageFrom: ["src/**/*.ts", "!src/lambdas/**", "!src/types.ts", "!src/index.ts"],
+  collectCoverageFrom: [
+    "src/**/*.ts",
+    "!src/lambdas/**",
+    "!src/types.ts",
+    "!src/index.ts",
+    "!src/server.ts",
+  ],
   coverageThreshold: {
     global: {
       branches: 90,

@@ -163,8 +163,15 @@ describe("mappings", () => {
     test("applies per-season scores to seasons entries", () => {
       jest.clearAllMocks();
       (applyPlayerScores as jest.Mock).mockImplementation((players) => {
+        type ScoredSeasonPlayer = {
+          season: number;
+          score: number;
+          scoreAdjustedByGames: number;
+          scores?: { goals: number };
+        };
+
         // Simulate scoring that depends only on season to verify wiring
-        players.forEach((player: any) => {
+        (players as ScoredSeasonPlayer[]).forEach((player) => {
           player.score = player.season === 2023 ? 10 : 20;
           player.scoreAdjustedByGames = player.season === 2023 ? 1 : 2;
           player.scores = { goals: player.season };
@@ -190,6 +197,39 @@ describe("mappings", () => {
       expect(seasons[1].score).toBe(20);
       expect(seasons[1].scoreAdjustedByGames).toBe(2);
       expect(seasons[1].scores).toEqual({ goals: 2024 });
+    });
+
+    test("defaults per-season score fields when lookup is missing", () => {
+      jest.clearAllMocks();
+
+      // Force a lookup miss by replacing objects inside the per-season scoring step.
+      // This keeps `playersWithSeason` (used later in reduce) unchanged while the
+      // lookup keys are created from different name values.
+      (applyPlayerScores as jest.Mock).mockImplementation((players) => {
+        for (let i = 0; i < (players as Array<{ name: string }>).length; i++) {
+          const player = (players as Array<{ name: string }>)[i];
+          (players as Array<{ name: string }>)[i] = {
+            ...(player as unknown as object),
+            name: `${player.name}-scored`,
+          } as unknown as never;
+        }
+        return players;
+      });
+
+      const season1 = { ...mockRawDataPlayer, season: 2023, field2: "Player A" };
+      const season2 = { ...mockRawDataPlayer, season: 2024, field2: "Player A" };
+
+      const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
+
+      const seasons = result[0].seasons.sort((a, b) => a.season - b.season);
+
+      expect(seasons[0].score).toBe(0);
+      expect(seasons[0].scoreAdjustedByGames).toBe(0);
+      expect(seasons[0].scores).toBeUndefined();
+
+      expect(seasons[1].score).toBe(0);
+      expect(seasons[1].scoreAdjustedByGames).toBe(0);
+      expect(seasons[1].scores).toBeUndefined();
     });
   });
 
@@ -447,7 +487,14 @@ describe("mappings", () => {
     test("applies per-season scores to goalie seasons entries and keeps advanced stats", () => {
       jest.clearAllMocks();
       (applyGoalieScores as jest.Mock).mockImplementation((goalies) => {
-        goalies.forEach((goalie: any) => {
+        type ScoredSeasonGoalie = {
+          season: number;
+          score: number;
+          scoreAdjustedByGames: number;
+          scores?: { wins: number };
+        };
+
+        (goalies as ScoredSeasonGoalie[]).forEach((goalie) => {
           goalie.score = goalie.season === 2023 ? 15 : 25;
           goalie.scoreAdjustedByGames = goalie.season === 2023 ? 3 : 4;
           goalie.scores = { wins: goalie.season };
@@ -477,6 +524,36 @@ describe("mappings", () => {
       expect(seasons[1].scores).toEqual({ wins: 2024 });
       expect(seasons[1].gaa).toBe("2.30");
       expect(seasons[1].savePercent).toBe("0.920");
+    });
+
+    test("defaults per-season score fields when lookup is missing", () => {
+      jest.clearAllMocks();
+
+      (applyGoalieScores as jest.Mock).mockImplementation((goalies) => {
+        for (let i = 0; i < (goalies as Array<{ name: string }>).length; i++) {
+          const goalie = (goalies as Array<{ name: string }>)[i];
+          (goalies as Array<{ name: string }>)[i] = {
+            ...(goalie as unknown as object),
+            name: `${goalie.name}-scored`,
+          } as unknown as never;
+        }
+        return goalies;
+      });
+
+      const season1 = { ...mockRawDataGoalie2014, season: 2023, field2: "Goalie A" };
+      const season2 = { ...mockRawDataGoalie2014, season: 2024, field2: "Goalie A" };
+
+      const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
+
+      const seasons = result[0].seasons.sort((a, b) => a.season - b.season);
+
+      expect(seasons[0].score).toBe(0);
+      expect(seasons[0].scoreAdjustedByGames).toBe(0);
+      expect(seasons[0].scores).toBeUndefined();
+
+      expect(seasons[1].score).toBe(0);
+      expect(seasons[1].scoreAdjustedByGames).toBe(0);
+      expect(seasons[1].scores).toBeUndefined();
     });
   });
 

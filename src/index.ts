@@ -4,6 +4,7 @@ const cors = require("micro-cors")();
 
 import {
   getSeasons,
+  getHealthcheck,
   getPlayersCombined,
   getPlayersSeason,
   getGoaliesCombined,
@@ -19,6 +20,8 @@ const notFound: RequestHandler = (_req, res) => send(res, 404, "Route not exists
 module.exports = cors(
   router(
     get("/", service),
+    get("/healthcheck", getHealthcheck),
+    get("/health", getHealthcheck),
     get("/seasons", getSeasons),
     get("/players/season/:reportType/:season/:sortBy", getPlayersSeason),
     get("/players/season/:reportType/:season", getPlayersSeason),

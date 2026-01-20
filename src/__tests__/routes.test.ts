@@ -2,6 +2,7 @@ import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   getSeasons,
+  getHealthcheck,
   getPlayersSeason,
   getPlayersCombined,
   getGoaliesSeason,
@@ -23,6 +24,25 @@ jest.mock("../helpers");
 describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("getHealthcheck", () => {
+    test("returns 200 with ok status payload", async () => {
+      const req = createRequest();
+      const res = createResponse();
+
+      await getHealthcheck(req, res);
+
+      expect(send).toHaveBeenCalledWith(
+        res,
+        HTTP_STATUS.OK,
+        expect.objectContaining({
+          status: "ok",
+          uptimeSeconds: expect.any(Number),
+          timestamp: expect.any(String),
+        })
+      );
+    });
   });
 
   describe("getSeasons", () => {
