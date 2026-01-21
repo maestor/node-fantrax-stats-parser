@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import { Player, PlayerFields, Goalie, GoalieFields, Report, GoalieScoreField } from "./types";
 import {
   REPORT_TYPES,
@@ -14,7 +15,15 @@ import {
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
-const seasonsTotal = fs.readdirSync("./csv").filter((file) => file.includes("regular"));
+const csvDir = path.join(process.cwd(), "csv");
+
+const seasonsTotal = (() => {
+  try {
+    return fs.readdirSync(csvDir).filter((file) => file.includes("regular"));
+  } catch {
+    return [];
+  }
+})();
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.score - a.score || b.points - a.points || b.goals - a.goals;

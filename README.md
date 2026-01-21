@@ -16,6 +16,47 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 5. Go to endpoints mentioned below
 ```
 
+## Deployment (Vercel)
+
+This API can be deployed to Vercel as Serverless Functions.
+
+Hosted demo (API-key protected):
+
+https://ffhl-stats-api.vercel.app/
+
+### Routing
+
+This repository includes Vercel routes so you can call the API from the root (recommended). Internally, requests are served by Vercel Serverless Functions under `/api/*`. The hosted demo also supports `/api/*` URLs, but may redirect them to the equivalent root URL.
+
+Examples (both styles work):
+
+- `GET /seasons` and `GET /api/seasons`
+- `GET /health` and `GET /api/health`
+
+### Vercel project settings
+
+- **Framework Preset**: Other
+- **Build Command**: `npm run build`
+- **Output Directory**: (leave empty)
+
+### CSV data files
+
+The CSV files in `csv/` are bundled into the deployed function via `vercel.json` (`includeFiles`). The runtime reads CSVs from `process.cwd()/csv`.
+
+### Example requests
+
+```
+curl https://ffhl-stats-api.vercel.app/health
+curl https://ffhl-stats-api.vercel.app/seasons
+
+# Hosted demo: data endpoints may require an API key
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/seasons
+
+# Same endpoints via /api (may redirect to root)
+curl https://ffhl-stats-api.vercel.app/api/health
+curl https://ffhl-stats-api.vercel.app/api/seasons
+```
+
 ## Endpoints
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)

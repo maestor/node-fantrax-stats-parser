@@ -21,7 +21,7 @@ const getSeasonParam = (season?: number): number[] => [season ?? Math.max(...ava
 
 const getRawDataFromFiles = async (report: Report, seasons: number[]): Promise<RawData[]> => {
   const sources = seasons.map(async (season) => {
-    const filePath = `${path.join(__dirname, "../csv")}/${report}-${season}-${season + 1}.csv`;
+    const filePath = path.join(process.cwd(), "csv", `${report}-${season}-${season + 1}.csv`);
     try {
       const sourceToJson = await csv().fromFile(filePath);
 

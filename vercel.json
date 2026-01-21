@@ -1,0 +1,32 @@
+{
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "csv/**"
+    },
+    "api/[...path].ts": {
+      "includeFiles": "csv/**"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/api",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/:path*",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/api"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
