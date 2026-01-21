@@ -7,26 +7,25 @@
       "includeFiles": "csv/**"
     }
   },
-  "redirects": [
+  "routes": [
     {
-      "source": "/api",
-      "destination": "/",
-      "permanent": false
+      "handle": "filesystem"
     },
     {
-      "source": "/api/:path*",
-      "destination": "/:path*",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api"
+      "src": "^/api$",
+      "dest": "/api/index"
     },
     {
-      "source": "/:path*",
-      "destination": "/api/:path*"
+      "src": "^/api/(.*)$",
+      "dest": "/api/[...path]?path=$1"
+    },
+    {
+      "src": "^/$",
+      "dest": "/api/index"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "/api/[...path]?path=$1"
     }
   ]
 }

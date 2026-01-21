@@ -14,10 +14,43 @@ const stripApiPrefix = (url: string): string => {
   return url;
 };
 
-export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
-  if (typeof req.url === "string") {
-    req.url = stripApiPrefix(req.url);
+const normalizeUrl = (url: string): string => {
+  const [pathname, query = ""] = url.split("?", 2);
+
+  let normalizedPath = pathname;
+  if (normalizedPath.length > 1 && normalizedPath.endsWith("/")) {
+    normalizedPath = normalizedPath.slice(0, -1);
   }
+
+  return query ? `${normalizedPath}?${query}` : normalizedPath;
+};
+
+const getHeaderValue = (value: string | string[] | undefined): string | undefined => {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0];
+  return undefined;
+};
+
+const getEffectiveUrl = (req: IncomingMessage): string => {
+  const candidateHeaders = [
+    "x-forwarded-uri",
+    "x-original-url",
+    "x-rewrite-url",
+    "x-vercel-rewrite",
+    "x-vercel-original-url",
+  ] as const;
+
+  for (const headerName of candidateHeaders) {
+    const headerValue = getHeaderValue(req.headers[headerName]);
+    if (headerValue) return headerValue;
+  }
+
+  return typeof req.url === "string" ? req.url : "/";
+};
+
+export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
+  const effectiveUrl = normalizeUrl(stripApiPrefix(getEffectiveUrl(req)));
+  req.url = effectiveUrl;
 
   return handler(req, res);
 }

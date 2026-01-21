@@ -26,7 +26,7 @@ https://ffhl-stats-api.vercel.app/
 
 ### Routing
 
-This repository includes Vercel routes so you can call the API from the root (recommended). Internally, requests are served by Vercel Serverless Functions under `/api/*`. The hosted demo also supports `/api/*` URLs, but may redirect them to the equivalent root URL.
+This repository includes Vercel `routes` so you can call the API from the root (recommended). Internally, requests are served by Vercel Serverless Functions under `/api/*`. The hosted demo supports both root-style URLs and `/api/*` URLs (no redirects required).
 
 Examples (both styles work):
 
@@ -52,7 +52,10 @@ curl https://ffhl-stats-api.vercel.app/seasons
 # Hosted demo: data endpoints may require an API key
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/seasons
 
-# Same endpoints via /api (may redirect to root)
+# Deep route example
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/players/combined/playoffs/games
+
+# Same endpoints via /api
 curl https://ffhl-stats-api.vercel.app/api/health
 curl https://ffhl-stats-api.vercel.app/api/seasons
 ```
