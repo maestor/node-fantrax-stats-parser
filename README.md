@@ -28,6 +28,34 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 `/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
 
+## API key authentication (production)
+
+This service supports a simple API-key check for production usage.
+
+- **How it works**: when enabled, requests to data endpoints (`/seasons`, `/players/*`, `/goalies/*`) must include an API key.
+- **Unauthenticated** health endpoints remain public: `/health` and `/healthcheck`.
+
+### Configuration (env vars)
+
+- `API_KEY` - Single API key.
+- `API_KEYS` - Comma-separated list of valid API keys.
+- `REQUIRE_API_KEY` - Optional override (`true`/`false`). If not set, auth is required when at least one key is configured.
+- `API_KEY_HEADER` - Optional header name (default `x-api-key`).
+
+### Client usage
+
+Send the key either as a header:
+
+```
+curl -H "x-api-key: <your-key>" http://localhost:3000/seasons
+```
+
+Or as Bearer auth:
+
+```
+curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
+```
+
 ### Parameters
 
 `reportType` - Required. Currently available options: regular, playoffs.
