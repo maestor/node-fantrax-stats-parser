@@ -43,7 +43,49 @@ npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
 ```
 
-Test coverage: 100% statements, 100% functions, 100% lines, 100% branches. Coverage reports are generated in the `coverage/` directory.
+Coverage reports are generated in the `coverage/` directory. This repo enforces strict global thresholds (including 100% statements).
+
+## Fantrax CSV handling
+
+Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
+
+### Clean a single CSV
+
+- Script: `scripts/handle-csv.sh`
+- Usage: `./scripts/handle-csv.sh input.csv [output.csv]`
+
+What it does:
+
+- Removes the first column (often an internal Fantrax `ID` column)
+- Removes the `Age` column
+- Converts section headers into the format the parser expects (`"Skaters"`, `"Goalies"`)
+
+### Import files from `csv/temp`
+
+- Script: `scripts/import-temp-csv.sh`
+- Assumes input files in `csv/temp/` are named:
+   - `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
+
+It will:
+
+- Read matching files from `csv/temp/`
+- Clean them using `scripts/handle-csv.sh`
+- Write the cleaned CSVs to the API layout:
+   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
+- Create `csv/<teamId>/` if it doesn’t exist
+- Not delete anything from `csv/temp/`
+
+Preview without writing:
+
+```
+./scripts/import-temp-csv.sh --dry-run
+```
+
+Import (write cleaned files):
+
+```
+./scripts/import-temp-csv.sh
+```
 
 ## Deployment (Vercel)
 

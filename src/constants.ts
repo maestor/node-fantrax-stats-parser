@@ -32,7 +32,16 @@ export const ERROR_MESSAGES = {
 
 export const DEFAULT_TEAM_ID = "1";
 
-export const TEAMS = [{ id: "1", name: "colorado" }] as const;
+export const TEAMS = [
+  { id: "1", name: "colorado" },
+  { id: "2", name: "carolina" },
+  { id: "3", name: "calgary" },
+  { id: "4", name: "vancouver" },
+  { id: "5", name: "montreal" },
+  { id: "6", name: "detroit" },
+  { id: "7", name: "edmonton" },
+  { id: "8", name: "sanjose" },
+] as const;
 
 export type Team = (typeof TEAMS)[number];
 
