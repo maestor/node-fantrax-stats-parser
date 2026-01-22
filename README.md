@@ -23,9 +23,10 @@ Lightweight API to parse NHL fantasy league team stats and print combined season
 `/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
+   - Report type can be provided as a path segment:
+      - `/seasons/regular` or `/seasons/playoffs` (default: `regular` when omitted)
    - Optional query params:
       - `teamId` (default: `1`)
-      - `reportType` (`regular`/`playoffs`, default: `regular`)
 
 `/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
 
@@ -130,7 +131,7 @@ curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/seasons
 
 # Team selection (optional, defaults to teamId=1)
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?teamId=1"
-curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?teamId=1&reportType=playoffs"
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons/playoffs?teamId=1"
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/teams
 
 # Deep route example
@@ -171,7 +172,7 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 
 ### Parameters
 
-`reportType` - Required. Currently available options: regular, playoffs.
+`reportType` - Required for most endpoints (players/goalies routes). For `/seasons`, it’s optional and can be provided as `/seasons/regular` or `/seasons/playoffs` (default: `regular`).
 
 `teamId` - Optional query param. Selects which team dataset to use (CSV folder `csv/<teamId>/`). If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
 

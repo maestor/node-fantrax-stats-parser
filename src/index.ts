@@ -32,6 +32,7 @@ module.exports = cors(
     get("/health", getHealthcheck),
     get("/teams", protectedRoute(getTeams)),
     get("/seasons", protectedRoute(getSeasons)),
+    get("/seasons/:reportType", protectedRoute(getSeasons)),
     get("/players/season/:reportType/:season/:sortBy", protectedRoute(getPlayersSeason)),
     get("/players/season/:reportType/:season", protectedRoute(getPlayersSeason)),
     get("/players/season/:reportType", protectedRoute(getPlayersSeason)),

@@ -69,6 +69,22 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
+    test("uses report type from path params when present", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+
+      const req = createRequest({
+        url: "/seasons/playoffs",
+        params: { reportType: "playoffs" },
+      });
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
     test("returns 500 on service error", async () => {
       const error = new Error("DB error");
       (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
@@ -81,10 +97,13 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
-    test("returns 400 for invalid report type query", async () => {
+    test("returns 400 for invalid report type path param", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(false);
 
-      const req = createRequest({ url: "/seasons?reportType=invalid" });
+      const req = createRequest({
+        url: "/seasons/invalid",
+        params: { reportType: "invalid" },
+      });
       const res = createResponse();
 
       await getSeasons(req, res);
@@ -125,7 +144,7 @@ describe("routes", () => {
       );
 
       const req = {
-        url: "/seasons?teamId=1&reportType=regular",
+        url: "/seasons?teamId=1",
         headers: { host: 123 },
       } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();

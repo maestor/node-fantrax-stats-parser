@@ -48,8 +48,8 @@ export const getTeams: AugmentedRequestHandler = async (_req, res) => {
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
-  const reportRaw = getQueryParam(req, "reportType");
-  const report = (reportRaw ?? "regular") as Report;
+  const reportRaw = (req as unknown as { params?: { reportType?: unknown } }).params?.reportType;
+  const report = (typeof reportRaw === "string" ? reportRaw : "regular") as Report;
 
   if (!reportTypeAvailable(report)) {
     send(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
