@@ -4,7 +4,9 @@
 
 Lightweight API to parse my NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files exported manually from [Fantrax](https://www.fantrax.com). This is also some kind of practice to get some knowledge about micro, if it would be good replacement for example heavy express server in some use cases. And finally, I have made last years at least 95% Frontend stuff with JS, so that is good little project to keep backend stuff on my mind.
 
-[UI written by Angular which uses this parser.](https://github.com/maestor/fantrax-stats-parser-ui)
+[UI written by Angular which uses this API.](https://github.com/maestor/fantrax-stats-parser-ui)
+
+[UI showcase which uses this API.](https://ffhl-stats.vercel.app/)
 
 ## Installation and use
 
@@ -16,13 +18,33 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 5. Go to endpoints mentioned below
 ```
 
+## Endpoints
+
+`/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
+
+`/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
+
+`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
+
+`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
+
+`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
+
+## Testing
+
+```
+npm test              # Run all tests
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+```
+
+Test coverage: 100% statements, 100% functions, 100% lines, 100% branches. Coverage reports are generated in the `coverage/` directory.
+
 ## Deployment (Vercel)
 
 This API can be deployed to Vercel as Serverless Functions.
 
-Hosted demo (API-key protected):
-
-https://ffhl-stats-api.vercel.app/
+Hosted demo (API-key protected): https://ffhl-stats-api.vercel.app/
 
 ### Routing
 
@@ -59,18 +81,6 @@ curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/players/combin
 curl https://ffhl-stats-api.vercel.app/api/health
 curl https://ffhl-stats-api.vercel.app/api/seasons
 ```
-
-## Endpoints
-
-`/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
-
-`/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
-
-`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
-
-`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
-
-`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
 
 ## API key authentication (production)
 
@@ -156,16 +166,6 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 ## Technology
 
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
-
-## Testing
-
-```
-npm test              # Run all tests
-npm run test:watch    # Run tests in watch mode
-npm run test:coverage # Run tests with coverage report
-```
-
-Test coverage: 100% statements, 100% functions, 100% lines, 100% branches. Coverage reports are generated in the `coverage/` directory.
 
 ## Todo
 
