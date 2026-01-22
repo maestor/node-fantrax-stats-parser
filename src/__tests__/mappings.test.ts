@@ -5,7 +5,7 @@ import {
   mapCombinedGoalieData,
   mapAvailableSeasons,
 } from "../mappings";
-import { availableSeasons, applyPlayerScores, applyGoalieScores } from "../helpers";
+import { applyPlayerScores, applyGoalieScores } from "../helpers";
 import {
   mockRawDataPlayer,
   mockRawDataPlayerWithCommas,
@@ -559,9 +559,7 @@ describe("mappings", () => {
 
   describe("mapAvailableSeasons", () => {
     test("maps season numbers to season objects", () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
-
-      const result = mapAvailableSeasons();
+      const result = mapAvailableSeasons([2012, 2013, 2014]);
 
       expect(result).toEqual([
         { season: 2012, text: "2012-2013" },
@@ -571,9 +569,7 @@ describe("mappings", () => {
     });
 
     test("returns empty array when no seasons available", () => {
-      (availableSeasons as jest.Mock).mockReturnValue([]);
-
-      const result = mapAvailableSeasons();
+      const result = mapAvailableSeasons([]);
 
       expect(result).toEqual([]);
     });

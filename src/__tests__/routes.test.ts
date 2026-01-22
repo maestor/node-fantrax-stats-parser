@@ -2,6 +2,7 @@ import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   getSeasons,
+  getTeams,
   getHealthcheck,
   getPlayersSeason,
   getPlayersCombined,
@@ -15,7 +16,14 @@ import {
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
 } from "../services";
-import { reportTypeAvailable, seasonAvailable, parseSeasonParam, ERROR_MESSAGES, HTTP_STATUS } from "../helpers";
+import {
+  reportTypeAvailable,
+  seasonAvailable,
+  parseSeasonParam,
+  resolveTeamId,
+  ERROR_MESSAGES,
+  HTTP_STATUS,
+} from "../helpers";
 
 jest.mock("micro");
 jest.mock("../services");
@@ -24,6 +32,8 @@ jest.mock("../helpers");
 describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (resolveTeamId as jest.Mock).mockReturnValue("1");
+    (reportTypeAvailable as jest.Mock).mockReturnValue(true);
   });
 
   describe("getHealthcheck", () => {
@@ -55,6 +65,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -68,6 +79,84 @@ describe("routes", () => {
       await getSeasons(req, res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
+    });
+
+    test("returns 400 for invalid report type query", async () => {
+      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
+
+      const req = createRequest({ url: "/seasons?reportType=invalid" });
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    });
+
+    test("handles request without url (defaults query params)", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+
+      const res = createResponse();
+
+      await getSeasons({} as unknown as ReturnType<typeof createRequest>, res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
+    test("handles request with non-string url (defaults query params)", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+
+      const req = { url: 123 } as unknown as ReturnType<typeof createRequest>;
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
+    test("parses query params even when host header is not a string", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
+        typeof raw === "string" && raw ? raw : "1"
+      );
+
+      const req = {
+        url: "/seasons?teamId=1&reportType=regular",
+        headers: { host: 123 },
+      } as unknown as ReturnType<typeof createRequest>;
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
+    test("returns statusCode from typed error", async () => {
+      const error = { statusCode: 422, message: "missing" };
+      (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
+
+      const req = createRequest();
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(send).toHaveBeenCalledWith(res, 422, error);
+    });
+  });
+
+  describe("getTeams", () => {
+    test("returns 200 with configured teams", async () => {
+      const req = createRequest();
+      const res = createResponse();
+
+      await getTeams(req, res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, expect.any(Array));
     });
   });
 
@@ -91,8 +180,8 @@ describe("routes", () => {
       await getPlayersSeason(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(seasonAvailable).toHaveBeenCalledWith(2024);
-      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "goals");
+      expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
+      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "goals", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
@@ -154,7 +243,7 @@ describe("routes", () => {
 
       await getPlayersSeason(req, res);
 
-      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined);
+      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined, "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
   });
@@ -173,7 +262,7 @@ describe("routes", () => {
       await getPlayersCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "points");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "points", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
@@ -217,7 +306,7 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("playoffs", "goals");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("playoffs", "goals", "1");
     });
 
     test("works without sortBy parameter", async () => {
@@ -232,7 +321,7 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", undefined);
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", undefined, "1");
     });
   });
 
@@ -252,8 +341,8 @@ describe("routes", () => {
       await getGoaliesSeason(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(seasonAvailable).toHaveBeenCalledWith(2024);
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "wins");
+      expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
+      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "wins", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
@@ -315,7 +404,7 @@ describe("routes", () => {
 
       await getGoaliesSeason(req, res);
 
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined);
+      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined, "1");
     });
   });
 
@@ -333,7 +422,7 @@ describe("routes", () => {
       await getGoaliesCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "wins");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "wins", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
@@ -377,7 +466,7 @@ describe("routes", () => {
 
       await getGoaliesCombined(req, res);
 
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", undefined);
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", undefined, "1");
     });
   });
 });

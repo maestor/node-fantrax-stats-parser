@@ -19,13 +19,22 @@ export const REPORT_TYPES: Report[] = ["playoffs", "regular"];
 export const HTTP_STATUS = {
   OK: 200,
   BAD_REQUEST: 400,
+  UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
 export const ERROR_MESSAGES = {
   INVALID_REPORT_TYPE: "Invalid report type",
   SEASON_NOT_AVAILABLE: "Stats for given season are not available",
+  TEAM_CSV_FOLDER_MISSING: (teamId: string) =>
+    `Team ${teamId} is configured but csv/${teamId}/ folder is missing. Add CSV files there or remove the team from TEAMS.`,
 };
+
+export const DEFAULT_TEAM_ID = "1";
+
+export const TEAMS = [{ id: "1", name: "colorado" }] as const;
+
+export type Team = (typeof TEAMS)[number];
 
 // CSV field mapping constants
 export const CSV = {

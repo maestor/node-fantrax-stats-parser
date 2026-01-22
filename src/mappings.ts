@@ -9,7 +9,7 @@ import {
   GoalieWithSeason,
   CombinedGoalie,
 } from "./types";
-import { availableSeasons, applyPlayerScores, applyGoalieScores } from "./helpers";
+import { applyPlayerScores, applyGoalieScores } from "./helpers";
 import { CSV, GOALIE_SCHEMA_CHANGE_YEAR, GOALIE_GAMES_WINS_REVERSE_YEAR } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
@@ -298,8 +298,8 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => {
   return combined;
 };
 
-export const mapAvailableSeasons = () =>
-  availableSeasons().map((season) => ({
+export const mapAvailableSeasons = (seasons: number[]) =>
+  seasons.map((season) => ({
     season,
     text: `${season}-${season + 1}`,
   }));

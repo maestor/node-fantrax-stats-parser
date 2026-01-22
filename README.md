@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lightweight API to parse my NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files exported manually from [Fantrax](https://www.fantrax.com). This is also some kind of practice to get some knowledge about micro, if it would be good replacement for example heavy express server in some use cases. And finally, I have made last years at least 95% Frontend stuff with JS, so that is good little project to keep backend stuff on my mind.
+Lightweight API to parse NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files are exported manually from [Fantrax](https://www.fantrax.com). The API supports multiple fantasy teams by storing each team’s CSV exports under `csv/<teamId>/` and selecting the team via an optional `teamId` query param.
 
 [UI written by Angular which uses this API.](https://github.com/maestor/fantrax-stats-parser-ui)
 
@@ -20,7 +20,12 @@ Lightweight API to parse my NHL fantasy league team stats and print combined sea
 
 ## Endpoints
 
+`/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
+
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
+   - Optional query params:
+      - `teamId` (default: `1`)
+      - `reportType` (`regular`/`playoffs`, default: `regular`)
 
 `/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
 
@@ -65,6 +70,13 @@ Examples (both styles work):
 
 The CSV files in `csv/` are bundled into the deployed function via `vercel.json` (`includeFiles`). The runtime reads CSVs from `process.cwd()/csv`.
 
+Multi-team layout:
+
+- `csv/<teamId>/regular-YYYY-YYYY.csv`
+- `csv/<teamId>/playoffs-YYYY-YYYY.csv`
+
+Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`). If a team is configured but its `csv/<teamId>/` folder is missing, the API returns HTTP `422` for endpoints that need CSV access.
+
 ### Example requests
 
 ```
@@ -74,8 +86,13 @@ curl https://ffhl-stats-api.vercel.app/seasons
 # Hosted demo: data endpoints may require an API key
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/seasons
 
+# Team selection (optional, defaults to teamId=1)
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?teamId=1"
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?teamId=1&reportType=playoffs"
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/teams
+
 # Deep route example
-curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/players/combined/playoffs/games
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/playoffs/games?teamId=1"
 
 # Same endpoints via /api
 curl https://ffhl-stats-api.vercel.app/api/health
@@ -113,6 +130,8 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 ### Parameters
 
 `reportType` - Required. Currently available options: regular, playoffs.
+
+`teamId` - Optional query param. Selects which team dataset to use (CSV folder `csv/<teamId>/`). If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
 

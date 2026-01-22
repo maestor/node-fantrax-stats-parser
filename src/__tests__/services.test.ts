@@ -36,11 +36,13 @@ describe("services", () => {
         { season: 2012, text: "2012-2013" },
         { season: 2013, text: "2013-2014" },
       ];
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
       (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
 
       const result = await getAvailableSeasons();
 
-      expect(mapAvailableSeasons).toHaveBeenCalled();
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
       expect(result).toEqual(mockSeasons);
     });
   });
@@ -72,6 +74,18 @@ describe("services", () => {
       expect(csvMock.fromFile).toHaveBeenCalledWith(
         expect.stringContaining("regular-2024-2025.csv")
       );
+    });
+
+    test("returns empty array when season is undefined and no seasons are available", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([]);
+      (mapPlayerData as jest.Mock).mockReturnValue([]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      const result = await getPlayersStatsSeason("regular", undefined, "goals");
+
+      expect(result).toEqual([]);
+      expect((csv as unknown as jest.Mock)).toHaveBeenCalledTimes(0);
     });
 
     test("works without sortBy parameter", async () => {
@@ -143,7 +157,7 @@ describe("services", () => {
     test("fetches player stats for all available seasons", async () => {
       const result = await getPlayersStatsCombined("regular", "points");
 
-      expect(availableSeasons).toHaveBeenCalled();
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(mapCombinedPlayerData).toHaveBeenCalled();
       expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayer], "players", "points");
       expect(result).toEqual([mockPlayer]);
@@ -154,6 +168,18 @@ describe("services", () => {
 
       const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
       expect(csvMock.fromFile).toHaveBeenCalledTimes(3);
+    });
+
+    test("returns empty array when no seasons are available", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([]);
+      (mapCombinedPlayerData as jest.Mock).mockReturnValue([]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      const result = await getPlayersStatsCombined("regular", "points");
+
+      expect(result).toEqual([]);
+      expect((csv as unknown as jest.Mock)).toHaveBeenCalledTimes(0);
     });
 
     test("works without sortBy parameter", async () => {
@@ -179,7 +205,7 @@ describe("services", () => {
     test("fetches goalie stats for all available seasons", async () => {
       const result = await getGoaliesStatsCombined("regular", "wins");
 
-      expect(availableSeasons).toHaveBeenCalled();
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(mapCombinedGoalieData).toHaveBeenCalled();
       expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalie], "goalies", "wins");
       expect(result).toEqual([mockGoalie]);
