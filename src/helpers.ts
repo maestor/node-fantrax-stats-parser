@@ -3,7 +3,6 @@ import path from "path";
 import { Player, PlayerFields, Goalie, GoalieFields, Report, GoalieScoreField } from "./types";
 import {
   REPORT_TYPES,
-  START_SEASON,
   PLAYER_SCORE_FIELDS,
   GOALIE_SCORE_FIELDS,
   PLAYER_SCORE_WEIGHTS,
@@ -11,19 +10,68 @@ import {
   GOALIE_GAA_MAX_DIFF_RATIO,
   GOALIE_SAVE_PERCENT_BASELINE,
   MIN_GAMES_FOR_ADJUSTED_SCORE,
+  DEFAULT_TEAM_ID,
+  TEAMS,
+  HTTP_STATUS,
+  ERROR_MESSAGES,
 } from "./constants";
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
-const csvDir = path.join(process.cwd(), "csv");
+export class ApiError extends Error {
+  statusCode: number;
 
-const seasonsTotal = (() => {
-  try {
-    return fs.readdirSync(csvDir).filter((file) => file.includes("regular"));
-  } catch {
-    return [];
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
   }
-})();
+}
+
+const getTeamCsvDir = (teamId: string): string => path.join(process.cwd(), "csv", teamId);
+
+export const resolveTeamId = (raw: unknown): string => {
+  if (typeof raw !== "string") return DEFAULT_TEAM_ID;
+  const teamId = raw.trim();
+  if (!teamId) return DEFAULT_TEAM_ID;
+
+  return TEAMS.some((t) => t.id === teamId) ? teamId : DEFAULT_TEAM_ID;
+};
+
+const isConfiguredTeamId = (teamId: string): boolean => TEAMS.some((t) => t.id === teamId);
+
+const ensureTeamCsvDirOrThrow = (teamId: string): string => {
+  const dir = getTeamCsvDir(teamId);
+  try {
+    fs.readdirSync(dir);
+    return dir;
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT" && isConfiguredTeamId(teamId)) {
+      throw new ApiError(HTTP_STATUS.UNPROCESSABLE_ENTITY, ERROR_MESSAGES.TEAM_CSV_FOLDER_MISSING(teamId));
+    }
+    throw error;
+  }
+};
+
+export const listSeasonsForTeam = (teamId: string, reportType: Report): number[] => {
+  const dir = ensureTeamCsvDirOrThrow(teamId);
+  const files = fs.readdirSync(dir);
+
+  const regex = new RegExp(`^${reportType}-(\\d{4})-(\\d{4})\\.csv$`);
+  const seasons = new Set<number>();
+
+  for (const file of files) {
+    const match = file.match(regex);
+    if (!match) continue;
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    if (end !== start + 1) continue;
+    seasons.add(start);
+  }
+
+  return [...seasons].sort((a, b) => a - b);
+};
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.score - a.score || b.points - a.points || b.goals - a.goals;
@@ -441,10 +489,19 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   return goalies;
 };
 
-export const availableSeasons = (): number[] =>
-  Array.from({ length: seasonsTotal.length }, (_, i) => i + START_SEASON);
+export const availableSeasons = (
+  teamId: string = DEFAULT_TEAM_ID,
+  reportType: Report = "regular"
+): number[] => listSeasonsForTeam(teamId, reportType);
 
-export const seasonAvailable = (season?: number) => !!season && availableSeasons().includes(season);
+export const seasonAvailable = (
+  season: number | undefined,
+  teamId: string = DEFAULT_TEAM_ID,
+  reportType: Report = "regular"
+) => {
+  if (season === undefined) return true;
+  return availableSeasons(teamId, reportType).includes(season);
+};
 
 export const reportTypeAvailable = (report?: Report) => !!report && REPORT_TYPES.includes(report);
 

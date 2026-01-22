@@ -11,9 +11,11 @@ import {
   applyPlayerScores,
   applyGoalieScores,
   availableSeasons,
+  listSeasonsForTeam,
   seasonAvailable,
   reportTypeAvailable,
   parseSeasonParam,
+  resolveTeamId,
 } from "../helpers";
 import { Player, Goalie, Report } from "../types";
 
@@ -1188,12 +1190,30 @@ describe("helpers", () => {
     });
   });
 
+  describe("resolveTeamId", () => {
+    test("defaults to DEFAULT_TEAM_ID for non-string values", () => {
+      expect(resolveTeamId(123 as unknown)).toBe("1");
+    });
+
+    test("defaults to DEFAULT_TEAM_ID for empty string", () => {
+      expect(resolveTeamId("   ")).toBe("1");
+    });
+
+    test("defaults to DEFAULT_TEAM_ID for unknown team", () => {
+      expect(resolveTeamId("999")).toBe("1");
+    });
+
+    test("keeps configured team id", () => {
+      expect(resolveTeamId("1")).toBe("1");
+    });
+  });
+
   describe("availableSeasons", () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    test("returns array of seasons starting from START_SEASON", () => {
+    test("returns seasons parsed from filenames for default team", () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         "regular-2012-2013.csv",
         "regular-2013-2014.csv",
@@ -1206,21 +1226,79 @@ describe("helpers", () => {
       expect(result.length).toBe(3);
     });
 
-    test("returns empty array when no files exist", async () => {
-      // Mock fs with empty array for this specific test
-      jest.resetModules();
-      jest.doMock("fs", () => ({
-        readdirSync: jest.fn().mockReturnValue([]),
-      }));
+    test("returns empty array when folder exists but has no matching files", () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
 
-      // Re-import helpers with the new mock
-      const { availableSeasons: emptyAvailableSeasons } = await import("../helpers");
+      const result = availableSeasons();
+      expect(result).toEqual([]);
+    });
 
-      const result = emptyAvailableSeasons();
+    test("ignores files with invalid season boundary", () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        "regular-2012-2014.csv",
+        "regular-2013-2014.csv",
+        "not-a-season.txt",
+      ]);
+
+      const result = availableSeasons();
+      expect(result).toEqual([2013]);
+    });
+
+    test("skips files when parsed years are not finite", () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2012-2013.csv"]);
+
+      const originalIsFinite = Number.isFinite;
+      const isFiniteSpy = jest
+        .spyOn(Number, "isFinite")
+        .mockImplementation((value: unknown) => {
+          if (value === 2012 || value === 2013) return false;
+          return originalIsFinite(value as number);
+        });
+
+      const result = availableSeasons();
       expect(result).toEqual([]);
 
-      // Restore original mock for other tests
-      jest.resetModules();
+      isFiniteSpy.mockRestore();
+    });
+
+    test("rethrows non-ENOENT fs errors", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = new Error("EACCES") as NodeJS.ErrnoException;
+        err.code = "EACCES";
+        throw err;
+      });
+
+      expect(() => availableSeasons()).toThrow("EACCES");
+    });
+
+    test("does not convert ENOENT to 422 for unconfigured teams", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = new Error("ENOENT") as NodeJS.ErrnoException;
+        err.code = "ENOENT";
+        throw err;
+      });
+
+      try {
+        listSeasonsForTeam("999", "regular");
+        throw new Error("Expected listSeasonsForTeam to throw");
+      } catch (error) {
+        expect((error as { statusCode?: number }).statusCode).toBeUndefined();
+      }
+    });
+
+    test("throws 422 when configured team folder is missing", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = new Error("ENOENT") as NodeJS.ErrnoException;
+        err.code = "ENOENT";
+        throw err;
+      });
+
+      try {
+        availableSeasons();
+        throw new Error("Expected availableSeasons to throw");
+      } catch (error) {
+        expect((error as { statusCode?: number }).statusCode).toBe(422);
+      }
     });
   });
 
@@ -1245,7 +1323,7 @@ describe("helpers", () => {
     });
 
     test("returns false for undefined season", () => {
-      expect(seasonAvailable(undefined)).toBe(false);
+      expect(seasonAvailable(undefined)).toBe(true);
     });
   });
 

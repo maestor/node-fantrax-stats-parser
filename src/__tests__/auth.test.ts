@@ -62,6 +62,12 @@ describe("auth", () => {
       process.env.REQUIRE_API_KEY = "false";
       expect(shouldRequireAuth(["k1"])).toBe(false);
     });
+
+    test("ignores invalid REQUIRE_API_KEY env values", () => {
+      process.env.REQUIRE_API_KEY = "maybe";
+      expect(shouldRequireAuth([])).toBe(false);
+      expect(shouldRequireAuth(["k1"])).toBe(true);
+    });
   });
 
   describe("extractApiKey", () => {
@@ -70,9 +76,31 @@ describe("auth", () => {
       expect(extractApiKey(req, "x-api-key", true)).toBe("key");
     });
 
+    test("reads configured header from array form", () => {
+      const req = createRequest({ headers: { "x-api-key": ["key1", "key2"] } });
+      expect(extractApiKey(req, "x-api-key", true)).toBe("key1");
+    });
+
+    test("falls back to Bearer token when array header is empty", () => {
+      const req = createRequest({
+        headers: { "x-api-key": [""], authorization: "Bearer token123" },
+      });
+      expect(extractApiKey(req, "x-api-key", true)).toBe("token123");
+    });
+
     test("reads Bearer token when header missing", () => {
       const req = createRequest({ headers: { authorization: "Bearer token123" } });
       expect(extractApiKey(req, "x-api-key", true)).toBe("token123");
+    });
+
+    test("returns undefined when authorization header is not a string", () => {
+      const req = createRequest({ headers: { authorization: ["Bearer token123"] } });
+      expect(extractApiKey(req, "x-api-key", true)).toBeUndefined();
+    });
+
+    test("returns undefined for invalid Bearer format", () => {
+      const req = createRequest({ headers: { authorization: "Basic abc" } });
+      expect(extractApiKey(req, "x-api-key", true)).toBeUndefined();
     });
 
     test("does not read Bearer token when disabled", () => {
