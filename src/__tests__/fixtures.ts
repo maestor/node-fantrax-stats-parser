@@ -90,7 +90,7 @@ export const mockRawDataGoalie2012: RawData = {
   field18: "1",
 };
 
-// Raw data for goalie with new column order (season > 2013)
+// Raw data for goalie with normalized column order (season >= 2014)
 export const mockRawDataGoalie2014: RawData = {
   Skaters: "G",
   season: 2014,
@@ -99,8 +99,8 @@ export const mockRawDataGoalie2014: RawData = {
   field4: "G",
   field5: "Act",
   field6: "vs TOR",
-  field7: "40", // wins in 2014+
-  field8: "70", // games in 2014+
+  field7: "70", // GP
+  field8: "40", // W-G (wins)
   field9: "2.30",
   field10: "2000",
   field11: "0.920",

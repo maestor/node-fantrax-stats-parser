@@ -10,7 +10,7 @@ import {
   CombinedGoalie,
 } from "./types";
 import { applyPlayerScores, applyGoalieScores } from "./helpers";
-import { CSV, GOALIE_SCHEMA_CHANGE_YEAR, GOALIE_GAMES_WINS_REVERSE_YEAR } from "./constants";
+import { CSV } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
 const parseNumber = (value: string) => {
@@ -20,6 +20,14 @@ const parseNumber = (value: string) => {
   const normalized = value.replace(/,/g, "");
   const result = Number(normalized);
   return Number.isNaN(result) ? 0 : result;
+};
+
+// Fantrax goalie exports sometimes provide wins as a single number (e.g. "19")
+// or as W-G (e.g. "19-13"). We only want the wins component.
+const parseWinsFromWG = (value: string) => {
+  if (!value) return 0;
+  const match = value.match(/^\s*(\d+)/);
+  return match ? parseNumber(match[1]) : 0;
 };
 
 export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
@@ -156,31 +164,14 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
         item[CSV.NAME] !== "" &&
         item[CSV.SKATER_TYPE] === "G" &&
         (parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]) > 0 ||
-          parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]) > 0)
+          parseWinsFromWG(item[CSV.GOALIE_GAMES_OR_WINS_OLD]) > 0)
     )
     .map((item: RawData): GoalieWithSeason => {
-      let wins = 0;
-      let games = 0;
-
-      // Wins and games are different orders in different seasons -> dirty hack
-      if (item.season <= GOALIE_SCHEMA_CHANGE_YEAR) {
-        // Older schema: field7 = games, field8 = wins
-        wins = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
-        games = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
-      } else if (item.season >= GOALIE_GAMES_WINS_REVERSE_YEAR) {
-        // Newest schema (2025+): field7 = games (GP), field8 = wins (W-G)
-        games = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
-        wins = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
-      } else {
-        // Middle schema (2014-2024): field7 = wins, field8 = games
-        wins = parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]);
-        games = parseNumber(item[CSV.GOALIE_GAMES_OR_WINS_OLD]);
-      }
-
       return {
         name: item[CSV.NAME],
-        games,
-        wins,
+        // We normalize CSVs so goalies always use: field7 = GP, field8 = W-G.
+        games: parseNumber(item[CSV.GOALIE_WINS_OR_GAMES_OLD]),
+        wins: parseWinsFromWG(item[CSV.GOALIE_GAMES_OR_WINS_OLD]),
         saves: parseNumber(item[CSV.GOALIE_SAVES]),
         shutouts: parseNumber(item[CSV.GOALIE_SHUTOUTS]),
         goals: parseNumber(item[CSV.GOALIE_GOALS]),

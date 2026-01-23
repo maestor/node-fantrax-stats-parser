@@ -8,12 +8,6 @@ import {
 
 export const START_SEASON = 2012;
 
-export const GOALIE_SCHEMA_CHANGE_YEAR = 2013;
-
-// In later seasons the provider flipped goalie GP/W columns again.
-// From this season onward, field7 is games and field8 is wins.
-export const GOALIE_GAMES_WINS_REVERSE_YEAR = 2025;
-
 export const REPORT_TYPES: Report[] = ["playoffs", "regular"];
 
 export const HTTP_STATUS = {

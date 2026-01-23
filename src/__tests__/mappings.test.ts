@@ -260,8 +260,8 @@ describe("mappings", () => {
     test("maps wins and games correctly for season 2014", () => {
       const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalie2014]);
 
-      expect(result[0].wins).toBe(40);
       expect(result[0].games).toBe(70);
+      expect(result[0].wins).toBe(40);
       expect(result[0].season).toBe(2014);
     });
 
@@ -359,8 +359,8 @@ describe("mappings", () => {
     test("defaults goalie stats to 0 when Number() fails", () => {
       const invalidGoalie = {
         ...mockRawDataGoalie2014,
-        field7: "", // wins (for 2014+) - will be 0
-        field8: "10", // games (for 2014+) - keep valid to pass filter
+        field7: "10", // games - keep valid to pass filter
+        field8: "", // wins - will be 0
         field10: "invalid", // saves
         field12: "", // shutouts
         field13: "", // penalties
@@ -422,15 +422,15 @@ describe("mappings", () => {
         ...mockRawDataGoalie2014,
         season: 2023,
         field2: "Goalie A",
-        field7: "30",
-        field8: "60",
+        field7: "60",
+        field8: "30",
       };
       const season2 = {
         ...mockRawDataGoalie2014,
         season: 2024,
         field2: "Goalie A",
-        field7: "20",
-        field8: "40",
+        field7: "40",
+        field8: "20",
       };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
