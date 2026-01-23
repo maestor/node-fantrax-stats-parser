@@ -29,12 +29,27 @@ export class ApiError extends Error {
 
 const getTeamCsvDir = (teamId: string): string => path.join(process.cwd(), "csv", teamId);
 
+const hasTeamCsvDir = (teamId: string): boolean => {
+  try {
+    fs.readdirSync(getTeamCsvDir(teamId));
+    return true;
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") return false;
+    throw error;
+  }
+};
+
+export const getTeamsWithCsvFolders = (): Array<(typeof TEAMS)[number]> => {
+  return TEAMS.filter((team) => hasTeamCsvDir(team.id));
+};
+
 export const resolveTeamId = (raw: unknown): string => {
   if (typeof raw !== "string") return DEFAULT_TEAM_ID;
   const teamId = raw.trim();
   if (!teamId) return DEFAULT_TEAM_ID;
 
-  return TEAMS.some((t) => t.id === teamId) ? teamId : DEFAULT_TEAM_ID;
+  return isConfiguredTeamId(teamId) && hasTeamCsvDir(teamId) ? teamId : DEFAULT_TEAM_ID;
 };
 
 const isConfiguredTeamId = (teamId: string): boolean => TEAMS.some((t) => t.id === teamId);

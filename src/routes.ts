@@ -8,8 +8,14 @@ import {
   getGoaliesStatsCombined,
 } from "./services";
 import { PlayerFields, GoalieFields, Report } from "./types";
-import { reportTypeAvailable, seasonAvailable, parseSeasonParam, resolveTeamId } from "./helpers";
-import { HTTP_STATUS, ERROR_MESSAGES, TEAMS } from "./constants";
+import {
+  reportTypeAvailable,
+  seasonAvailable,
+  parseSeasonParam,
+  resolveTeamId,
+  getTeamsWithCsvFolders,
+} from "./helpers";
+import { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
 const getQueryParam = (req: unknown, key: string): string | undefined => {
   const request = req as { url?: unknown; headers?: Record<string, unknown> };
@@ -43,7 +49,7 @@ export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
 };
 
 export const getTeams: AugmentedRequestHandler = async (_req, res) => {
-  send(res, HTTP_STATUS.OK, TEAMS);
+  await withErrorHandling(res, async () => getTeamsWithCsvFolders());
 };
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {

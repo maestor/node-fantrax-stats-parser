@@ -1191,6 +1191,10 @@ describe("helpers", () => {
   });
 
   describe("resolveTeamId", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     test("defaults to DEFAULT_TEAM_ID for non-string values", () => {
       expect(resolveTeamId(123 as unknown)).toBe("1");
     });
@@ -1203,8 +1207,19 @@ describe("helpers", () => {
       expect(resolveTeamId("999")).toBe("1");
     });
 
-    test("keeps configured team id", () => {
-      expect(resolveTeamId("1")).toBe("1");
+    test("keeps configured team id when csv folder exists", () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue([]);
+      expect(resolveTeamId("2")).toBe("2");
+    });
+
+    test("defaults to DEFAULT_TEAM_ID for configured team missing csv folder", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = new Error("missing") as NodeJS.ErrnoException;
+        err.code = "ENOENT";
+        throw err;
+      });
+
+      expect(resolveTeamId("2")).toBe("1");
     });
   });
 

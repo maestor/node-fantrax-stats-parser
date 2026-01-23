@@ -21,6 +21,7 @@ import {
   seasonAvailable,
   parseSeasonParam,
   resolveTeamId,
+  getTeamsWithCsvFolders,
   ERROR_MESSAGES,
   HTTP_STATUS,
 } from "../helpers";
@@ -170,12 +171,15 @@ describe("routes", () => {
 
   describe("getTeams", () => {
     test("returns 200 with configured teams", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
       const req = createRequest();
       const res = createResponse();
 
       await getTeams(req, res);
 
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, expect.any(Array));
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
   });
 
