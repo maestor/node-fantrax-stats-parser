@@ -11,7 +11,7 @@ Lightweight API to parse NHL fantasy league team stats and print combined season
 ## Installation and use
 
 ```
-1. Install Node (at least 18.x recommended)
+1. Install Node (>=24 <25 recommended)
 2. Clone repo
 3. npm install
 4. npm run dev
@@ -45,6 +45,21 @@ npm run test:coverage # Run tests with coverage report
 ```
 
 Coverage reports are generated in the `coverage/` directory. This repo enforces strict global thresholds (including 100% statements).
+
+## CI
+
+This repository runs a GitHub Actions workflow on:
+
+- every pull request to `main`
+- every push to `main`
+
+The CI check runs the full verification command:
+
+```
+npm run verify:coverage
+```
+
+That command runs lint, TypeScript build, and Jest with the enforced global coverage thresholds. The workflow definition is in `.github/workflows/ci.yml`.
 
 ## Fantrax CSV handling
 
