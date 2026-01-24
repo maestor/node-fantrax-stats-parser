@@ -7,6 +7,9 @@
   "author": "Kalle Haavisto <maestori@gmail.com>",
   "license": "MIT",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "build": "rimraf lib && tsc",
     "dev": "npm run build && concurrently \"tsc --watch\" \"nodemon --watch lib --ext js --exec node lib/server.js\"",

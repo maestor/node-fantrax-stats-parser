@@ -5,12 +5,17 @@ jest.mock("fs", () => ({
 }));
 
 import fs from "fs";
+import path from "path";
 import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../constants";
 import {
+  ApiError,
   sortItemsByStatField,
   applyPlayerScores,
   applyGoalieScores,
   availableSeasons,
+  ERROR_MESSAGES,
+  getTeamsWithCsvFolders,
+  HTTP_STATUS,
   listSeasonsForTeam,
   seasonAvailable,
   reportTypeAvailable,
@@ -1388,6 +1393,63 @@ describe("helpers", () => {
 
     test("handles number input correctly", () => {
       expect(parseSeasonParam(2024)).toBe(2024);
+    });
+  });
+
+  describe("team CSV folder helpers", () => {
+    beforeEach(() => {
+      (fs.readdirSync as jest.Mock).mockReset();
+    });
+
+    test("resolveTeamId returns default when configured team folder is missing (ENOENT)", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = Object.assign(new Error("not found"), { code: "ENOENT" });
+        throw err;
+      });
+
+      expect(resolveTeamId("2")).toBe("1");
+    });
+
+    test("resolveTeamId rethrows unexpected fs errors", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = Object.assign(new Error("no access"), { code: "EACCES" });
+        throw err;
+      });
+
+      expect(() => resolveTeamId("2")).toThrow("no access");
+    });
+
+    test("listSeasonsForTeam throws ApiError when configured team folder is missing", () => {
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        const err = Object.assign(new Error("not found"), { code: "ENOENT" });
+        throw err;
+      });
+
+      expect(() => listSeasonsForTeam("2", "regular")).toThrow(ApiError);
+
+      try {
+        listSeasonsForTeam("2", "regular");
+      } catch (err) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).statusCode).toBe(HTTP_STATUS.UNPROCESSABLE_ENTITY);
+        expect((err as ApiError).message).toBe(ERROR_MESSAGES.TEAM_CSV_FOLDER_MISSING("2"));
+      }
+    });
+
+    test("getTeamsWithCsvFolders filters to teams with existing csv folders", () => {
+      const existingTeamId = "1";
+      const csvSegment = `${path.sep}csv${path.sep}`;
+
+      (fs.readdirSync as jest.Mock).mockImplementation((dir: unknown) => {
+        if (typeof dir === "string" && dir.includes(csvSegment) && dir.endsWith(`${csvSegment}${existingTeamId}`)) {
+          return [];
+        }
+        const err = Object.assign(new Error("not found"), { code: "ENOENT" });
+        throw err;
+      });
+
+      const teams = getTeamsWithCsvFolders();
+      expect(teams).toEqual([{ id: "1", name: "colorado" }]);
     });
   });
 });
