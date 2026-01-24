@@ -26,5 +26,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify coverage
+      - name: Validate Pull Request (lint, build, test coverage)
         run: npm run verify:coverage
