@@ -97,7 +97,19 @@ Run:
 npm run playwright:sync:leagues
 ```
 
-This writes a local mapping file to `src/playwright/.fantrax/fantrax-leagues.json` (gitignored). This repo does **not** store Fantrax league IDs in source control.
+This scrapes your Fantrax league archive + each season’s Rules page and writes a local mapping file to `src/playwright/.fantrax/fantrax-leagues.json` (gitignored).
+
+The mapping includes:
+
+- `leagueId` per season
+- `regularStartDate` / `regularEndDate`
+- `playoffsStartDate` / `playoffsEndDate`
+
+This repo does **not** store Fantrax league IDs (or scraped dates) in source control.
+
+Optional:
+
+- `--league="Finnish Fantasy Hockey League"` to select the exact league name from the archive if your account has multiple leagues.
 
 ### 3) Download regular-season roster CSVs
 
@@ -110,8 +122,10 @@ npm run playwright:import:regular -- --year=2025
 Notes:
 
 - Output directory defaults to `./csv/temp/`.
-- The season year must exist in the `LEAGUES` config (see `src/constants.ts`) and in your local synced league ID mapping.
+- The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
+
+The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
 
 Useful options:
 

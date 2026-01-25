@@ -1,10 +1,10 @@
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { createInterface } from "readline";
 import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
 
-import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS, LEAGUES } from "../constants";
-import type { LeagueSeason, Team } from "../types";
+import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../constants";
+import type { Team } from "../types";
 
 export const FANTRAX_ARTIFACT_DIR = path.resolve("src", "playwright", ".fantrax");
 export const AUTH_STATE_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-auth.json");
@@ -33,7 +33,7 @@ export const requireAuthStateFile = (): void => {
 export const requireLeagueIdsFile = (): void => {
   if (!existsSync(LEAGUE_IDS_PATH)) {
     throw new Error(
-      `Missing ${LEAGUE_IDS_PATH}. Run the league sync script first (npm run playwright:sync:leagues) to save league IDs.`
+      `Missing ${LEAGUE_IDS_PATH}. Run the league sync script first (npm run playwright:sync:leagues) to save league IDs and season dates.`
     );
   }
 };
@@ -56,17 +56,40 @@ export type ImportLeagueRegularOptions = {
   outDir: string;
   year: number;
   leagueId: string;
+  startDate: string;
   endDate: string;
 };
 
-type LeagueIdsFile = {
-  schemaVersion: number;
+type LeagueIdsFileV1 = {
+  schemaVersion: 1;
   leagueName: string;
   scrapedAt: string;
   leagueIdsByYear: Record<string, string>;
 };
 
-const parseNumberArg = (argv: string[], key: string): number | undefined => {
+type LeaguePeriods = {
+  regularStartDate: string;
+  regularEndDate: string;
+  playoffsStartDate: string;
+  playoffsEndDate: string;
+};
+
+type LeagueSeasonInfo = {
+  year: number;
+  leagueId: string;
+  periods: LeaguePeriods;
+};
+
+type LeagueIdsFileV2 = {
+  schemaVersion: 2;
+  leagueName: string;
+  scrapedAt: string;
+  seasons: LeagueSeasonInfo[];
+};
+
+type LeagueIdsFile = LeagueIdsFileV1 | LeagueIdsFileV2;
+
+export const parseNumberArg = (argv: string[], key: string): number | undefined => {
   const arg = argv.find((a) => a.startsWith(`${key}=`));
   if (!arg) return undefined;
   const raw = arg.slice(key.length + 1);
@@ -74,15 +97,76 @@ const parseNumberArg = (argv: string[], key: string): number | undefined => {
   return Number.isFinite(value) ? value : undefined;
 };
 
-const parseStringArg = (argv: string[], key: string): string | undefined => {
+export const parseStringArg = (argv: string[], key: string): string | undefined => {
   const arg = argv.find((a) => a.startsWith(`${key}=`));
   if (!arg) return undefined;
   const raw = arg.slice(key.length + 1).trim();
   return raw || undefined;
 };
 
-const resolveLeagueForYear = (leagues: readonly LeagueSeason[], year: number): LeagueSeason | undefined => {
-  return leagues.find((l) => l.year === year);
+export const hasFlag = (argv: string[], key: string): boolean => argv.includes(key);
+
+export const parseFantraxDateToISO = (raw: string): string => {
+  const s = raw.replace(/\s+/g, " ").trim();
+
+  const monthMap: Record<string, string> = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Aug: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dec: "12",
+  };
+
+  // Examples:
+  // - "Fri Oct 04, 2024"
+  // - "Mon Oct 21, 2024"
+  // - "Oct 4, 2024"
+  let m = /^(?:[A-Za-z]{3}\s+)?([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/.exec(s);
+  if (m) {
+    const month = monthMap[m[1]];
+    if (!month) throw new Error(`Unsupported month in date: ${raw}`);
+    const day = String(Number(m[2])).padStart(2, "0");
+    const year = m[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // Example: "Mar 17/25" (from playoffs period summary)
+  m = /^([A-Za-z]{3})\s+(\d{1,2})\/(\d{2})$/.exec(s);
+  if (m) {
+    const month = monthMap[m[1]];
+    if (!month) throw new Error(`Unsupported month in date: ${raw}`);
+    const day = String(Number(m[2])).padStart(2, "0");
+    const yy = Number(m[3]);
+    const year = String(2000 + yy);
+    return `${year}-${month}-${day}`;
+  }
+
+  throw new Error(`Unrecognized Fantrax date format: ${raw}`);
+};
+
+export const debugDump = async (page: Page, label: string): Promise<void> => {
+  const safe = label.replace(/[^a-z0-9_-]/gi, "-");
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const base = path.join(FANTRAX_ARTIFACT_DIR, `sync-leagues-${ts}-${safe}`);
+
+  try {
+    writeFileSync(`${base}.html`, await page.content(), "utf8");
+  } catch {
+    // ignore
+  }
+
+  try {
+    await page.screenshot({ path: `${base}.png`, fullPage: true });
+  } catch {
+    // ignore
+  }
 };
 
 const readLeagueIdsFile = (): LeagueIdsFile => {
@@ -93,24 +177,50 @@ const readLeagueIdsFile = (): LeagueIdsFile => {
   if (!parsed || typeof parsed !== "object") {
     throw new Error(`Invalid league IDs file: ${LEAGUE_IDS_PATH}`);
   }
+  const file = parsed as Partial<LeagueIdsFile>;
+  if (file.schemaVersion !== 1 && file.schemaVersion !== 2) {
+    throw new Error(
+      `Invalid league IDs file schemaVersion in ${LEAGUE_IDS_PATH}. ` +
+        `Re-run npm run playwright:sync:leagues to regenerate it.`
+    );
+  }
+
   return parsed as LeagueIdsFile;
 };
 
-export const resolveLeagueIdForYear = (year: number): string => {
-  const file = readLeagueIdsFile();
-  const id = file.leagueIdsByYear[String(year)];
-  if (id) {
-    return id;
+const resolveAvailableYears = (file: LeagueIdsFile): number[] => {
+  if (file.schemaVersion === 1) {
+    return Object.keys(file.leagueIdsByYear)
+      .map((y) => Number(y))
+      .filter((y) => Number.isFinite(y))
+      .sort((a, b) => b - a);
   }
 
-  const validYears = Object.keys(file.leagueIdsByYear)
-    .map((y) => Number(y))
+  return file.seasons
+    .map((s) => s.year)
     .filter((y) => Number.isFinite(y))
-    .sort((a, b) => b - a)
-    .join(", ");
+    .sort((a, b) => b - a);
+};
 
+const resolveSeasonInfoForYear = (file: LeagueIdsFile, year: number): LeagueSeasonInfo => {
+  if (file.schemaVersion === 2) {
+    const season = file.seasons.find((s) => s.year === year);
+    if (season) return season;
+  }
+
+  if (file.schemaVersion === 1) {
+    const leagueId = file.leagueIdsByYear[String(year)];
+    if (leagueId) {
+      throw new Error(
+        `Your ${LEAGUE_IDS_PATH} is schemaVersion 1 (league IDs only). ` +
+          `Re-run npm run playwright:sync:leagues to also save season period dates.`
+      );
+    }
+  }
+
+  const validYears = resolveAvailableYears(file).join(", ");
   throw new Error(
-    `Missing leagueId for year ${year} in ${LEAGUE_IDS_PATH}. Valid years: ${validYears || "(none)"}. ` +
+    `Missing league info for year ${year} in ${LEAGUE_IDS_PATH}. Valid years: ${validYears || "(none)"}. ` +
       `Run npm run playwright:sync:leagues to refresh the mapping.`
   );
 };
@@ -121,22 +231,17 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
   const outDir = parseStringArg(argv, "--out") ?? process.env.CSV_OUT_DIR?.trim() ?? DEFAULT_CSV_OUT_DIR;
 
+  const file = readLeagueIdsFile();
+  const availableYears = resolveAvailableYears(file);
+
   const yearArg = parseStringArg(argv, "--year") ?? argv.find((a) => !a.startsWith("-"));
-  const yearFallback = Math.max(...LEAGUES.map((l) => l.year));
+  const yearFallback = availableYears.length ? availableYears[0] : NaN;
   const year = yearArg ? Number(yearArg) : yearFallback;
   if (!Number.isFinite(year)) {
     throw new Error(`Invalid year: ${String(yearArg)}`);
   }
 
-  const league = resolveLeagueForYear(LEAGUES, year);
-  if (!league) {
-    const validYears = LEAGUES.map((l) => l.year)
-      .sort((a, b) => b - a)
-      .join(", ");
-    throw new Error(`Unknown year ${year}. Valid years: ${validYears}`);
-  }
-
-  const leagueId = resolveLeagueIdForYear(year);
+  const season = resolveSeasonInfoForYear(file, year);
 
   return {
     headless,
@@ -144,8 +249,11 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
     pauseBetweenMs,
     outDir,
     year,
-    leagueId,
-    endDate: league.endDate,
+    leagueId: season.leagueId,
+    // Used for the roster-by-date URL query parameter; this should be the regular season start date.
+    startDate: season.periods.regularStartDate,
+    // Used for the roster-by-date URL query parameter; this should be the regular season end date.
+    endDate: season.periods.regularEndDate,
   };
 };
 
@@ -293,13 +401,15 @@ export const getRosterTeamIdFromStandingsByNames = async (
 export const buildRosterUrlForSeason = (args: {
   leagueId: string;
   rosterTeamId: string;
+  startDate: string;
   endDate: string;
 }): string => {
   const leagueId = encodeURIComponent(args.leagueId);
   const rosterTeamId = encodeURIComponent(args.rosterTeamId);
+  const startDate = encodeURIComponent(args.startDate);
   const endDate = encodeURIComponent(args.endDate);
 
-  return `${FANTRAX_URLS.league}/${leagueId}/team/roster;teamId=${rosterTeamId};timeframeTypeCode=BY_DATE;endDate=${endDate};statsType=3`;
+  return `${FANTRAX_URLS.league}/${leagueId}/team/roster;teamId=${rosterTeamId};timeframeTypeCode=BY_DATE;startDate=${startDate};endDate=${endDate};statsType=3`;
 };
 
 export const downloadRosterCsv = async (

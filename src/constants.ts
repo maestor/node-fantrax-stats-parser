@@ -5,7 +5,6 @@ import {
   PlayerScoreWeights,
   GoalieScoreWeights,
   Team,
-  LeagueSeason,
 } from "./types";
 
 export const START_SEASON = 2012;
@@ -62,23 +61,6 @@ export const TEAMS = [
   { id: "31", name: "utah", presentName: "Utah Mammoth", nameAliases: ['Utah Hockey Club', 'Arizona Coyotes', 'Phoenix Coyotes', 'Arizona', 'Phoenix'] },
   { id: "32", name: "vegas", presentName: "Vegas Golden Knights" },
 ] as const satisfies ReadonlyArray<Team>;
-
-export const LEAGUES = [
-  { year: 2025, endDate: "2026-03-15" },
-  { year: 2024, endDate: "2025-03-15" },
-  { year: 2023, endDate: "2024-03-15" },
-  { year: 2022, endDate: "2023-03-15" },
-  { year: 2021, endDate: "2022-03-15" },
-  { year: 2020, endDate: "2021-03-15" },
-  { year: 2019, endDate: "2020-03-15" },
-  { year: 2018, endDate: "2019-03-15" },
-  { year: 2017, endDate: "2018-03-15" },
-  { year: 2016, endDate: "2017-03-15" },
-  { year: 2015, endDate: "2016-03-15" },
-  { year: 2014, endDate: "2015-03-15" },
-  { year: 2013, endDate: "2014-03-15" },
-  { year: 2012, endDate: "2013-03-15" },
-] as const satisfies ReadonlyArray<LeagueSeason>;
 
 // CSV field mapping constants
 export const CSV = {

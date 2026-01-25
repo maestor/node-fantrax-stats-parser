@@ -79,6 +79,7 @@ const main = async (): Promise<void> => {
       const rosterUrl = buildRosterUrlForSeason({
         leagueId: options.leagueId,
         rosterTeamId,
+        startDate: options.startDate,
         endDate: options.endDate,
       });
 

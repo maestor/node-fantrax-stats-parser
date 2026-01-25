@@ -136,8 +136,3 @@ export type Team = {
   presentName: string;
   nameAliases?: string[];
 };
-
-export type LeagueSeason = {
-  year: number;
-  endDate: string;
-};
