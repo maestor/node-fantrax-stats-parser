@@ -639,8 +639,10 @@ const clickTeamFromStandings = async (page: Page, teamDisplayName: string): Prom
   let lastError: unknown;
   for (const locator of candidates) {
     try {
-      await locator.waitFor({ state: "visible", timeout: 10_000 });
-      await locator.click({ timeout: 10_000 });
+      // If the team exists, it should already be visible once standings is loaded.
+      // Keep this short so missing expansion teams don't stall imports.
+      await locator.waitFor({ state: "visible", timeout: 1_500 });
+      await locator.click({ timeout: 1_500 });
       return;
     } catch (err) {
       lastError = err;
@@ -658,7 +660,13 @@ export const tryGetRosterTeamIdFromStandingsLink = async (
   const link = table.getByRole("link", { name: teamDisplayName }).first();
 
   try {
-    const href = await link.getAttribute("href");
+    // Avoid Playwright auto-wait stalls when the team name doesn't match any link.
+    const count = await link.count();
+    if (!count) {
+      return null;
+    }
+
+    const href = await link.getAttribute("href", { timeout: 1_000 });
     if (!href) {
       return null;
     }
@@ -717,13 +725,36 @@ export const buildRosterUrlForSeason = (args: {
   return `${FANTRAX_URLS.league}/${leagueId}/team/roster;teamId=${rosterTeamId};timeframeTypeCode=BY_DATE;startDate=${startDate};endDate=${endDate};statsType=3`;
 };
 
+export type RosterCsvKind = "regular" | "playoffs";
+
+export const buildRosterCsvFileName = (args: {
+  teamSlug: string;
+  teamId: string;
+  year: number;
+  kind?: RosterCsvKind;
+}): string => {
+  const label: RosterCsvKind = args.kind ?? "regular";
+  return `${args.teamSlug}-${args.teamId}-${label}-${args.year}-${args.year + 1}.csv`;
+};
+
+export const buildRosterCsvPath = (args: {
+  outDir: string;
+  teamSlug: string;
+  teamId: string;
+  year: number;
+  kind?: RosterCsvKind;
+}): string => {
+  const fileName = buildRosterCsvFileName(args);
+  return path.resolve(args.outDir, fileName);
+};
+
 export const downloadRosterCsv = async (
   page: Page,
   teamSlug: string,
   teamId: string,
   outDir: string,
   year: number,
-  kind?: "regular" | "playoffs"
+  kind?: RosterCsvKind
 ): Promise<string> => {
   // With statsType=3 in the URL this should already be set, but keep this as a best-effort
   // compatibility step in case Fantrax ignores the param for some leagues.
@@ -743,9 +774,7 @@ export const downloadRosterCsv = async (
   await downloadButton.click();
   const download = await downloadPromise;
 
-  const label = kind ?? "regular";
-  const fileName = `${teamSlug}-${teamId}-${label}-${year}-${year + 1}.csv`;
-  const filePath = path.resolve(outDir, fileName);
+  const filePath = buildRosterCsvPath({ outDir, teamSlug, teamId, year, kind });
   await download.saveAs(filePath);
 
   return filePath;

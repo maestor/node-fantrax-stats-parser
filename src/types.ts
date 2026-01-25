@@ -135,4 +135,7 @@ export type Team = {
   name: string;
   presentName: string;
   nameAliases?: string[];
+  // First season year in the YYYY-YYYY+1 format used by imports (e.g. 2017 => 2017-2018).
+  // Useful for expansion/relocation where a team doesn't exist in older seasons.
+  firstSeason?: number;
 };
