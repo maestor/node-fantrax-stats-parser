@@ -38,6 +38,13 @@ const constantTimeEquals = (a: string, b: string): boolean => {
   return result === 0;
 };
 
+const setAuthErrorNoStoreHeaders = (res: ServerResponse): void => {
+  res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("Pragma", "no-cache");
+  // Keep consistent with route caching headers.
+  res.setHeader("Vary", "authorization, x-api-key");
+};
+
 export const getApiKeysFromEnv = (): string[] => {
   const keys: string[] = [];
 
@@ -111,11 +118,13 @@ export const withApiKeyAuth = <Req extends RequestLike, H extends RequestLikeHan
 
     const provided = extractApiKey(req, headerName, allowBearerAuth);
     if (!provided) {
+      setAuthErrorNoStoreHeaders(res);
       send(res, 401, { error: "Missing API key" });
       return;
     }
 
     if (!isValidApiKey(provided, validKeys)) {
+      setAuthErrorNoStoreHeaders(res);
       send(res, 403, { error: "Invalid API key" });
       return;
     }

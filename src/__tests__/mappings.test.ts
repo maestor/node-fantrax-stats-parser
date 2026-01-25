@@ -325,6 +325,20 @@ describe("mappings", () => {
       expect(result.length).toBe(1);
     });
 
+    test("treats empty wins value as 0 (W-G parsing)", () => {
+      const data = {
+        ...mockRawDataGoalie2014,
+        field7: "10", // GP
+        field8: "", // W-G (wins) empty
+      };
+
+      const result = mapGoalieData([mockRawDataFirstRow, data]);
+
+      expect(result.length).toBe(1);
+      expect(result[0].games).toBe(10);
+      expect(result[0].wins).toBe(0);
+    });
+
     test("includes goalie with wins > 0, games = 0", () => {
       const goalie = {
         ...mockRawDataGoalie2014,

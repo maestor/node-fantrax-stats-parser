@@ -8,6 +8,7 @@ import {
   getPlayersCombined,
   getGoaliesSeason,
   getGoaliesCombined,
+  resetRouteCachesForTests,
 } from "../routes";
 import {
   getAvailableSeasons,
@@ -25,6 +26,7 @@ import {
   ERROR_MESSAGES,
   HTTP_STATUS,
 } from "../helpers";
+import { makeEtagForJson } from "../cache";
 
 jest.mock("micro");
 jest.mock("../services");
@@ -33,6 +35,7 @@ jest.mock("../helpers");
 describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetRouteCachesForTests();
     (resolveTeamId as jest.Mock).mockReturnValue("1");
     (reportTypeAvailable as jest.Mock).mockReturnValue(true);
   });
@@ -167,6 +170,20 @@ describe("routes", () => {
 
       expect(send).toHaveBeenCalledWith(res, 422, error);
     });
+
+    test("treats missing teamId query param as undefined", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) => (raw ? String(raw) : "1"));
+
+      const req = createRequest({ url: "/seasons", headers: { host: "localhost" } });
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(resolveTeamId).toHaveBeenCalledWith(undefined);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
   });
 
   describe("getTeams", () => {
@@ -179,6 +196,111 @@ describe("routes", () => {
 
       await getTeams(req, res);
 
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
+    });
+
+    test("memoizes successful responses and avoids re-calling the handler", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
+      const req1 = createRequest({ url: "/teams" });
+      const res1 = createResponse();
+      await getTeams(req1, res1);
+
+      (send as jest.Mock).mockClear();
+      const req2 = createRequest({ url: "/teams" });
+      const res2 = createResponse();
+      await getTeams(req2, res2);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, filteredTeams);
+    });
+
+    test("returns 304 for matching If-None-Match", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
+      const req1 = createRequest({ url: "/teams", method: "GET" });
+      const res1 = createResponse();
+      await getTeams(req1, res1);
+
+      (send as jest.Mock).mockClear();
+      const etag = makeEtagForJson(filteredTeams);
+      const req2 = {
+        method: "GET",
+        url: "/teams",
+        headers: { host: "localhost", "if-none-match": etag },
+      } as unknown as ReturnType<typeof createRequest>;
+      const res2 = createResponse();
+      const endSpy = jest.spyOn(res2, "end");
+      await getTeams(req2, res2);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(res2.statusCode).toBe(304);
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    test("hits cached 304 branch on repeat request", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
+      const primeReq = {
+        method: "GET",
+        url: "/teams",
+        headers: { host: "localhost" },
+      } as unknown as ReturnType<typeof createRequest>;
+      const primeRes = createResponse();
+      await getTeams(primeReq, primeRes);
+
+      (send as jest.Mock).mockClear();
+
+      const etag = makeEtagForJson(filteredTeams);
+      const cachedReq = {
+        method: "GET",
+        url: "/teams",
+        headers: { host: "localhost", "if-none-match": etag },
+      } as unknown as ReturnType<typeof createRequest>;
+      const cachedRes = createResponse();
+      const endSpy = jest.spyOn(cachedRes, "end");
+
+      await getTeams(cachedReq, cachedRes);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(cachedRes.statusCode).toBe(304);
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
+      const etag = makeEtagForJson(filteredTeams);
+      const req = {
+        method: "GET",
+        url: "/teams",
+        headers: { host: "localhost", "if-none-match": etag },
+      } as unknown as ReturnType<typeof createRequest>;
+      const res = createResponse();
+      const endSpy = jest.spyOn(res, "end");
+
+      await getTeams(req, res);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(res.statusCode).toBe(304);
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    test("works when req is undefined (no caching possible)", async () => {
+      const filteredTeams = [{ id: "1", name: "colorado" }];
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+
+      const res = createResponse();
+      await getTeams(undefined as unknown as ReturnType<typeof createRequest>, res);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
   });
