@@ -25,7 +25,16 @@ const main = async (): Promise<void> => {
   requireAuthStateFile();
   mkdirSync(path.resolve(options.outDir), { recursive: true });
 
-  const teamsToDownload = TEAMS.filter((team) => {
+  const outOfEra = TEAMS.filter((t) => t.firstSeason !== undefined && options.year < t.firstSeason);
+  if (outOfEra.length) {
+    console.info(
+      `Skipping ${outOfEra.length} team(s) not in ${options.year}-${options.year + 1}: ${outOfEra
+        .map((t) => t.name)
+        .join(", ")}.`
+    );
+  }
+
+  const teamsToDownload = TEAMS.filter((team) => team.firstSeason === undefined || options.year >= team.firstSeason).filter((team) => {
     const fileName = buildRosterCsvFileName({ teamSlug: team.name, teamId: team.id, year: options.year });
     const p = buildRosterCsvPath({ outDir: options.outDir, teamSlug: team.name, teamId: team.id, year: options.year });
     if (existsSync(p)) {

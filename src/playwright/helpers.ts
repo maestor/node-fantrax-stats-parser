@@ -639,8 +639,10 @@ const clickTeamFromStandings = async (page: Page, teamDisplayName: string): Prom
   let lastError: unknown;
   for (const locator of candidates) {
     try {
-      await locator.waitFor({ state: "visible", timeout: 10_000 });
-      await locator.click({ timeout: 10_000 });
+      // If the team exists, it should already be visible once standings is loaded.
+      // Keep this short so missing expansion teams don't stall imports.
+      await locator.waitFor({ state: "visible", timeout: 1_500 });
+      await locator.click({ timeout: 1_500 });
       return;
     } catch (err) {
       lastError = err;
@@ -658,7 +660,13 @@ export const tryGetRosterTeamIdFromStandingsLink = async (
   const link = table.getByRole("link", { name: teamDisplayName }).first();
 
   try {
-    const href = await link.getAttribute("href");
+    // Avoid Playwright auto-wait stalls when the team name doesn't match any link.
+    const count = await link.count();
+    if (!count) {
+      return null;
+    }
+
+    const href = await link.getAttribute("href", { timeout: 1_000 });
     if (!href) {
       return null;
     }

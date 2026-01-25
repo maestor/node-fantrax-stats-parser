@@ -27,7 +27,7 @@ export const ERROR_MESSAGES = {
 
 export const DEFAULT_TEAM_ID = "1";
 
-export const TEAMS = [
+export const TEAMS: ReadonlyArray<Team> = [
   { id: "1", name: "colorado", presentName: "Colorado Avalanche" },
   { id: "2", name: "carolina", presentName: "Carolina Hurricanes" },
   { id: "3", name: "calgary", presentName: "Calgary Flames" },
@@ -55,12 +55,12 @@ export const TEAMS = [
   { id: "25", name: "washington", presentName: "Washington Capitals" },
   { id: "26", name: "pittsburgh", presentName: "Pittsburgh Penguins" },
   { id: "27", name: "columbus", presentName: "Columbus Blue Jackets" },
-  { id: "28", name: "seattle", presentName: "Seattle Kraken" },
+  { id: "28", name: "seattle", presentName: "Seattle Kraken", firstSeason: 2021 },
   { id: "29", name: "dallas", presentName: "Dallas Stars" },
   { id: "30", name: "winnipeg", presentName: "Winnipeg Jets" },
   { id: "31", name: "utah", presentName: "Utah Mammoth", nameAliases: ['Utah Hockey Club', 'Arizona Coyotes', 'Phoenix Coyotes', 'Arizona', 'Phoenix'] },
-  { id: "32", name: "vegas", presentName: "Vegas Golden Knights" },
-] as const satisfies ReadonlyArray<Team>;
+  { id: "32", name: "vegas", presentName: "Vegas Golden Knights", firstSeason: 2017 },
+];
 
 // CSV field mapping constants
 export const CSV = {
