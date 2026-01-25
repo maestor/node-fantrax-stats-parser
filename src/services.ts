@@ -2,11 +2,13 @@ import csv from "csvtojson";
 import path from "path";
 
 import {
+  ApiError,
   sortItemsByStatField,
   availableSeasons,
   applyPlayerScores,
   applyGoalieScores,
 } from "./helpers";
+import { validateCsvFileOnceOrThrow } from "./csvIntegrity";
 import {
   mapAvailableSeasons,
   mapPlayerData,
@@ -39,6 +41,7 @@ const getRawDataFromFiles = async (
       `${report}-${season}-${season + 1}.csv`
     );
     try {
+      await validateCsvFileOnceOrThrow(filePath);
       const sourceToJson = await csv().fromFile(filePath);
 
       return sourceToJson.map((item) => ({
@@ -46,6 +49,10 @@ const getRawDataFromFiles = async (
         season,
       }));
     } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (typeof error === "object" && error && "statusCode" in error) {
+        throw error;
+      }
       // eslint-disable-next-line no-console
       console.error(`Failed to read CSV file: ${filePath}`, error);
       return [];

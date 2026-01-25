@@ -189,5 +189,34 @@ describe("auth", () => {
       expect(handler).toHaveBeenCalledWith(req, res);
       expect(send).not.toHaveBeenCalled();
     });
+
+    test("reads API_KEY from env when validKeys not provided", async () => {
+      process.env.API_KEY = "k1";
+      const handler = jest.fn();
+      const wrapped = withApiKeyAuth(handler);
+      const req = createRequest({ headers: { "x-api-key": "k1" } });
+      const res = createResponse();
+
+      await wrapped(req, res);
+
+      expect(handler).toHaveBeenCalledWith(req, res);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test("supports headerName option override", async () => {
+      const handler = jest.fn();
+      const wrapped = withApiKeyAuth(handler, {
+        requireAuth: true,
+        validKeys: ["k1"],
+        headerName: "X-Other-Key",
+      });
+      const req = createRequest({ headers: { "x-other-key": "k1" } });
+      const res = createResponse();
+
+      await wrapped(req, res);
+
+      expect(handler).toHaveBeenCalledWith(req, res);
+      expect(send).not.toHaveBeenCalled();
+    });
   });
 });

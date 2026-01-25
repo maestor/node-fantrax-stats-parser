@@ -27,21 +27,42 @@ export class ApiError extends Error {
   }
 }
 
+const helperCaches = {
+  teamCsvDirExists: new Map<string, boolean>(),
+  seasonsForTeam: new Map<string, number[]>(),
+  teamsWithCsvFolders: undefined as Array<(typeof TEAMS)[number]> | undefined,
+};
+
+export const resetHelperCachesForTests = (): void => {
+  helperCaches.teamCsvDirExists.clear();
+  helperCaches.seasonsForTeam.clear();
+  helperCaches.teamsWithCsvFolders = undefined;
+};
+
 const getTeamCsvDir = (teamId: string): string => path.join(process.cwd(), "csv", teamId);
 
 const hasTeamCsvDir = (teamId: string): boolean => {
+  const cached = helperCaches.teamCsvDirExists.get(teamId);
+  if (cached !== undefined) return cached;
   try {
     fs.readdirSync(getTeamCsvDir(teamId));
+    helperCaches.teamCsvDirExists.set(teamId, true);
     return true;
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
-    if (err?.code === "ENOENT") return false;
+    if (err?.code === "ENOENT") {
+      helperCaches.teamCsvDirExists.set(teamId, false);
+      return false;
+    }
     throw error;
   }
 };
 
 export const getTeamsWithCsvFolders = (): Array<(typeof TEAMS)[number]> => {
-  return TEAMS.filter((team) => hasTeamCsvDir(team.id));
+  if (!helperCaches.teamsWithCsvFolders) {
+    helperCaches.teamsWithCsvFolders = TEAMS.filter((team) => hasTeamCsvDir(team.id));
+  }
+  return helperCaches.teamsWithCsvFolders;
 };
 
 export const resolveTeamId = (raw: unknown): string => {
@@ -69,6 +90,10 @@ const ensureTeamCsvDirOrThrow = (teamId: string): string => {
 };
 
 export const listSeasonsForTeam = (teamId: string, reportType: Report): number[] => {
+  const cacheKey = `${teamId}:${reportType}`;
+  const cached = helperCaches.seasonsForTeam.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   const dir = ensureTeamCsvDirOrThrow(teamId);
   const files = fs.readdirSync(dir);
 
@@ -85,7 +110,9 @@ export const listSeasonsForTeam = (teamId: string, reportType: Report): number[]
     seasons.add(start);
   }
 
-  return [...seasons].sort((a, b) => a - b);
+  const result = [...seasons].sort((a, b) => a - b);
+  helperCaches.seasonsForTeam.set(cacheKey, result);
+  return result;
 };
 
 const defaultSortPlayers = (a: Player, b: Player): number =>

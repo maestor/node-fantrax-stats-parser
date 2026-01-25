@@ -17,6 +17,7 @@ import {
   getTeamsWithCsvFolders,
   HTTP_STATUS,
   listSeasonsForTeam,
+  resetHelperCachesForTests,
   seasonAvailable,
   reportTypeAvailable,
   parseSeasonParam,
@@ -25,6 +26,48 @@ import {
 import { Player, Goalie, Report } from "../types";
 
 describe("helpers", () => {
+  beforeEach(() => {
+    resetHelperCachesForTests();
+  });
+
+  test("memoizes listSeasonsForTeam results", () => {
+    (fs.readdirSync as unknown as jest.Mock).mockClear();
+
+    const first = listSeasonsForTeam("1", "regular");
+    const second = listSeasonsForTeam("1", "regular");
+
+    expect(first).toEqual(second);
+    // First call does two readdirSync calls (exists-check + list).
+    // Second call is fully served from cache.
+    expect(fs.readdirSync).toHaveBeenCalledTimes(2);
+  });
+
+  test("memoizes getTeamsWithCsvFolders results", () => {
+    (fs.readdirSync as unknown as jest.Mock).mockClear();
+    const first = getTeamsWithCsvFolders();
+    const callsAfterFirst = (fs.readdirSync as unknown as jest.Mock).mock.calls.length;
+
+    const second = getTeamsWithCsvFolders();
+    const callsAfterSecond = (fs.readdirSync as unknown as jest.Mock).mock.calls.length;
+
+    expect(first).toEqual(second);
+    expect(callsAfterSecond).toBe(callsAfterFirst);
+  });
+
+  test("memoizes hasTeamCsvDir via resolveTeamId", () => {
+    (fs.readdirSync as unknown as jest.Mock).mockClear();
+
+    const first = resolveTeamId("1");
+    const callsAfterFirst = (fs.readdirSync as unknown as jest.Mock).mock.calls.length;
+
+    const second = resolveTeamId("1");
+    const callsAfterSecond = (fs.readdirSync as unknown as jest.Mock).mock.calls.length;
+
+    expect(first).toBe("1");
+    expect(second).toBe("1");
+    expect(callsAfterSecond).toBe(callsAfterFirst);
+  });
+
   describe("sortItemsByStatField", () => {
     const players: Player[] = [
       {

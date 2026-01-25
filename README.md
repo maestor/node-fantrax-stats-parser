@@ -191,6 +191,16 @@ The Playwright importer downloads raw Fantrax CSVs. To convert them into the for
 
 Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
 
+### CSV integrity checks (schema)
+
+This API validates the **normalized** CSV schema to detect Fantrax format changes early.
+
+- Validation is performed **once per CSV file per server instance** before parsing.
+- The check verifies the expected section markers and header rows (`"Skaters"` / `"Goalies"` and their column headers).
+- If a file fails validation, the API responds with **HTTP 500** and a descriptive error message so you can re-run the normalization scripts.
+
+This is intentionally strict: the goal is to fail fast if the upstream export format changes.
+
 ### Clean a single CSV
 
 - Script: `scripts/handle-csv.sh`
@@ -321,6 +331,15 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 
 `sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, penalties, ppp, shp for both. shots, plusMinus, hits, blocks for players only and wins, saves, shutouts for goalies only. If not specified, sort by points (players) and by wins (goalies).
 
+## Caching
+
+Data endpoints (`/teams`, `/seasons`, `/players/*`, `/goalies/*`) are cached in two layers:
+
+- **In-memory per instance**: results are memoized to avoid repeated filesystem reads and CSV parsing.
+- **Edge-friendly HTTP caching**: successful `200` responses include `ETag` and `Cache-Control: s-maxage=...`, and clients/CDNs can use `If-None-Match` to get `304` responses.
+
+Because this API uses header-based API keys, responses include `Vary: authorization, x-api-key` by default to keep caching safe.
+
 ## Scoring algorithm
 
 Each player and goalie item returned by the stats endpoints includes a computed `score` field, an additional games-adjusted `scoreAdjustedByGames` field, plus a per-stat breakdown in a `scores` object.
@@ -372,12 +391,15 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 ## Future roadmap
 
-- Pre-load / cache available CSV metadata (teams/seasons) to reduce filesystem work per request
 - Improve API docs/contract (e.g. publish an OpenAPI spec)
-- Add lightweight response caching for stable endpoints
 - Standardize request validation + error response shape
-- Add data integrity checks for imported CSVs (detect format changes early)
 - Store API data in a database (reduce reliance on CSV files at runtime)
 - Investigate whether Fantrax offers an API to replace manual CSV exports
+
+Already implemented:
+
+- Pre-load / cache CSV metadata (teams/seasons) to reduce filesystem work per request
+- Lightweight response caching for stable endpoints (in-memory + edge-friendly headers)
+- CSV data integrity checks for normalized inputs (detect format changes early)
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

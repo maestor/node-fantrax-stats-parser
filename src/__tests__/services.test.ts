@@ -11,6 +11,7 @@ import {
   sortItemsByStatField,
   applyPlayerScores,
   applyGoalieScores,
+  ApiError,
 } from "../helpers";
 import {
   mapAvailableSeasons,
@@ -21,13 +22,19 @@ import {
 } from "../mappings";
 import { mockRawDataPlayer, mockRawDataGoalie2014, mockPlayer, mockGoalie } from "./fixtures";
 
+import { validateCsvFileOnceOrThrow } from "../csvIntegrity";
+
 jest.mock("csvtojson");
 jest.mock("../helpers");
 jest.mock("../mappings");
+jest.mock("../csvIntegrity", () => ({
+  validateCsvFileOnceOrThrow: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe("services", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (validateCsvFileOnceOrThrow as jest.Mock).mockResolvedValue(undefined);
   });
 
   describe("getAvailableSeasons", () => {
@@ -288,6 +295,69 @@ describe("services", () => {
       const result = await getGoaliesStatsCombined("regular");
 
       expect(result).toEqual([mockGoalie]);
+    });
+
+    test("throws on CSV integrity mismatch", async () => {
+      (validateCsvFileOnceOrThrow as jest.Mock).mockRejectedValue({ statusCode: 500, message: "bad csv" });
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockResolvedValue([mockRawDataPlayer]),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+      (mapPlayerData as jest.Mock).mockReturnValue([]);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await expect(getPlayersStatsSeason("regular", 2024)).rejects.toEqual(
+        expect.objectContaining({ statusCode: 500 })
+      );
+    });
+
+    test("re-throws ApiError instances from integrity validator", async () => {
+      const apiErrorLike = new Error("api") as unknown as { statusCode: number };
+      apiErrorLike.statusCode = 500;
+      Object.setPrototypeOf(apiErrorLike, (ApiError as unknown as { prototype: object }).prototype);
+
+      (validateCsvFileOnceOrThrow as jest.Mock).mockRejectedValue(apiErrorLike);
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockResolvedValue([mockRawDataPlayer]),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+      (mapPlayerData as jest.Mock).mockReturnValue([]);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await expect(getPlayersStatsSeason("regular", 2024)).rejects.toEqual(
+        expect.objectContaining({ statusCode: 500 })
+      );
+    });
+
+    test("re-throws errors with statusCode from csv parsing", async () => {
+      (validateCsvFileOnceOrThrow as jest.Mock).mockResolvedValue(undefined);
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockRejectedValue({ statusCode: 500, message: "parse error" }),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+      (mapPlayerData as jest.Mock).mockReturnValue([]);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await expect(getPlayersStatsSeason("regular", 2024)).rejects.toEqual(
+        expect.objectContaining({ statusCode: 500 })
+      );
+    });
+
+    test("re-throws errors with statusCode from integrity validator", async () => {
+      (validateCsvFileOnceOrThrow as jest.Mock).mockRejectedValue({ statusCode: 500, message: "schema mismatch" });
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockResolvedValue([mockRawDataPlayer]),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+      (mapPlayerData as jest.Mock).mockReturnValue([]);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await expect(getPlayersStatsSeason("regular", 2024)).rejects.toEqual(
+        expect.objectContaining({ statusCode: 500 })
+      );
     });
   });
 });
