@@ -111,6 +111,29 @@ Optional:
 
 - `--league="Finnish Fantasy Hockey League"` to select the exact league name from the archive if your account has multiple leagues.
 
+### 2b) Sync playoffs teams (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:playoffs
+```
+
+This opens each season’s Fantrax Playoffs bracket page and writes a local mapping file to `src/playwright/.fantrax/fantrax-playoffs.json` (gitignored).
+
+The mapping includes, per season year:
+
+- which `TEAMS` entries made playoffs (must be 16 teams)
+- each playoff team’s `startDate` and `endDate` for their playoff run
+
+If the script can’t determine exactly 16 playoff teams for a season (or can’t parse the bracket periods), it will skip that season and print a `Manual needed:` message.
+
+Useful options:
+
+- `--year=2024` (only sync a single season)
+- `--timeout=120000` (increase timeouts for slow Fantrax page loads)
+- `--debug` (prints bracket hint lines when parsing fails)
+
 ### 3) Download regular-season roster CSVs
 
 Run:

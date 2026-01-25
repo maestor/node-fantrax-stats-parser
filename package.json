@@ -20,6 +20,7 @@
     "lint:check": "eslint src/**/*.ts --max-warnings 0",
     "playwright:login": "tsx src/playwright/login.ts",
     "playwright:sync:leagues": "tsx src/playwright/sync-leagues.ts",
+    "playwright:sync:playoffs": "tsx src/playwright/sync-playoffs.ts",
     "playwright:import:regular": "tsx src/playwright/import-league-regular.ts",
     "start": "npm run build && node lib/server.js",
     "test": "jest",

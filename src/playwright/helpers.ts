@@ -6,6 +6,13 @@ import type { BrowserContext, Locator, Page } from "playwright";
 import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../constants";
 import type { Team } from "../types";
 
+export type RoundWindow = { startDate: string; endDate: string; label: string };
+
+export type TeamRun<T extends Team = Team> = T & {
+  startDate: string;
+  endDate: string;
+};
+
 export const FANTRAX_ARTIFACT_DIR = path.resolve("src", "playwright", ".fantrax");
 export const AUTH_STATE_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-auth.json");
 export const LEAGUE_IDS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-leagues.json");
@@ -149,6 +156,290 @@ export const parseFantraxDateToISO = (raw: string): string => {
   }
 
   throw new Error(`Unrecognized Fantrax date format: ${raw}`);
+};
+
+export const normalizeSpacesLower = (s: string): string => s.replace(/\s+/g, " ").trim().toLowerCase();
+
+export const normalizeSpaces = (s: string): string => s.replace(/\s+/g, " ").trim();
+
+export const countOccurrences = (haystack: string, needle: string): number => {
+  if (!needle) return 0;
+  let count = 0;
+  let idx = 0;
+  for (;;) {
+    const next = haystack.indexOf(needle, idx);
+    if (next < 0) break;
+    count++;
+    idx = next + needle.length;
+  }
+  return count;
+};
+
+export const parseFantraxDateRangeToIso = (s: string): { startDate: string; endDate: string } | null => {
+  // Example: "(Mon Mar 17, 2025 - Sun Mar 23, 2025)"
+  const m = /\(([^)]+)\)/.exec(s);
+  const inside = normalizeSpaces(m?.[1] ?? s);
+  const parts = inside
+    .split(/\s*[-–]\s*/)
+    .map((p) => normalizeSpaces(p))
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+
+  try {
+    const startDate = parseFantraxDateToISO(parts[0]);
+    const endDate = parseFantraxDateToISO(parts[1]);
+    return { startDate, endDate };
+  } catch {
+    return null;
+  }
+};
+
+export const scrapePlayoffsPeriodsFromStandingsTables = async (
+  page: Page
+): Promise<{ periods: Array<RoundWindow & { periodNumber: number }>; teamsByPeriod: string[][] }> => {
+  // Fantrax renders multiple standings tables:
+  // "Scoring Period: Playoffs 1" (16 teams)
+  // "Scoring Period: Playoffs 2" (8 teams)
+  // "Scoring Period: Playoffs 3" (4 teams)
+  // "Scoring Period: Playoffs 4" (2 teams)
+  const playoffHeaders = page.locator("h4").filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i });
+  const n = await playoffHeaders.count();
+  const found: Array<{ periodNumber: number; label: string; startDate: string; endDate: string; teams: string[] }> = [];
+
+  for (let i = 0; i < n; i++) {
+    const header = playoffHeaders.nth(i);
+    const headerText = normalizeSpaces(await header.innerText());
+    const m = /Playoffs\s+(\d+)/i.exec(headerText);
+    const periodNumber = Number(m?.[1]);
+    if (!Number.isFinite(periodNumber)) continue;
+
+    const wrapper = header
+      .locator("xpath=ancestor::div[contains(@class,'standings-table-wrapper')][1]")
+      .first();
+
+    const dateText = normalizeSpaces(await wrapper.locator("h5").first().innerText().catch(() => ""));
+    const parsedRange = parseFantraxDateRangeToIso(dateText);
+    if (!parsedRange) continue;
+
+    const teamTexts = await wrapper.locator("aside a").allInnerTexts();
+    const teams = teamTexts.map(normalizeSpaces).filter(Boolean);
+    if (!teams.length) continue;
+
+    found.push({
+      periodNumber,
+      label: `Playoffs ${periodNumber}`,
+      startDate: parsedRange.startDate,
+      endDate: parsedRange.endDate,
+      teams,
+    });
+  }
+
+  found.sort((a, b) => a.periodNumber - b.periodNumber);
+  return {
+    periods: found.map(({ periodNumber, label, startDate, endDate }) => ({ periodNumber, label, startDate, endDate })),
+    teamsByPeriod: found.map((f) => f.teams),
+  };
+};
+
+export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
+  periods: RoundWindow[];
+  teamsByPeriod: string[][];
+  expectedRoundTeamCounts: number[];
+  allTeams: readonly Team[];
+}): TeamRun[] | null => {
+  if (args.periods.length !== args.teamsByPeriod.length) return null;
+  if (args.expectedRoundTeamCounts.length < 1) return null;
+
+  const periods = args.periods.slice(0, args.expectedRoundTeamCounts.length);
+  const teamsByPeriod = args.teamsByPeriod.slice(0, args.expectedRoundTeamCounts.length);
+  if (periods.length !== args.expectedRoundTeamCounts.length) return null;
+  if (teamsByPeriod.length !== args.expectedRoundTeamCounts.length) return null;
+
+  const sizes = teamsByPeriod.map((t) => t.length);
+  for (let i = 0; i < args.expectedRoundTeamCounts.length; i++) {
+    if (sizes[i] !== args.expectedRoundTeamCounts[i]) return null;
+  }
+
+  const normalizedSets = teamsByPeriod.map((list) => new Set(list.map(normalizeSpacesLower)));
+  const round1Names = teamsByPeriod[0].map(normalizeSpaces);
+
+  const participants: Team[] = [];
+  for (const rawName of round1Names) {
+    const norm = normalizeSpacesLower(rawName);
+    const team = args.allTeams.find((t) => normalizeSpacesLower(t.presentName) === norm);
+    if (team) participants.push(team);
+  }
+
+  if (participants.length !== 16) return null;
+
+  const startDate = periods[0].startDate;
+  const runs: TeamRun[] = [];
+
+  for (const team of participants) {
+    const norm = normalizeSpacesLower(team.presentName);
+    let lastIdx = -1;
+    for (let i = 0; i < normalizedSets.length; i++) {
+      if (normalizedSets[i].has(norm)) lastIdx = i;
+    }
+    if (lastIdx < 0) continue;
+    runs.push({ ...team, startDate, endDate: periods[lastIdx].endDate });
+  }
+
+  return runs.length === 16 ? runs : null;
+};
+
+export const gotoPlayoffsStandings = async (page: Page, leagueId: string, timeoutMs: number): Promise<void> => {
+  const url = `${FANTRAX_URLS.league}/${encodeURIComponent(leagueId)}/standings;view=PLAYOFFS`;
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+
+  if (page.url().includes("/login")) {
+    throw new Error(`Not authenticated (redirected to /login) while loading playoffs page for leagueId=${leagueId}`);
+  }
+
+  // Fantrax can take a moment to render the Playoffs period tables.
+  const playoffsHeader = page.locator("h4").filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i }).first();
+  try {
+    await playoffsHeader.waitFor({ state: "visible", timeout: Math.min(timeoutMs, 15_000) });
+  } catch {
+    // ignore
+  }
+};
+
+const parseMonthDayToIso = (token: string, year: number): string | null => {
+  const s = token.replace(/\s+/g, " ").trim();
+  const m = /^([A-Za-z]{3})\s+(\d{1,2})$/.exec(s);
+  if (!m) return null;
+
+  const monthMap: Record<string, string> = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Aug: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dec: "12",
+  };
+
+  const month = monthMap[m[1]];
+  if (!month) return null;
+
+  const day = String(Number(m[2])).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateTokenToIso = (token: string, defaultYear: number): string | null => {
+  const s = token.replace(/\s+/g, " ").trim();
+
+  try {
+    return parseFantraxDateToISO(s);
+  } catch {
+    // ignore
+  }
+
+  // If Fantrax provides no year, infer from playoffsStartDate year.
+  return parseMonthDayToIso(s, defaultYear);
+};
+
+export const extractRoundWindowsFromText = (text: string, defaultYear: number): RoundWindow[] => {
+  // Fantrax bracket header patterns vary; support both:
+  // - "Period 20 (Mar 17/25 - Mar 23/25)"
+  // - "Round 1 (Mar 17 - Mar 23)"
+  // - "Final Round (Apr 7 - Apr 17)"
+
+  const out: Array<RoundWindow & { sortKey: number }> = [];
+
+  // 1) Prefer explicit scoring periods when available.
+  const byPeriod = new Map<number, RoundWindow & { sortKey: number }>();
+  const periodRe = /(Scoring\s+)?Period\s+(\d+)\s*\(([^)]+)\)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = periodRe.exec(text))) {
+    const period = Number(m[2]);
+    if (!Number.isFinite(period)) continue;
+
+    const inside = m[3].replace(/\s+/g, " ").trim();
+    const parts = inside
+      .split(/\s*[-–]\s*/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length < 2) continue;
+
+    const startDate = parseDateTokenToIso(parts[0], defaultYear);
+    const endDate = parseDateTokenToIso(parts[1], defaultYear);
+    if (!startDate || !endDate) continue;
+
+    if (!byPeriod.has(period)) {
+      byPeriod.set(period, {
+        startDate,
+        endDate,
+        label: `Period ${period}`,
+        sortKey: period,
+      });
+    }
+  }
+
+  if (byPeriod.size) {
+    return [...byPeriod.values()]
+      .sort((a, b) => a.sortKey - b.sortKey)
+      .map(({ startDate, endDate, label }) => ({ startDate, endDate, label }));
+  }
+
+  // 2) Fallback: parse round headers when no explicit period numbers exist.
+  const norm = text.replace(/\s+/g, " ");
+  const roundRe = /(Round\s+\d+|Final\s+Round)\s*\(([^)]+)\)/gi;
+  let idx = 0;
+  while ((m = roundRe.exec(norm))) {
+    idx++;
+    const label = m[1].replace(/\s+/g, " ").trim();
+    const inside = m[2].replace(/\s+/g, " ").trim();
+    const parts = inside
+      .split(/\s*[-–]\s*/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length < 2) continue;
+
+    const startDate = parseDateTokenToIso(parts[0], defaultYear);
+    const endDate = parseDateTokenToIso(parts[1], defaultYear);
+    if (!startDate || !endDate) continue;
+
+    out.push({ startDate, endDate, label, sortKey: idx });
+  }
+
+  return out
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ startDate, endDate, label }) => ({ startDate, endDate, label }));
+};
+
+export const computePlayoffTeamRunsFromBracketText = (args: {
+  bracketText: string;
+  rounds: RoundWindow[];
+  fallbackStartDate: string;
+  fallbackEndDate: string;
+  allTeams: readonly Team[];
+}): TeamRun[] | null => {
+  const normalizedBracket = normalizeSpacesLower(args.bracketText);
+  const roundsCount = args.rounds.length;
+  if (!roundsCount) return null;
+
+  const playoffTeams: TeamRun[] = [];
+
+  for (const team of args.allTeams) {
+    const needle = normalizeSpacesLower(team.presentName);
+    const appear = countOccurrences(normalizedBracket, needle);
+    if (!appear) continue;
+
+    const cappedAppear = Math.min(appear, roundsCount);
+    const startDate = args.rounds[0]?.startDate ?? args.fallbackStartDate;
+    const endDate = args.rounds[cappedAppear - 1]?.endDate ?? args.fallbackEndDate;
+
+    playoffTeams.push({ ...team, startDate, endDate });
+  }
+
+  return playoffTeams;
 };
 
 export const debugDump = async (page: Page, label: string): Promise<void> => {
