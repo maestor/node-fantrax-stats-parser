@@ -4,5 +4,5 @@ lib
 coverage/
 *.lcov
 csv/temp/
-# Playwright auth state
-fantrax-auth.json
+# Local-only Fantrax Playwright artifacts
+src/playwright/.fantrax/

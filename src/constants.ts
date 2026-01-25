@@ -5,7 +5,7 @@ import {
   PlayerScoreWeights,
   GoalieScoreWeights,
   Team,
-  League,
+  LeagueSeason,
 } from "./types";
 
 export const START_SEASON = 2012;
@@ -64,21 +64,21 @@ export const TEAMS = [
 ] as const satisfies ReadonlyArray<Team>;
 
 export const LEAGUES = [
-  { year: 2025, leagueId: 'chfvdwbkm9rcyptz', endDate: '2026-03-15' },
-  { year: 2024, leagueId: '1be0m8nrlv96mnwm', endDate: '2025-03-15' },
-  { year: 2023, leagueId: 'osmkterulghuwuyg', endDate: '2024-03-15' },
-  { year: 2022, leagueId: 'gih59dwsl2oo5idn', endDate: '2023-03-15' },
-  { year: 2021, leagueId: '6h44uqipkowkvqvg', endDate: '2022-03-15' },
-  { year: 2020, leagueId: '6rejkjjqkarzuppq', endDate: '2021-03-15' },
-  { year: 2019, leagueId: 'yb9c3hzwju76v73i', endDate: '2020-03-15' },
-  { year: 2018, leagueId: 'hn2ax413jfrw4nvr', endDate: '2019-03-15' },
-  { year: 2017, leagueId: '5no86xltj1dkhx1n', endDate: '2018-03-15' },
-  { year: 2016, leagueId: 'cke58odbimwedytt', endDate: '2017-03-15' },
-  { year: 2015, leagueId: 'e9vf5acwi8fibpbr', endDate: '2016-03-15' },
-  { year: 2014, leagueId: 'm98hlei6hu03syqx', endDate: '2015-03-15' },
-  { year: 2013, leagueId: 'nz40tglehg5m91ml', endDate: '2014-03-15' },
-  { year: 2012, leagueId: 'pxxque8nh42xpxdb', endDate: '2013-03-15' }
-] as const satisfies ReadonlyArray<League>;
+  { year: 2025, endDate: "2026-03-15" },
+  { year: 2024, endDate: "2025-03-15" },
+  { year: 2023, endDate: "2024-03-15" },
+  { year: 2022, endDate: "2023-03-15" },
+  { year: 2021, endDate: "2022-03-15" },
+  { year: 2020, endDate: "2021-03-15" },
+  { year: 2019, endDate: "2020-03-15" },
+  { year: 2018, endDate: "2019-03-15" },
+  { year: 2017, endDate: "2018-03-15" },
+  { year: 2016, endDate: "2017-03-15" },
+  { year: 2015, endDate: "2016-03-15" },
+  { year: 2014, endDate: "2015-03-15" },
+  { year: 2013, endDate: "2014-03-15" },
+  { year: 2012, endDate: "2013-03-15" },
+] as const satisfies ReadonlyArray<LeagueSeason>;
 
 // CSV field mapping constants
 export const CSV = {
@@ -165,5 +165,6 @@ export const DEFAULT_CSV_OUT_DIR = "./csv/temp/";
 // Fantrax URLs for Playwright to use
 export const FANTRAX_URLS = {
   login: "https://www.fantrax.com/login",
-  league: "https://www.fantrax.com/fantasy/league"
+  league: "https://www.fantrax.com/fantasy/league",
+  leagueArchive: "https://www.fantrax.com/fantasy/league/all;view=LEAGUES",
 };

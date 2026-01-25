@@ -137,8 +137,7 @@ export type Team = {
   nameAliases?: string[];
 };
 
-export type League = {
+export type LeagueSeason = {
   year: number;
-  leagueId: string;
   endDate: string;
 };

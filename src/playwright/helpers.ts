@@ -1,12 +1,18 @@
-import { existsSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { createInterface } from "readline";
 import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
 
 import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS, LEAGUES } from "../constants";
-import type { League, Team } from "../types";
+import type { LeagueSeason, Team } from "../types";
 
-export const AUTH_STATE_PATH = "fantrax-auth.json";
+export const FANTRAX_ARTIFACT_DIR = path.resolve("src", "playwright", ".fantrax");
+export const AUTH_STATE_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-auth.json");
+export const LEAGUE_IDS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-leagues.json");
+
+export const ensureFantraxArtifactDir = (): void => {
+  mkdirSync(FANTRAX_ARTIFACT_DIR, { recursive: true });
+};
 
 const waitForEnter = (message = "Press Enter to continue..."): Promise<void> => {
   return new Promise((resolve) => {
@@ -24,12 +30,21 @@ export const requireAuthStateFile = (): void => {
   }
 };
 
+export const requireLeagueIdsFile = (): void => {
+  if (!existsSync(LEAGUE_IDS_PATH)) {
+    throw new Error(
+      `Missing ${LEAGUE_IDS_PATH}. Run the league sync script first (npm run playwright:sync:leagues) to save league IDs.`
+    );
+  }
+};
+
 export const saveAuthStateInteractive = async (context: BrowserContext, page: Page): Promise<void> => {
   await page.goto(FANTRAX_URLS.login, { waitUntil: "domcontentloaded" });
 
   console.info("Login manually in the opened browser.");
   await waitForEnter("When you are done, press Enter to save auth state... ");
 
+  ensureFantraxArtifactDir();
   await context.storageState({ path: AUTH_STATE_PATH });
   console.info(`Saved auth state to ${AUTH_STATE_PATH}`);
 };
@@ -42,6 +57,13 @@ export type ImportLeagueRegularOptions = {
   year: number;
   leagueId: string;
   endDate: string;
+};
+
+type LeagueIdsFile = {
+  schemaVersion: number;
+  leagueName: string;
+  scrapedAt: string;
+  leagueIdsByYear: Record<string, string>;
 };
 
 const parseNumberArg = (argv: string[], key: string): number | undefined => {
@@ -59,8 +81,38 @@ const parseStringArg = (argv: string[], key: string): string | undefined => {
   return raw || undefined;
 };
 
-const resolveLeagueForYear = (leagues: readonly League[], year: number): League | undefined => {
+const resolveLeagueForYear = (leagues: readonly LeagueSeason[], year: number): LeagueSeason | undefined => {
   return leagues.find((l) => l.year === year);
+};
+
+const readLeagueIdsFile = (): LeagueIdsFile => {
+  requireLeagueIdsFile();
+
+  const raw = readFileSync(LEAGUE_IDS_PATH, "utf8");
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid league IDs file: ${LEAGUE_IDS_PATH}`);
+  }
+  return parsed as LeagueIdsFile;
+};
+
+export const resolveLeagueIdForYear = (year: number): string => {
+  const file = readLeagueIdsFile();
+  const id = file.leagueIdsByYear[String(year)];
+  if (id) {
+    return id;
+  }
+
+  const validYears = Object.keys(file.leagueIdsByYear)
+    .map((y) => Number(y))
+    .filter((y) => Number.isFinite(y))
+    .sort((a, b) => b - a)
+    .join(", ");
+
+  throw new Error(
+    `Missing leagueId for year ${year} in ${LEAGUE_IDS_PATH}. Valid years: ${validYears || "(none)"}. ` +
+      `Run npm run playwright:sync:leagues to refresh the mapping.`
+  );
 };
 
 export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueRegularOptions => {
@@ -84,13 +136,15 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
     throw new Error(`Unknown year ${year}. Valid years: ${validYears}`);
   }
 
+  const leagueId = resolveLeagueIdForYear(year);
+
   return {
     headless,
     slowMoMs,
     pauseBetweenMs,
     outDir,
     year,
-    leagueId: league.leagueId,
+    leagueId,
     endDate: league.endDate,
   };
 };

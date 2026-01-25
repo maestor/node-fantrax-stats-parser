@@ -87,9 +87,19 @@ Run:
 npm run playwright:login
 ```
 
-This opens a real browser so you can log in manually, then saves the session to `fantrax-auth.json` (gitignored).
+This opens a real browser so you can log in manually, then saves the session to `src/playwright/.fantrax/fantrax-auth.json` (gitignored).
 
-### 2) Download regular-season roster CSVs
+### 2) Sync league IDs (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:leagues
+```
+
+This writes a local mapping file to `src/playwright/.fantrax/fantrax-leagues.json` (gitignored). This repo does **not** store Fantrax league IDs in source control.
+
+### 3) Download regular-season roster CSVs
 
 Run:
 
@@ -100,7 +110,7 @@ npm run playwright:import:regular -- --year=2025
 Notes:
 
 - Output directory defaults to `./csv/temp/`.
-- The season year must exist in the `LEAGUES` config (see `src/constants.ts`).
+- The season year must exist in the `LEAGUES` config (see `src/constants.ts`) and in your local synced league ID mapping.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 Useful options:
@@ -110,7 +120,7 @@ Useful options:
 - `--pause=500` (sleep between teams; default `250`)
 - `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
 
-### 3) Normalize + move downloaded files into `csv/<teamId>/`
+### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
 
