@@ -717,13 +717,36 @@ export const buildRosterUrlForSeason = (args: {
   return `${FANTRAX_URLS.league}/${leagueId}/team/roster;teamId=${rosterTeamId};timeframeTypeCode=BY_DATE;startDate=${startDate};endDate=${endDate};statsType=3`;
 };
 
+export type RosterCsvKind = "regular" | "playoffs";
+
+export const buildRosterCsvFileName = (args: {
+  teamSlug: string;
+  teamId: string;
+  year: number;
+  kind?: RosterCsvKind;
+}): string => {
+  const label: RosterCsvKind = args.kind ?? "regular";
+  return `${args.teamSlug}-${args.teamId}-${label}-${args.year}-${args.year + 1}.csv`;
+};
+
+export const buildRosterCsvPath = (args: {
+  outDir: string;
+  teamSlug: string;
+  teamId: string;
+  year: number;
+  kind?: RosterCsvKind;
+}): string => {
+  const fileName = buildRosterCsvFileName(args);
+  return path.resolve(args.outDir, fileName);
+};
+
 export const downloadRosterCsv = async (
   page: Page,
   teamSlug: string,
   teamId: string,
   outDir: string,
   year: number,
-  kind?: "regular" | "playoffs"
+  kind?: RosterCsvKind
 ): Promise<string> => {
   // With statsType=3 in the URL this should already be set, but keep this as a best-effort
   // compatibility step in case Fantrax ignores the param for some leagues.
@@ -743,9 +766,7 @@ export const downloadRosterCsv = async (
   await downloadButton.click();
   const download = await downloadPromise;
 
-  const label = kind ?? "regular";
-  const fileName = `${teamSlug}-${teamId}-${label}-${year}-${year + 1}.csv`;
-  const filePath = path.resolve(outDir, fileName);
+  const filePath = buildRosterCsvPath({ outDir, teamSlug, teamId, year, kind });
   await download.saveAs(filePath);
 
   return filePath;

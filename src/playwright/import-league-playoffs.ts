@@ -6,6 +6,8 @@ import { DEFAULT_CSV_OUT_DIR } from "../constants";
 
 import {
   AUTH_STATE_PATH,
+  buildRosterCsvFileName,
+  buildRosterCsvPath,
   buildRosterUrlForSeason,
   downloadRosterCsv,
   FANTRAX_ARTIFACT_DIR,
@@ -140,7 +142,26 @@ const main = async (): Promise<void> => {
     const page = await context.newPage();
     page.setDefaultTimeout(30_000);
 
+    let downloaded = 0;
     for (const team of options.teams) {
+      const fileName = buildRosterCsvFileName({
+        teamSlug: team.name,
+        teamId: team.id,
+        year: options.year,
+        kind: "playoffs",
+      });
+      const outPath = buildRosterCsvPath({
+        outDir: options.outDir,
+        teamSlug: team.name,
+        teamId: team.id,
+        year: options.year,
+        kind: "playoffs",
+      });
+      if (existsSync(outPath)) {
+        console.info(`[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`);
+        continue;
+      }
+
       const rosterUrl = buildRosterUrlForSeason({
         leagueId: options.leagueId,
         rosterTeamId: team.rosterTeamId,
@@ -153,13 +174,14 @@ const main = async (): Promise<void> => {
 
       const savedTo = await downloadRosterCsv(page, team.name, team.id, options.outDir, options.year, "playoffs");
       console.info(`[${team.name}] saved ${savedTo}`);
+      downloaded++;
 
       if (options.pauseBetweenMs > 0) {
         await sleep(options.pauseBetweenMs);
       }
     }
 
-    console.info(`Done. Downloaded ${options.teams.length} playoffs CSV files.`);
+    console.info(`Done. Downloaded ${downloaded} playoffs CSV file(s).`);
   } finally {
     await browser.close();
   }
