@@ -2,13 +2,22 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
-    "lib": ["esnext"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "outDir": "./lib",
     "strict": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["./src/**/*"],
-  "exclude": ["./node_modules", "./src/**/*.test.ts", "./src/__tests__"]
+  "include": [
+    "./src/**/*"
+  ],
+  "exclude": [
+    "./node_modules",
+    "./src/**/*.test.ts",
+    "./src/__tests__"
+  ]
 }

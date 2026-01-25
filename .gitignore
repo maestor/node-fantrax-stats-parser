@@ -4,3 +4,5 @@ lib
 coverage/
 *.lcov
 csv/temp/
+# Local-only Fantrax Playwright artifacts
+src/playwright/.fantrax/

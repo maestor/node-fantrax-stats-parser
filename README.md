@@ -61,6 +61,132 @@ npm run verify:coverage
 
 That command runs lint, TypeScript build, and Jest with the enforced global coverage thresholds. The workflow definition is in `.github/workflows/ci.yml`.
 
+## Import Fantrax data
+
+This repo includes a small, local-only Playwright-based importer that:
+
+- logs into Fantrax once and saves a reusable auth state file
+- downloads each team’s roster stats CSV into `csv/temp/` (regular season and playoffs via separate scripts)
+
+It’s intended to be run locally (not in CI / not in production).
+
+### Prerequisites
+
+- `npm install`
+- Install Playwright’s Chromium browser binaries (first time only):
+
+```
+npx playwright install chromium
+```
+
+### 1) Login (saves auth state)
+
+Run:
+
+```
+npm run playwright:login
+```
+
+This opens a real browser so you can log in manually, then saves the session to `src/playwright/.fantrax/fantrax-auth.json` (gitignored).
+
+### 2) Sync league IDs (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:leagues
+```
+
+This scrapes your Fantrax league archive + each season’s Rules page and writes a local mapping file to `src/playwright/.fantrax/fantrax-leagues.json` (gitignored).
+
+The mapping includes:
+
+- `leagueId` per season
+- `regularStartDate` / `regularEndDate`
+- `playoffsStartDate` / `playoffsEndDate`
+
+This repo does **not** store Fantrax league IDs (or scraped dates) in source control.
+
+Optional:
+
+- `--league="Finnish Fantasy Hockey League"` to select the exact league name from the archive if your account has multiple leagues.
+
+### 2b) Sync playoffs teams (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:playoffs
+```
+
+This opens each season’s Fantrax Playoffs bracket page and writes a local mapping file to `src/playwright/.fantrax/fantrax-playoffs.json` (gitignored).
+
+The mapping includes, per season year:
+
+- which `TEAMS` entries made playoffs (must be 16 teams)
+- each playoff team’s `startDate` and `endDate` for their playoff run
+
+If the script can’t determine exactly 16 playoff teams for a season (or can’t parse the bracket periods), it will skip that season and print a `Manual needed:` message.
+
+Useful options:
+
+- `--year=2024` (only sync a single season)
+- `--timeout=120000` (increase timeouts for slow Fantrax page loads)
+- `--debug` (prints bracket hint lines when parsing fails)
+
+### 3) Download regular-season roster CSVs
+
+Run:
+
+```
+npm run playwright:import:regular -- --year=2025
+```
+
+Notes:
+
+- Output directory defaults to `./csv/temp/`.
+- The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
+- Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
+
+The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
+
+Useful options:
+
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--pause=500` (sleep between teams; default `250`)
+- `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
+
+### 3b) Download playoffs roster CSVs
+
+Run:
+
+```
+npm run playwright:import:playoffs -- --year=2025
+```
+
+Notes:
+
+- Requires the playoffs mapping file from step 2b (`fantrax-playoffs.json`).
+- Output directory defaults to `./csv/temp/`.
+- Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
+
+Useful options:
+
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--pause=500` (sleep between teams; default `250`)
+- `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
+
+### 4) Normalize + move downloaded files into `csv/<teamId>/`
+
+The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
+
+```
+./scripts/import-temp-csv.sh --dry-run
+./scripts/import-temp-csv.sh
+```
+
 ## Fantrax CSV handling
 
 Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
@@ -244,9 +370,14 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
-## Todo
+## Future roadmap
 
-- Start using database and CSV import tool
-- Find out if Fantrax offers some API to get needed data easily instead of CSV export
+- Pre-load / cache available CSV metadata (teams/seasons) to reduce filesystem work per request
+- Improve API docs/contract (e.g. publish an OpenAPI spec)
+- Add lightweight response caching for stable endpoints
+- Standardize request validation + error response shape
+- Add data integrity checks for imported CSVs (detect format changes early)
+- Store API data in a database (reduce reliance on CSV files at runtime)
+- Investigate whether Fantrax offers an API to replace manual CSV exports
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

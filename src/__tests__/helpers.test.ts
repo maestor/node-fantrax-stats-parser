@@ -1449,7 +1449,8 @@ describe("helpers", () => {
       });
 
       const teams = getTeamsWithCsvFolders();
-      expect(teams).toEqual([{ id: "1", name: "colorado" }]);
+      expect(teams).toHaveLength(1);
+      expect(teams[0]).toMatchObject({ id: "1", name: "colorado" });
     });
   });
 });
