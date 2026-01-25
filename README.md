@@ -66,7 +66,7 @@ That command runs lint, TypeScript build, and Jest with the enforced global cove
 This repo includes a small, local-only Playwright-based importer that:
 
 - logs into Fantrax once and saves a reusable auth state file
-- downloads each team’s **regular season** roster stats CSV into `csv/temp/`
+- downloads each team’s roster stats CSV into `csv/temp/` (regular season and playoffs via separate scripts)
 
 It’s intended to be run locally (not in CI / not in production).
 
@@ -149,6 +149,27 @@ Notes:
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
+
+Useful options:
+
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--pause=500` (sleep between teams; default `250`)
+- `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
+
+### 3b) Download playoffs roster CSVs
+
+Run:
+
+```
+npm run playwright:import:playoffs -- --year=2025
+```
+
+Notes:
+
+- Requires the playoffs mapping file from step 2b (`fantrax-playoffs.json`).
+- Output directory defaults to `./csv/temp/`.
+- Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
 
@@ -351,7 +372,6 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 ## Future roadmap
 
-- Add Playwright import for playoffs CSVs (in addition to regular season)
 - Pre-load / cache available CSV metadata (teams/seasons) to reduce filesystem work per request
 - Improve API docs/contract (e.g. publish an OpenAPI spec)
 - Add lightweight response caching for stable endpoints

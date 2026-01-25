@@ -8,14 +8,19 @@ import {
   ensureFantraxArtifactDir,
   extractRoundWindowsFromText,
   FANTRAX_ARTIFACT_DIR,
+  getRosterTeamIdFromStandingsByNames,
   gotoPlayoffsStandings,
+  gotoStandings,
   hasFlag,
   installRequestBlocking,
   LEAGUE_IDS_PATH,
+  normalizeSpacesLower,
   parseNumberArg,
   requireAuthStateFile,
   requireLeagueIdsFile,
   scrapePlayoffsPeriodsFromStandingsTables,
+  standingsNameCandidates,
+  tryGetRosterTeamIdFromStandingsLink,
 } from "./helpers";
 import type { Team } from "../types";
 import { TEAMS } from "../constants";
@@ -45,6 +50,7 @@ type LeagueIdsFileV2 = {
 type PlayoffsTeamRun = Team & {
   startDate: string;
   endDate: string;
+  rosterTeamId: string;
 };
 
 type PlayoffsSeason = {
@@ -54,7 +60,7 @@ type PlayoffsSeason = {
 };
 
 type PlayoffsFile = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   leagueName: string;
   scrapedAt: string;
   seasons: PlayoffsSeason[];
@@ -87,13 +93,67 @@ const readExistingPlayoffsFile = (): PlayoffsFile | null => {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
 
-    const file = parsed as Partial<PlayoffsFile>;
-    if (file.schemaVersion !== 1 || !Array.isArray(file.seasons)) return null;
+    // We only keep schemaVersion 2 (rosterTeamId is required for import-league-playoffs).
+    const file = parsed as { schemaVersion?: number; seasons?: unknown };
+    if (file.schemaVersion !== 2 || !Array.isArray(file.seasons)) return null;
 
     return parsed as PlayoffsFile;
   } catch {
     return null;
   }
+};
+
+const ensureRosterTeamIds = async (args: {
+  page: import("playwright").Page;
+  leagueId: string;
+  teams: Array<Omit<PlayoffsTeamRun, "rosterTeamId"> & Partial<Pick<PlayoffsTeamRun, "rosterTeamId">>>;
+  rosterTeamIdByTeamName?: Record<string, string>;
+}): Promise<PlayoffsTeamRun[]> => {
+  const byName = args.rosterTeamIdByTeamName ?? {};
+
+  const enriched: PlayoffsTeamRun[] = args.teams.map((t) => {
+    const fromMap = byName[normalizeSpacesLower(t.presentName)];
+    const rosterTeamId = t.rosterTeamId?.trim() || fromMap || "";
+    return { ...(t as Team), startDate: t.startDate, endDate: t.endDate, rosterTeamId };
+  });
+
+  const missing = enriched.filter((t) => !t.rosterTeamId);
+  if (!missing.length) return enriched;
+
+  await gotoStandings(args.page, args.leagueId);
+
+  const stillMissing: PlayoffsTeamRun[] = [];
+  for (const team of enriched) {
+    if (team.rosterTeamId) continue;
+
+    const names = standingsNameCandidates(team);
+    let rosterTeamId: string | null = null;
+    for (const displayName of names) {
+      rosterTeamId = await tryGetRosterTeamIdFromStandingsLink(args.page, displayName);
+      if (rosterTeamId) break;
+    }
+
+    if (!rosterTeamId) {
+      // Fallback: click-through parsing (slow, but reliable).
+      await gotoStandings(args.page, args.leagueId);
+      rosterTeamId = await getRosterTeamIdFromStandingsByNames(args.page, names);
+      await gotoStandings(args.page, args.leagueId);
+    }
+
+    if (!rosterTeamId) {
+      stillMissing.push(team);
+      continue;
+    }
+
+    team.rosterTeamId = rosterTeamId;
+  }
+
+  if (stillMissing.length) {
+    const names = stillMissing.map((t) => t.presentName).join(", ");
+    throw new Error(`Missing roster teamId for: ${names}`);
+  }
+
+  return enriched;
 };
 
 async function main(): Promise<void> {
@@ -142,7 +202,8 @@ async function main(): Promise<void> {
 
       try {
         if (season.year === 2018) {
-          const teams = computeManual2018PlayoffsTeamRuns(TEAMS) as PlayoffsTeamRun[];
+          const base = computeManual2018PlayoffsTeamRuns(TEAMS) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">>;
+          const teams = await ensureRosterTeamIds({ page, leagueId: season.leagueId, teams: base });
           seasonByYear.set(season.year, {
             year: season.year,
             leagueId: season.leagueId,
@@ -155,14 +216,24 @@ async function main(): Promise<void> {
         await gotoPlayoffsStandings(page, season.leagueId, timeoutMs);
 
         // Preferred: derive winners per round from the per-period playoffs standings tables.
-        const { periods, teamsByPeriod } = await scrapePlayoffsPeriodsFromStandingsTables(page);
+        const { periods, teamsByPeriod, rosterTeamIdByTeamName } = await scrapePlayoffsPeriodsFromStandingsTables(page);
         const expectedRoundTeamCounts = season.year === 2019 ? [16, 8] : [16, 8, 4, 2];
-        let teams = computePlayoffTeamRunsFromPlayoffsPeriods({
+        let baseTeams = computePlayoffTeamRunsFromPlayoffsPeriods({
           periods,
           teamsByPeriod,
           expectedRoundTeamCounts,
           allTeams: TEAMS,
-        }) as PlayoffsTeamRun[] | null;
+        }) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">> | null;
+
+        let teams: PlayoffsTeamRun[] | null = null;
+        if (baseTeams) {
+          teams = await ensureRosterTeamIds({
+            page,
+            leagueId: season.leagueId,
+            teams: baseTeams,
+            rosterTeamIdByTeamName,
+          });
+        }
 
         // Fallback: try the older bracket-text heuristic if needed.
         if (!teams) {
@@ -190,13 +261,22 @@ async function main(): Promise<void> {
             continue;
           }
 
-          teams = computePlayoffTeamRunsFromBracketText({
+          baseTeams = computePlayoffTeamRunsFromBracketText({
             bracketText,
             rounds,
             fallbackStartDate: season.periods.playoffsStartDate,
             fallbackEndDate: season.periods.playoffsEndDate,
             allTeams: TEAMS,
-          }) as PlayoffsTeamRun[] | null;
+          }) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">> | null;
+
+          if (baseTeams) {
+            teams = await ensureRosterTeamIds({
+              page,
+              leagueId: season.leagueId,
+              teams: baseTeams,
+              rosterTeamIdByTeamName,
+            });
+          }
         }
 
         const uniqueTeams = teams?.length ?? 0;
@@ -219,7 +299,7 @@ async function main(): Promise<void> {
     }
 
     const file: PlayoffsFile = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       leagueName: leagues.leagueName,
       scrapedAt: new Date().toISOString(),
       seasons: [...seasonByYear.values()].sort((a, b) => a.year - b.year),

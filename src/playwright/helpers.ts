@@ -113,23 +113,23 @@ export const parseStringArg = (argv: string[], key: string): string | undefined 
 
 export const hasFlag = (argv: string[], key: string): boolean => argv.includes(key);
 
+const MONTH_ABBR_TO_NUMBER: Record<string, string> = {
+  Jan: "01",
+  Feb: "02",
+  Mar: "03",
+  Apr: "04",
+  May: "05",
+  Jun: "06",
+  Jul: "07",
+  Aug: "08",
+  Sep: "09",
+  Oct: "10",
+  Nov: "11",
+  Dec: "12",
+};
+
 export const parseFantraxDateToISO = (raw: string): string => {
   const s = raw.replace(/\s+/g, " ").trim();
-
-  const monthMap: Record<string, string> = {
-    Jan: "01",
-    Feb: "02",
-    Mar: "03",
-    Apr: "04",
-    May: "05",
-    Jun: "06",
-    Jul: "07",
-    Aug: "08",
-    Sep: "09",
-    Oct: "10",
-    Nov: "11",
-    Dec: "12",
-  };
 
   // Examples:
   // - "Fri Oct 04, 2024"
@@ -137,7 +137,7 @@ export const parseFantraxDateToISO = (raw: string): string => {
   // - "Oct 4, 2024"
   let m = /^(?:[A-Za-z]{3}\s+)?([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4})$/.exec(s);
   if (m) {
-    const month = monthMap[m[1]];
+    const month = MONTH_ABBR_TO_NUMBER[m[1]];
     if (!month) throw new Error(`Unsupported month in date: ${raw}`);
     const day = String(Number(m[2])).padStart(2, "0");
     const year = m[3];
@@ -147,7 +147,7 @@ export const parseFantraxDateToISO = (raw: string): string => {
   // Example: "Mar 17/25" (from playoffs period summary)
   m = /^([A-Za-z]{3})\s+(\d{1,2})\/(\d{2})$/.exec(s);
   if (m) {
-    const month = monthMap[m[1]];
+    const month = MONTH_ABBR_TO_NUMBER[m[1]];
     if (!month) throw new Error(`Unsupported month in date: ${raw}`);
     const day = String(Number(m[2])).padStart(2, "0");
     const yy = Number(m[3]);
@@ -196,7 +196,11 @@ export const parseFantraxDateRangeToIso = (s: string): { startDate: string; endD
 
 export const scrapePlayoffsPeriodsFromStandingsTables = async (
   page: Page
-): Promise<{ periods: Array<RoundWindow & { periodNumber: number }>; teamsByPeriod: string[][] }> => {
+): Promise<{
+  periods: Array<RoundWindow & { periodNumber: number }>;
+  teamsByPeriod: string[][];
+  rosterTeamIdByTeamName: Record<string, string>;
+}> => {
   // Fantrax renders multiple standings tables:
   // "Scoring Period: Playoffs 1" (16 teams)
   // "Scoring Period: Playoffs 2" (8 teams)
@@ -204,6 +208,7 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
   // "Scoring Period: Playoffs 4" (2 teams)
   const playoffHeaders = page.locator("h4").filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i });
   const n = await playoffHeaders.count();
+  const rosterTeamIdByTeamName: Record<string, string> = {};
   const found: Array<{ periodNumber: number; label: string; startDate: string; endDate: string; teams: string[] }> = [];
 
   for (let i = 0; i < n; i++) {
@@ -221,8 +226,31 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
     const parsedRange = parseFantraxDateRangeToIso(dateText);
     if (!parsedRange) continue;
 
-    const teamTexts = await wrapper.locator("aside a").allInnerTexts();
-    const teams = teamTexts.map(normalizeSpaces).filter(Boolean);
+    const teamLinks = wrapper.locator("aside a");
+    const linkCount = await teamLinks.count();
+    const teams: string[] = [];
+
+    for (let j = 0; j < linkCount; j++) {
+      const link = teamLinks.nth(j);
+      const name = normalizeSpaces(await link.innerText().catch(() => ""));
+      if (!name) continue;
+      teams.push(name);
+
+      const key = normalizeSpacesLower(name);
+      if (!rosterTeamIdByTeamName[key]) {
+        const href = await link.getAttribute("href").catch(() => null);
+        const rosterTeamId = href ? extractTeamIdFromUrlish(href) : null;
+        if (rosterTeamId) {
+          rosterTeamIdByTeamName[key] = rosterTeamId;
+        }
+      }
+    }
+
+    // Backward compatibility fallback in case the above loop fails for any reason.
+    if (!teams.length) {
+      const teamTexts = await wrapper.locator("aside a").allInnerTexts();
+      teams.push(...teamTexts.map(normalizeSpaces).filter(Boolean));
+    }
     if (!teams.length) continue;
 
     found.push({
@@ -238,6 +266,7 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
   return {
     periods: found.map(({ periodNumber, label, startDate, endDate }) => ({ periodNumber, label, startDate, endDate })),
     teamsByPeriod: found.map((f) => f.teams),
+    rosterTeamIdByTeamName,
   };
 };
 
@@ -310,22 +339,7 @@ const parseMonthDayToIso = (token: string, year: number): string | null => {
   const m = /^([A-Za-z]{3})\s+(\d{1,2})$/.exec(s);
   if (!m) return null;
 
-  const monthMap: Record<string, string> = {
-    Jan: "01",
-    Feb: "02",
-    Mar: "03",
-    Apr: "04",
-    May: "05",
-    Jun: "06",
-    Jul: "07",
-    Aug: "08",
-    Sep: "09",
-    Oct: "10",
-    Nov: "11",
-    Dec: "12",
-  };
-
-  const month = monthMap[m[1]];
+  const month = MONTH_ABBR_TO_NUMBER[m[1]];
   if (!month) return null;
 
   const day = String(Number(m[2])).padStart(2, "0");
@@ -593,11 +607,11 @@ export const gotoStandings = async (page: Page, leagueId: string): Promise<void>
   await page.locator("div.league-standings-table").waitFor({ state: "visible", timeout: 30_000 });
 };
 
-export const extractTeamIdFromUrlish = (urlish: string): string | null => {
+export function extractTeamIdFromUrlish(urlish: string): string | null {
   const s = decodeURIComponent(urlish);
   const match = /(?:^|[;?&])teamId=([^;?&]+)/.exec(s);
   return match?.[1] ?? null;
-};
+}
 
 export const standingsNameCandidates = ({ presentName, nameAliases }: Team): string[] => {
   const unique = new Set<string>();
@@ -708,7 +722,8 @@ export const downloadRosterCsv = async (
   teamSlug: string,
   teamId: string,
   outDir: string,
-  year: number
+  year: number,
+  kind?: "regular" | "playoffs"
 ): Promise<string> => {
   // With statsType=3 in the URL this should already be set, but keep this as a best-effort
   // compatibility step in case Fantrax ignores the param for some leagues.
@@ -728,7 +743,8 @@ export const downloadRosterCsv = async (
   await downloadButton.click();
   const download = await downloadPromise;
 
-  const fileName = `${teamSlug}-${teamId}-regular-${year}-${year + 1}.csv`;
+  const label = kind ?? "regular";
+  const fileName = `${teamSlug}-${teamId}-${label}-${year}-${year + 1}.csv`;
   const filePath = path.resolve(outDir, fileName);
   await download.saveAs(filePath);
 
