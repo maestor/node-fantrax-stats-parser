@@ -61,6 +61,64 @@ npm run verify:coverage
 
 That command runs lint, TypeScript build, and Jest with the enforced global coverage thresholds. The workflow definition is in `.github/workflows/ci.yml`.
 
+## Import Fantrax data
+
+This repo includes a small, local-only Playwright-based importer that:
+
+- logs into Fantrax once and saves a reusable auth state file
+- downloads each team’s **regular season** roster stats CSV into `csv/temp/`
+
+It’s intended to be run locally (not in CI / not in production).
+
+### Prerequisites
+
+- `npm install`
+- Install Playwright’s Chromium browser binaries (first time only):
+
+```
+npx playwright install chromium
+```
+
+### 1) Login (saves auth state)
+
+Run:
+
+```
+npm run playwright:login
+```
+
+This opens a real browser so you can log in manually, then saves the session to `fantrax-auth.json` (gitignored).
+
+### 2) Download regular-season roster CSVs
+
+Run:
+
+```
+npm run playwright:import:regular -- --year=2025
+```
+
+Notes:
+
+- Output directory defaults to `./csv/temp/`.
+- The season year must exist in the `LEAGUES` config (see `src/constants.ts`).
+- Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
+
+Useful options:
+
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--pause=500` (sleep between teams; default `250`)
+- `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
+
+### 3) Normalize + move downloaded files into `csv/<teamId>/`
+
+The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
+
+```
+./scripts/import-temp-csv.sh --dry-run
+./scripts/import-temp-csv.sh
+```
+
 ## Fantrax CSV handling
 
 Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
@@ -244,9 +302,15 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
 
-## Todo
+## Future roadmap
 
-- Start using database and CSV import tool
-- Find out if Fantrax offers some API to get needed data easily instead of CSV export
+- Add Playwright import for playoffs CSVs (in addition to regular season)
+- Pre-load / cache available CSV metadata (teams/seasons) to reduce filesystem work per request
+- Improve API docs/contract (e.g. publish an OpenAPI spec)
+- Add lightweight response caching for stable endpoints
+- Standardize request validation + error response shape
+- Add data integrity checks for imported CSVs (detect format changes early)
+- Store API data in a database (reduce reliance on CSV files at runtime)
+- Investigate whether Fantrax offers an API to replace manual CSV exports
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

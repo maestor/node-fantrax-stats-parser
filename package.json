@@ -18,6 +18,8 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "lint:check": "eslint src/**/*.ts --max-warnings 0",
+    "playwright:login": "tsx src/playwright/login.ts",
+    "playwright:import:regular": "tsx src/playwright/import-league-regular.ts",
     "start": "npm run build && node lib/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -29,7 +31,8 @@
     "csvtojson": "^2.0.14",
     "micro": "^10.0.1",
     "micro-cors": "^0.1.1",
-    "microrouter": "^3.1.3"
+    "microrouter": "^3.1.3",
+    "playwright": "^1.58.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
@@ -42,11 +45,12 @@
     "eslint": "^9.39.2",
     "globals": "^16.5.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.9",
     "node-mocks-http": "^1.17.2",
+    "nodemon": "^3.1.9",
     "prettier": "^3.7.4",
     "rimraf": "^6.1.2",
     "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"
   }

@@ -29,6 +29,13 @@ export default [
     },
   },
   {
+    files: ['src/playwright/**/*.ts'],
+    rules: {
+      // Playwright scripts are CLI utilities; allow structured console output.
+      'no-console': ['error', { allow: ['info', 'error'] }],
+    },
+  },
+  {
     files: ['**/*.js'],
     ...tseslint.configs.disableTypeChecked,
   },

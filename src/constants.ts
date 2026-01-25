@@ -4,6 +4,8 @@ import {
   GoalieScoreField,
   PlayerScoreWeights,
   GoalieScoreWeights,
+  Team,
+  League,
 } from "./types";
 
 export const START_SEASON = 2012;
@@ -27,41 +29,56 @@ export const ERROR_MESSAGES = {
 export const DEFAULT_TEAM_ID = "1";
 
 export const TEAMS = [
-  { id: "1", name: "colorado" },
-  { id: "2", name: "carolina" },
-  { id: "3", name: "calgary" },
-  { id: "4", name: "vancouver" },
-  { id: "5", name: "montreal" },
-  { id: "6", name: "detroit" },
-  { id: "7", name: "edmonton" },
-  { id: "8", name: "sanjose" },
-  { id: "9", name: "nyrangers" },
-  { id: "10", name: "nashville" },
-  { id: "11", name: "losangeles" },
-  { id: "12", name: "anaheim" },
-  { id: "13", name: "chicago" },
-  { id: "14", name: "minnesota" },
-  { id: "15", name: "stlouis" },
-  { id: "16", name: "tampabay" },
-  { id: "17", name: "florida" },
-  { id: "18", name: "boston" },
-  { id: "19", name: "toronto" },
-  { id: "20", name: "ottawa" },
-  { id: "21", name: "buffalo" },
-  { id: "22", name: "philadelphia" },
-  { id: "23", name: "nyislanders" },
-  { id: "24", name: "newjersey" },
-  { id: "25", name: "washington" },
-  { id: "26", name: "pittsburgh" },
-  { id: "27", name: "columbus" },
-  { id: "28", name: "seattle" },
-  { id: "29", name: "dallas" },
-  { id: "30", name: "winnipeg" },
-  { id: "31", name: "utah" },
-  { id: "32", name: "vegas" },
-] as const;
+  { id: "1", name: "colorado", presentName: "Colorado Avalanche" },
+  { id: "2", name: "carolina", presentName: "Carolina Hurricanes" },
+  { id: "3", name: "calgary", presentName: "Calgary Flames" },
+  { id: "4", name: "vancouver", presentName: "Vancouver Canucks" },
+  { id: "5", name: "montreal", presentName: "Montreal Canadiens" },
+  { id: "6", name: "detroit", presentName: "Detroit Red Wings" },
+  { id: "7", name: "edmonton", presentName: "Edmonton Oilers" },
+  { id: "8", name: "sanjose", presentName: "San Jose Sharks" },
+  { id: "9", name: "nyrangers", presentName: "New York Rangers" },
+  { id: "10", name: "nashville", presentName: "Nashville Predators" },
+  { id: "11", name: "losangeles", presentName: "Los Angeles Kings" },
+  { id: "12", name: "anaheim", presentName: "Anaheim Ducks" },
+  { id: "13", name: "chicago", presentName: "Chicago Blackhawks" },
+  { id: "14", name: "minnesota", presentName: "Minnesota Wild" },
+  { id: "15", name: "stlouis", presentName: "St. Louis Blues" },
+  { id: "16", name: "tampabay", presentName: "Tampa Bay Lightning" },
+  { id: "17", name: "florida", presentName: "Florida Panthers" },
+  { id: "18", name: "boston", presentName: "Boston Bruins" },
+  { id: "19", name: "toronto", presentName: "Toronto Maple Leafs" },
+  { id: "20", name: "ottawa", presentName: "Ottawa Senators" },
+  { id: "21", name: "buffalo", presentName: "Buffalo Sabres" },
+  { id: "22", name: "philadelphia", presentName: "Philadelphia Flyers" },
+  { id: "23", name: "nyislanders", presentName: "New York Islanders" },
+  { id: "24", name: "newjersey", presentName: "New Jersey Devils" },
+  { id: "25", name: "washington", presentName: "Washington Capitals" },
+  { id: "26", name: "pittsburgh", presentName: "Pittsburgh Penguins" },
+  { id: "27", name: "columbus", presentName: "Columbus Blue Jackets" },
+  { id: "28", name: "seattle", presentName: "Seattle Kraken" },
+  { id: "29", name: "dallas", presentName: "Dallas Stars" },
+  { id: "30", name: "winnipeg", presentName: "Winnipeg Jets" },
+  { id: "31", name: "utah", presentName: "Utah Mammoth", nameAliases: ['Utah Hockey Club', 'Arizona Coyotes', 'Phoenix Coyotes', 'Arizona', 'Phoenix'] },
+  { id: "32", name: "vegas", presentName: "Vegas Golden Knights" },
+] as const satisfies ReadonlyArray<Team>;
 
-export type Team = (typeof TEAMS)[number];
+export const LEAGUES = [
+  { year: 2025, leagueId: 'chfvdwbkm9rcyptz', endDate: '2026-03-15' },
+  { year: 2024, leagueId: '1be0m8nrlv96mnwm', endDate: '2025-03-15' },
+  { year: 2023, leagueId: 'osmkterulghuwuyg', endDate: '2024-03-15' },
+  { year: 2022, leagueId: 'gih59dwsl2oo5idn', endDate: '2023-03-15' },
+  { year: 2021, leagueId: '6h44uqipkowkvqvg', endDate: '2022-03-15' },
+  { year: 2020, leagueId: '6rejkjjqkarzuppq', endDate: '2021-03-15' },
+  { year: 2019, leagueId: 'yb9c3hzwju76v73i', endDate: '2020-03-15' },
+  { year: 2018, leagueId: 'hn2ax413jfrw4nvr', endDate: '2019-03-15' },
+  { year: 2017, leagueId: '5no86xltj1dkhx1n', endDate: '2018-03-15' },
+  { year: 2016, leagueId: 'cke58odbimwedytt', endDate: '2017-03-15' },
+  { year: 2015, leagueId: 'e9vf5acwi8fibpbr', endDate: '2016-03-15' },
+  { year: 2014, leagueId: 'm98hlei6hu03syqx', endDate: '2015-03-15' },
+  { year: 2013, leagueId: 'nz40tglehg5m91ml', endDate: '2014-03-15' },
+  { year: 2012, leagueId: 'pxxque8nh42xpxdb', endDate: '2013-03-15' }
+] as const satisfies ReadonlyArray<League>;
 
 // CSV field mapping constants
 export const CSV = {
@@ -141,3 +158,12 @@ export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850
 
 // Minimum games required for games-adjusted scoring (players and goalies)
 export const MIN_GAMES_FOR_ADJUSTED_SCORE = 1;
+
+// Default CSV directory for Playwright imports
+export const DEFAULT_CSV_OUT_DIR = "./csv/temp/";
+
+// Fantrax URLs for Playwright to use
+export const FANTRAX_URLS = {
+  login: "https://www.fantrax.com/login",
+  league: "https://www.fantrax.com/fantasy/league"
+};

@@ -129,3 +129,16 @@ export type QueryParams = {
   sortBy?: PlayerFields | GoalieFields;
   season?: number;
 };
+
+export type Team = {
+  id: string;
+  name: string;
+  presentName: string;
+  nameAliases?: string[];
+};
+
+export type League = {
+  year: number;
+  leagueId: string;
+  endDate: string;
+};
