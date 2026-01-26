@@ -127,6 +127,7 @@ export type Report = "regular" | "playoffs";
 export type QueryParams = {
   reportType: Report;
   season?: number;
+  startFrom?: number;
 };
 
 export type Team = {

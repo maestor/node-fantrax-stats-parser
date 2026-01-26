@@ -106,13 +106,14 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const reportRaw = (req as unknown as { params?: { reportType?: unknown } }).params?.reportType;
   const report = (typeof reportRaw === "string" ? reportRaw : "regular") as Report;
+  const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
   if (!reportTypeAvailable(report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getAvailableSeasons(teamId, report));
+  await withErrorHandlingCached(req, res, () => getAvailableSeasons(teamId, report, startFrom));
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
@@ -136,13 +137,14 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
+  const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
   if (!reportTypeAvailable(report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, teamId));
+  await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, teamId, startFrom));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
@@ -166,11 +168,12 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
+  const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
   if (!reportTypeAvailable(report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId));
+  await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId, startFrom));
 };

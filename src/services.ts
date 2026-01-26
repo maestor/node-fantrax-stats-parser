@@ -65,8 +65,17 @@ const getRawDataFromFiles = async (
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
-  reportType: Report = "regular"
-) => mapAvailableSeasons(availableSeasons(teamId, reportType));
+  reportType: Report = "regular",
+  startFrom?: number
+) => {
+  let seasons = availableSeasons(teamId, reportType);
+
+  if (startFrom !== undefined) {
+    seasons = seasons.filter((season) => season >= startFrom);
+  }
+
+  return mapAvailableSeasons(seasons);
+};
 
 export const getPlayersStatsSeason = async (
   report: Report,
@@ -94,9 +103,15 @@ const getCombinedStats = async (
   report: Report,
   mapper: (data: RawData[]) => Player[] | Goalie[],
   kind: "players" | "goalies",
-  teamId: string = DEFAULT_TEAM_ID
+  teamId: string = DEFAULT_TEAM_ID,
+  startFrom?: number
 ) => {
-  const seasons = availableSeasons(teamId, report);
+  let seasons = availableSeasons(teamId, report);
+
+  if (startFrom !== undefined) {
+    seasons = seasons.filter((season) => season >= startFrom);
+  }
+
   const rawData = await getRawDataFromFiles(teamId, report, seasons);
   const mappedData = mapper(rawData);
   const scoredData =
@@ -108,10 +123,12 @@ const getCombinedStats = async (
 
 export const getPlayersStatsCombined = async (
   report: Report,
-  teamId: string = DEFAULT_TEAM_ID
-) => getCombinedStats(report, mapCombinedPlayerData, "players", teamId);
+  teamId: string = DEFAULT_TEAM_ID,
+  startFrom?: number
+) => getCombinedStats(report, mapCombinedPlayerData, "players", teamId, startFrom);
 
 export const getGoaliesStatsCombined = async (
   report: Report,
-  teamId: string = DEFAULT_TEAM_ID
-) => getCombinedStats(report, mapCombinedGoalieData, "goalies", teamId);
+  teamId: string = DEFAULT_TEAM_ID,
+  startFrom?: number
+) => getCombinedStats(report, mapCombinedGoalieData, "goalies", teamId, startFrom);

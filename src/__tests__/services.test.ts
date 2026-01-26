@@ -52,6 +52,45 @@ describe("services", () => {
       expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
       expect(result).toEqual(mockSeasons);
     });
+
+    test("filters seasons when startFrom is provided", async () => {
+      const mockSeasons = [{ season: 2020, text: "2020-2021" }];
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2020]);
+      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
+
+      const result = await getAvailableSeasons("1", "regular", 2020);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(mapAvailableSeasons).toHaveBeenCalledWith([2020]);
+      expect(result).toEqual(mockSeasons);
+    });
+
+    test("returns all seasons when startFrom is undefined", async () => {
+      const mockSeasons = [
+        { season: 2012, text: "2012-2013" },
+        { season: 2013, text: "2013-2014" },
+      ];
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
+      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
+
+      const result = await getAvailableSeasons("1", "regular", undefined);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
+      expect(result).toEqual(mockSeasons);
+    });
+
+    test("returns empty array when startFrom is after all available seasons", async () => {
+      const mockSeasons = [];
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
+      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
+
+      const result = await getAvailableSeasons("1", "regular", 2025);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(mapAvailableSeasons).toHaveBeenCalledWith([]);
+      expect(result).toEqual(mockSeasons);
+    });
   });
 
   describe("getPlayersStatsSeason", () => {
@@ -195,6 +234,36 @@ describe("services", () => {
       expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayer], "players");
       expect(result).toEqual([mockPlayer]);
     });
+
+    test("filters seasons when startFrom is provided", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014, 2020]);
+
+      const result = await getPlayersStatsCombined("regular", "1", 2020);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(1);
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("regular-2020-2021.csv"));
+      expect(result).toEqual([mockPlayer]);
+    });
+
+    test("returns all seasons when startFrom is undefined", async () => {
+      const result = await getPlayersStatsCombined("regular", "1", undefined);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(3);
+      expect(result).toEqual([mockPlayer]);
+    });
+
+    test("returns empty array when startFrom is after all available seasons", async () => {
+      (mapCombinedPlayerData as jest.Mock).mockReturnValue([]);
+
+      const result = await getPlayersStatsCombined("regular", "1", 2025);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(result).toEqual([]);
+    });
   });
 
   describe("getGoaliesStatsCombined", () => {
@@ -230,6 +299,36 @@ describe("services", () => {
 
       expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalie], "goalies");
       expect(result).toEqual([mockGoalie]);
+    });
+
+    test("filters seasons when startFrom is provided", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014, 2020]);
+
+      const result = await getGoaliesStatsCombined("regular", "1", 2020);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(1);
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("regular-2020-2021.csv"));
+      expect(result).toEqual([mockGoalie]);
+    });
+
+    test("returns all seasons when startFrom is undefined", async () => {
+      const result = await getGoaliesStatsCombined("regular", "1", undefined);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(3);
+      expect(result).toEqual([mockGoalie]);
+    });
+
+    test("returns empty array when startFrom is after all available seasons", async () => {
+      (mapCombinedGoalieData as jest.Mock).mockReturnValue([]);
+
+      const result = await getGoaliesStatsCombined("regular", "1", 2025);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(result).toEqual([]);
     });
   });
 

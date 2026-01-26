@@ -10,7 +10,8 @@
     "strict": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "isolatedModules": true
   },
   "include": [
     "./src/**/*"
