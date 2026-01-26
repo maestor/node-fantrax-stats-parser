@@ -33,15 +33,11 @@ module.exports = cors(
     get("/teams", protectedRoute(getTeams)),
     get("/seasons", protectedRoute(getSeasons)),
     get("/seasons/:reportType", protectedRoute(getSeasons)),
-    get("/players/season/:reportType/:season/:sortBy", protectedRoute(getPlayersSeason)),
     get("/players/season/:reportType/:season", protectedRoute(getPlayersSeason)),
     get("/players/season/:reportType", protectedRoute(getPlayersSeason)),
-    get("/players/combined/:reportType/:sortBy", protectedRoute(getPlayersCombined)),
     get("/players/combined/:reportType", protectedRoute(getPlayersCombined)),
-    get("/goalies/season/:reportType/:season/:sortBy", protectedRoute(getGoaliesSeason)),
     get("/goalies/season/:reportType/:season", protectedRoute(getGoaliesSeason)),
     get("/goalies/season/:reportType", protectedRoute(getGoaliesSeason)),
-    get("/goalies/combined/:reportType/:sortBy", protectedRoute(getGoaliesCombined)),
     get("/goalies/combined/:reportType", protectedRoute(getGoaliesCombined)),
     get("/*", notFound)
   )

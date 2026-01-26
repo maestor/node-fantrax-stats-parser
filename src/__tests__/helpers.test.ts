@@ -168,20 +168,6 @@ describe("helpers", () => {
       },
     ];
 
-    test("sorts players by specified field (goals) descending", () => {
-      const result = sortItemsByStatField([...players], "players", "goals") as Player[];
-      expect(result[0].name).toBe("Player B");
-      expect(result[1].name).toBe("Player C");
-      expect(result[2].name).toBe("Player A");
-    });
-
-    test("returns players unsorted when sortBy is name", () => {
-      const result = sortItemsByStatField([...players], "players", "name") as Player[];
-      expect(result[0].name).toBe("Player A");
-      expect(result[1].name).toBe("Player B");
-      expect(result[2].name).toBe("Player C");
-    });
-
     test("sorts players by default (points desc, then goals desc)", () => {
       const playersWithTie: Player[] = [
         { ...players[0], points: 80, goals: 25 },
@@ -192,20 +178,6 @@ describe("helpers", () => {
       expect(result[0].name).toBe("Player C"); // 100 points
       expect(result[1].name).toBe("Player B"); // 80 points, 35 goals
       expect(result[2].name).toBe("Player A"); // 80 points, 25 goals
-    });
-
-    test("sorts goalies by specified field (saves) descending", () => {
-      const result = sortItemsByStatField([...goalies], "goalies", "saves") as Goalie[];
-      expect(result[0].name).toBe("Goalie B");
-      expect(result[1].name).toBe("Goalie C");
-      expect(result[2].name).toBe("Goalie A");
-    });
-
-    test("returns goalies unsorted when sortBy is name", () => {
-      const result = sortItemsByStatField([...goalies], "goalies", "name") as Goalie[];
-      expect(result[0].name).toBe("Goalie A");
-      expect(result[1].name).toBe("Goalie B");
-      expect(result[2].name).toBe("Goalie C");
     });
 
     test("sorts goalies by default (wins desc, then games desc)", () => {

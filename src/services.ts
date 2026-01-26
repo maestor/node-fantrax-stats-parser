@@ -16,7 +16,7 @@ import {
   mapCombinedPlayerData,
   mapCombinedGoalieData,
 } from "./mappings";
-import { PlayerFields, GoalieFields, RawData, Report, Player, Goalie } from "./types";
+import { RawData, Report, Player, Goalie } from "./types";
 import { DEFAULT_TEAM_ID } from "./constants";
 
 // Parser wants seasons as an array even in one-season cases
@@ -71,32 +71,29 @@ export const getAvailableSeasons = async (
 export const getPlayersStatsSeason = async (
   report: Report,
   season?: number,
-  sortBy?: PlayerFields,
   teamId: string = DEFAULT_TEAM_ID
 ) => {
   const rawData = await getRawDataFromFiles(teamId, report, getSeasonParam(teamId, report, season));
   const mappedData = mapPlayerData(rawData);
   const scoredData = applyPlayerScores(mappedData);
-  return sortItemsByStatField(scoredData, "players", sortBy);
+  return sortItemsByStatField(scoredData, "players");
 };
 
 export const getGoaliesStatsSeason = async (
   report: Report,
   season?: number,
-  sortBy?: GoalieFields,
   teamId: string = DEFAULT_TEAM_ID
 ) => {
   const rawData = await getRawDataFromFiles(teamId, report, getSeasonParam(teamId, report, season));
   const mappedData = mapGoalieData(rawData);
   const scoredData = applyGoalieScores(mappedData);
-  return sortItemsByStatField(scoredData, "goalies", sortBy);
+  return sortItemsByStatField(scoredData, "goalies");
 };
 
 const getCombinedStats = async (
   report: Report,
   mapper: (data: RawData[]) => Player[] | Goalie[],
   kind: "players" | "goalies",
-  sortBy?: PlayerFields | GoalieFields,
   teamId: string = DEFAULT_TEAM_ID
 ) => {
   const seasons = availableSeasons(teamId, report);
@@ -106,17 +103,15 @@ const getCombinedStats = async (
     kind === "players"
       ? applyPlayerScores(mappedData as Player[])
       : applyGoalieScores(mappedData as Goalie[]);
-  return sortItemsByStatField(scoredData, kind, sortBy);
+  return sortItemsByStatField(scoredData, kind);
 };
 
 export const getPlayersStatsCombined = async (
   report: Report,
-  sortBy?: PlayerFields,
   teamId: string = DEFAULT_TEAM_ID
-) => getCombinedStats(report, mapCombinedPlayerData, "players", sortBy, teamId);
+) => getCombinedStats(report, mapCombinedPlayerData, "players", teamId);
 
 export const getGoaliesStatsCombined = async (
   report: Report,
-  sortBy?: GoalieFields,
   teamId: string = DEFAULT_TEAM_ID
-) => getCombinedStats(report, mapCombinedGoalieData, "goalies", sortBy, teamId);
+) => getCombinedStats(report, mapCombinedGoalieData, "goalies", teamId);
