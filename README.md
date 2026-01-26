@@ -1,8 +1,8 @@
-# node-fantrax-stats-parser
+# FFHL Stats API
 
 ## Purpose
 
-Lightweight API to parse NHL fantasy league team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files are exported manually from [Fantrax](https://www.fantrax.com). The API supports multiple fantasy teams by storing each team’s CSV exports under `csv/<teamId>/` and selecting the team via an optional `teamId` query param.
+Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files are exported from [Fantrax](https://www.fantrax.com). The API supports multiple fantasy teams.
 
 [UI written by Angular which uses this API.](https://github.com/maestor/fantrax-stats-parser-ui)
 
@@ -25,8 +25,6 @@ Lightweight API to parse NHL fantasy league team stats and print combined season
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
    - Report type can be provided as a path segment:
       - `/seasons/regular` or `/seasons/playoffs` (default: `regular` when omitted)
-   - Optional query params:
-      - `teamId` (default: `1`)
 
 `/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
 
@@ -35,6 +33,9 @@ Lightweight API to parse NHL fantasy league team stats and print combined season
 `/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
 
 `/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
+
+Every API except `/teams` have optional query params:
+`teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 
 ## Testing
 
@@ -395,11 +396,5 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 - Standardize request validation + error response shape
 - Store API data in a database (reduce reliance on CSV files at runtime)
 - Investigate whether Fantrax offers an API to replace manual CSV exports
-
-Already implemented:
-
-- Pre-load / cache CSV metadata (teams/seasons) to reduce filesystem work per request
-- Lightweight response caching for stable endpoints (in-memory + edge-friendly headers)
-- CSV data integrity checks for normalized inputs (detect format changes early)
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
