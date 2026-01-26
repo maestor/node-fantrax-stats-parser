@@ -61,8 +61,12 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
 };
 
 export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => {
-  const playersWithSeason = mapPlayerData(rawData);
+  return mapCombinedPlayerDataFromPlayersWithSeason(mapPlayerData(rawData));
+};
 
+export const mapCombinedPlayerDataFromPlayersWithSeason = (
+  playersWithSeason: PlayerWithSeason[]
+): CombinedPlayer[] => {
   // Compute per-season scores so that each season entry in the combined
   // response reflects the same scoring model as the single-season endpoints.
   const seasonScoreLookup = new Map<
@@ -190,8 +194,12 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
 };
 
 export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => {
-  const goaliesWithSeason = mapGoalieData(rawData);
+  return mapCombinedGoalieDataFromGoaliesWithSeason(mapGoalieData(rawData));
+};
 
+export const mapCombinedGoalieDataFromGoaliesWithSeason = (
+  goaliesWithSeason: GoalieWithSeason[]
+): CombinedGoalie[] => {
   // Compute per-season scores for goalies so that each season entry in the
   // combined response matches the single-season goalie scoring model.
   const seasonScoreLookup = new Map<

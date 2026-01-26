@@ -122,7 +122,10 @@ export type GoalieOptionalScoreField = "gaa" | "savePercent";
 export type PlayerScoreWeights = Record<PlayerScoreField, number>;
 export type GoalieScoreWeights = Record<GoalieScoreField | GoalieOptionalScoreField, number>;
 
-export type Report = "regular" | "playoffs";
+export type CsvReport = "regular" | "playoffs";
+
+// API-level reportType. `both` is virtual and represents regular+playoffs merged.
+export type Report = CsvReport | "both";
 
 export type QueryParams = {
   reportType: Report;
