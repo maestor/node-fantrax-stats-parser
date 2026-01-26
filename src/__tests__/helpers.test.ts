@@ -1261,6 +1261,18 @@ describe("helpers", () => {
       expect(result.length).toBe(3);
     });
 
+    test("when reportType is both, returns union of regular and playoffs seasons", () => {
+      (fs.readdirSync as jest.Mock).mockReturnValue([
+        "regular-2012-2013.csv",
+        "regular-2013-2014.csv",
+        "playoffs-2013-2014.csv",
+        "playoffs-2014-2015.csv",
+      ]);
+
+      const result = availableSeasons("1", "both");
+      expect(result).toEqual([2012, 2013, 2014]);
+    });
+
     test("returns empty array when folder exists but has no matching files", () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([]);
 
@@ -1369,6 +1381,10 @@ describe("helpers", () => {
 
     test("returns true for playoffs", () => {
       expect(reportTypeAvailable("playoffs")).toBe(true);
+    });
+
+    test("returns true for both", () => {
+      expect(reportTypeAvailable("both")).toBe(true);
     });
 
     test("returns false for invalid report type", () => {

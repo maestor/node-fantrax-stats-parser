@@ -19,6 +19,8 @@ import {
   mapGoalieData,
   mapCombinedPlayerData,
   mapCombinedGoalieData,
+  mapCombinedPlayerDataFromPlayersWithSeason,
+  mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "../mappings";
 import { mockRawDataPlayer, mockRawDataGoalie2014, mockPlayer, mockGoalie } from "./fixtures";
 
@@ -142,6 +144,50 @@ describe("services", () => {
         expect.stringContaining("playoffs-2023-2024.csv")
       );
     });
+
+    test("when reportType is both, reads regular+playoffs and merges before scoring", async () => {
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockResolvedValue([mockRawDataPlayer]),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+
+      const regular = {
+        name: "Jamie Benn",
+        season: 2024,
+        games: 12,
+        goals: 0,
+        assists: 0,
+        points: 6,
+        plusMinus: 0,
+        penalties: 0,
+        shots: 0,
+        ppp: 0,
+        shp: 0,
+        hits: 0,
+        blocks: 0,
+        score: 0,
+        scoreAdjustedByGames: 0,
+      };
+      const playoffs = { ...regular, games: 4, points: 3 };
+
+      (mapPlayerData as jest.Mock).mockReturnValue([regular, playoffs]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await getPlayersStatsSeason("both", 2024);
+
+      const csvMockInstance = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMockInstance.fromFile).toHaveBeenCalledWith(
+        expect.stringContaining("regular-2024-2025.csv")
+      );
+      expect(csvMockInstance.fromFile).toHaveBeenCalledWith(
+        expect.stringContaining("playoffs-2024-2025.csv")
+      );
+
+      expect(applyPlayerScores).toHaveBeenCalledWith([
+        expect.objectContaining({ name: "Jamie Benn", season: 2024, games: 16, points: 9 }),
+      ]);
+    });
   });
 
   describe("getGoaliesStatsSeason", () => {
@@ -171,6 +217,50 @@ describe("services", () => {
       expect(csvMock.fromFile).toHaveBeenCalledWith(
         expect.stringContaining("regular-2024-2025.csv")
       );
+    });
+
+    test("when reportType is both, does not include gaa/savePercent for scoring", async () => {
+      const mockCsv = jest.fn().mockReturnValue({
+        fromFile: jest.fn().mockResolvedValue([mockRawDataGoalie2014]),
+      });
+      (csv as unknown as jest.Mock).mockImplementation(mockCsv);
+
+      const regular = {
+        name: "Test Goalie",
+        season: 2024,
+        games: 10,
+        wins: 6,
+        saves: 300,
+        shutouts: 1,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        penalties: 0,
+        ppp: 0,
+        shp: 0,
+        gaa: "2.30",
+        savePercent: "0.920",
+        score: 0,
+        scoreAdjustedByGames: 0,
+      };
+      const playoffs = { ...regular, games: 2, wins: 1, gaa: "1.00", savePercent: "0.950" };
+
+      (mapGoalieData as jest.Mock).mockReturnValue([regular, playoffs]);
+      (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      await getGoaliesStatsSeason("both", 2024);
+
+      expect(applyGoalieScores).toHaveBeenCalledWith([
+        expect.objectContaining({
+          name: "Test Goalie",
+          season: 2024,
+          games: 12,
+          wins: 7,
+          gaa: undefined,
+          savePercent: undefined,
+        }),
+      ]);
     });
   });
 
@@ -243,6 +333,47 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(result).toEqual([]);
     });
+
+    test("when reportType is both, reads regular+playoffs and merges before combining", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+
+      const regular = {
+        name: "Jamie Benn",
+        season: 2024,
+        games: 12,
+        goals: 0,
+        assists: 0,
+        points: 6,
+        plusMinus: 0,
+        penalties: 0,
+        shots: 0,
+        ppp: 0,
+        shp: 0,
+        hits: 0,
+        blocks: 0,
+        score: 0,
+        scoreAdjustedByGames: 0,
+      };
+      const playoffs = { ...regular, games: 4, points: 3 };
+
+      (mapPlayerData as jest.Mock).mockReturnValue([regular, playoffs]);
+      (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([mockPlayer]);
+      (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      const result = await getPlayersStatsCombined("both", "1", 2020);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(2);
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("regular-2024-2025.csv"));
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("playoffs-2024-2025.csv"));
+
+      expect(mapCombinedPlayerDataFromPlayersWithSeason).toHaveBeenCalledWith([
+        expect.objectContaining({ name: "Jamie Benn", season: 2024, games: 16, points: 9 }),
+      ]);
+      expect(result).toEqual([mockPlayer]);
+    });
   });
 
   describe("getGoaliesStatsCombined", () => {
@@ -301,6 +432,55 @@ describe("services", () => {
 
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(result).toEqual([]);
+    });
+
+    test("when reportType is both, reads regular+playoffs and strips gaa/savePercent", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+
+      const regular = {
+        name: "Test Goalie",
+        season: 2024,
+        games: 10,
+        wins: 6,
+        saves: 300,
+        shutouts: 1,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        penalties: 0,
+        ppp: 0,
+        shp: 0,
+        gaa: "2.30",
+        savePercent: "0.920",
+        score: 0,
+        scoreAdjustedByGames: 0,
+      };
+      const playoffs = { ...regular, games: 2, wins: 1, gaa: "1.00", savePercent: "0.950" };
+
+      (mapGoalieData as jest.Mock).mockReturnValue([regular, playoffs]);
+      (mapCombinedGoalieDataFromGoaliesWithSeason as jest.Mock).mockReturnValue([mockGoalie]);
+      (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
+      (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
+
+      const result = await getGoaliesStatsCombined("both", "1", 2020);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
+      const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
+      expect(csvMock.fromFile).toHaveBeenCalledTimes(2);
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("regular-2024-2025.csv"));
+      expect(csvMock.fromFile).toHaveBeenCalledWith(expect.stringContaining("playoffs-2024-2025.csv"));
+
+      expect(mapCombinedGoalieDataFromGoaliesWithSeason).toHaveBeenCalledWith([
+        expect.objectContaining({
+          name: "Test Goalie",
+          season: 2024,
+          games: 12,
+          wins: 7,
+          gaa: undefined,
+          savePercent: undefined,
+        }),
+      ]);
+      expect(result).toEqual([mockGoalie]);
     });
   });
 

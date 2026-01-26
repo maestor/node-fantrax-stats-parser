@@ -9,7 +9,7 @@ import {
 
 export const START_SEASON = 2012;
 
-export const REPORT_TYPES: Report[] = ["playoffs", "regular"];
+export const REPORT_TYPES: Report[] = ["playoffs", "regular", "both"];
 
 export const HTTP_STATUS = {
   OK: 200,

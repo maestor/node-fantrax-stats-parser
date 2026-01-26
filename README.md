@@ -24,15 +24,23 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
    - Report type can be provided as a path segment:
-      - `/seasons/regular` or `/seasons/playoffs` (default: `regular` when omitted)
+   - `/seasons/regular`, `/seasons/playoffs`, or `/seasons/both` (default: `regular` when omitted)
+   - Note: `both` is accepted for compatibility and behaves like `regular` for seasons.
 
 `/players/season/:reportType/:season` - Get player stats for a single season
 
 `/players/combined/:reportType` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
 
+Report type values:
+
+- `regular` / `playoffs`: parse the corresponding CSV dataset.
+- `both`: merges `regular` + `playoffs` stats together, then calculates scores after merging.
+
 `/goalies/season/:reportType/:season` - Get goalie stats for a single season
 
 `/goalies/combined/:reportType` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
+
+For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are omitted (they cannot be combined reliably across regular + playoffs).
 
 Every API except `/teams` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.

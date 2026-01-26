@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Player, PlayerFields, Goalie, Report, GoalieScoreField } from "./types";
+import { Player, PlayerFields, Goalie, Report, CsvReport, GoalieScoreField } from "./types";
 import {
   REPORT_TYPES,
   PLAYER_SCORE_FIELDS,
@@ -89,7 +89,7 @@ const ensureTeamCsvDirOrThrow = (teamId: string): string => {
   }
 };
 
-export const listSeasonsForTeam = (teamId: string, reportType: Report): number[] => {
+export const listSeasonsForTeam = (teamId: string, reportType: CsvReport): number[] => {
   const cacheKey = `${teamId}:${reportType}`;
   const cached = helperCaches.seasonsForTeam.get(cacheKey);
   if (cached !== undefined) return cached;
@@ -520,7 +520,19 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
 export const availableSeasons = (
   teamId: string = DEFAULT_TEAM_ID,
   reportType: Report = "regular"
-): number[] => listSeasonsForTeam(teamId, reportType);
+): number[] => {
+  if (reportType === "both") {
+    const seasons = new Set<number>();
+    for (const report of ["regular", "playoffs"] as const) {
+      for (const season of listSeasonsForTeam(teamId, report)) {
+        seasons.add(season);
+      }
+    }
+    return [...seasons].sort((a, b) => a - b);
+  }
+
+  return listSeasonsForTeam(teamId, reportType);
+};
 
 export const seasonAvailable = (
   season: number | undefined,
