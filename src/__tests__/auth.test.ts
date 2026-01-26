@@ -77,13 +77,13 @@ describe("auth", () => {
     });
 
     test("reads configured header from array form", () => {
-      const req = createRequest({ headers: { "x-api-key": ["key1", "key2"] } });
+      const req = createRequest({ headers: { "x-api-key": ["key1", "key2"] as unknown as string } });
       expect(extractApiKey(req, "x-api-key", true)).toBe("key1");
     });
 
     test("falls back to Bearer token when array header is empty", () => {
       const req = createRequest({
-        headers: { "x-api-key": [""], authorization: "Bearer token123" },
+        headers: { "x-api-key": [""] as unknown as string, authorization: "Bearer token123" },
       });
       expect(extractApiKey(req, "x-api-key", true)).toBe("token123");
     });
@@ -94,7 +94,7 @@ describe("auth", () => {
     });
 
     test("returns undefined when authorization header is not a string", () => {
-      const req = createRequest({ headers: { authorization: ["Bearer token123"] } });
+      const req = createRequest({ headers: { authorization: ["Bearer token123"] as unknown as string } });
       expect(extractApiKey(req, "x-api-key", true)).toBeUndefined();
     });
 
@@ -120,7 +120,7 @@ describe("auth", () => {
     test("passes through when auth not required", async () => {
       const handler = jest.fn();
       const wrapped = withApiKeyAuth(handler, { requireAuth: false });
-      const req = createRequest();
+      const req = createRequest({ headers: {} });
       const res = createResponse();
 
       await wrapped(req, res);
@@ -132,7 +132,7 @@ describe("auth", () => {
     test("allows OPTIONS preflight even when auth required", async () => {
       const handler = jest.fn();
       const wrapped = withApiKeyAuth(handler, { requireAuth: true, validKeys: ["k1"] });
-      const req = createRequest({ method: "OPTIONS" });
+      const req = createRequest({ method: "OPTIONS", headers: {} });
       const res = createResponse();
 
       await wrapped(req, res);

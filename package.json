@@ -11,13 +11,14 @@
     "node": ">=24 <25"
   },
   "scripts": {
-    "build": "rimraf lib && tsc",
+    "build": "rimraf lib && tsc -p tsconfig.build.json",
     "dev": "npm run build && concurrently \"tsc --watch\" \"nodemon --watch lib --ext js --exec node lib/server.js\"",
     "dev-start": "npm run build && node lib/server.js",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "lint:check": "eslint src/**/*.ts --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "playwright:login": "tsx src/playwright/login.ts",
     "playwright:sync:leagues": "tsx src/playwright/sync-leagues.ts",
     "playwright:sync:playoffs": "tsx src/playwright/sync-playoffs.ts",
@@ -27,7 +28,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "verify": "npm run lint:check && npm run build && npm run test:coverage"
+    "verify": "npm run lint:check && npm run typecheck && npm run build && npm run test:coverage"
   },
   "dependencies": {
     "csvtojson": "^2.0.14",

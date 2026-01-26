@@ -81,7 +81,7 @@ describe("services", () => {
     });
 
     test("returns empty array when startFrom is after all available seasons", async () => {
-      const mockSeasons = [];
+      const mockSeasons: Array<{ season: number; text: string }> = [];
       (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
       (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
 
