@@ -126,7 +126,6 @@ export type Report = "regular" | "playoffs";
 
 export type QueryParams = {
   reportType: Report;
-  sortBy?: PlayerFields | GoalieFields;
   season?: number;
 };
 

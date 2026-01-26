@@ -26,13 +26,13 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
    - Report type can be provided as a path segment:
       - `/seasons/regular` or `/seasons/playoffs` (default: `regular` when omitted)
 
-`/players/season/:reportType/:season/:sortBy` - Get player stats for a single season
+`/players/season/:reportType/:season` - Get player stats for a single season
 
-`/players/combined/:reportType/:sortBy` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
+`/players/combined/:reportType` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
 
-`/goalies/season/:reportType/:season/:sortBy` - Get goalie stats for a single season
+`/goalies/season/:reportType/:season` - Get goalie stats for a single season
 
-`/goalies/combined/:reportType/:sortBy` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
+`/goalies/combined/:reportType` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
 
 Every API except `/teams` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
@@ -329,8 +329,6 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 `teamId` - Optional query param. Selects which team dataset to use (CSV folder `csv/<teamId>/`). If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
-
-`sortBy` - Optional. Sort results by specific stats field. Currently available options: games, goals, assists, points, penalties, ppp, shp for both. shots, plusMinus, hits, blocks for players only and wins, saves, shutouts for goalies only. If not specified, sort by points (players) and by wins (goalies).
 
 ## Caching
 

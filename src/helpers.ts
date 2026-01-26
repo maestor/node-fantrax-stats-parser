@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Player, PlayerFields, Goalie, GoalieFields, Report, GoalieScoreField } from "./types";
+import { Player, PlayerFields, Goalie, Report, GoalieScoreField } from "./types";
 import {
   REPORT_TYPES,
   PLAYER_SCORE_FIELDS,
@@ -240,28 +240,14 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
 
 export const sortItemsByStatField = (
   data: Player[] | Goalie[],
-  kind: "players" | "goalies",
-  sortBy?: PlayerFields | GoalieFields
+  kind: "players" | "goalies"
 ): Player[] | Goalie[] => {
-  if (sortBy === "name") {
-    return data;
-  }
-
   if (kind === "players") {
-    return (data as Player[]).sort((a, b) =>
-      sortBy
-        ? (b[sortBy as PlayerFields] as number) - (a[sortBy as PlayerFields] as number)
-        : defaultSortPlayers(a, b)
-    );
+    return (data as Player[]).sort(defaultSortPlayers);
   } else if (kind === "goalies") {
-    return (data as Goalie[]).sort((a, b) =>
-      sortBy
-        ? (b[sortBy as GoalieFields] as number) - (a[sortBy as GoalieFields] as number)
-        : defaultSortGoalies(a, b)
-    );
-  } else {
-    return data;
+    return (data as Goalie[]).sort(defaultSortGoalies);
   }
+  return data;
 };
 
 const applyPlayerScoresByGames = (players: Player[]): void => {

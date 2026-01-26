@@ -8,7 +8,7 @@ import {
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
 } from "./services";
-import { PlayerFields, GoalieFields, Report } from "./types";
+import { Report } from "./types";
 import {
   reportTypeAvailable,
   seasonAvailable,
@@ -118,7 +118,6 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
-  const sortBy = req.params.sortBy as PlayerFields | undefined;
   const season = parseSeasonParam(req.params.season);
 
   if (!reportTypeAvailable(report)) {
@@ -131,26 +130,24 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getPlayersStatsSeason(report, season, sortBy, teamId));
+  await withErrorHandlingCached(req, res, () => getPlayersStatsSeason(report, season, teamId));
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
-  const sortBy = req.params.sortBy as PlayerFields | undefined;
 
   if (!reportTypeAvailable(report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, sortBy, teamId));
+  await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, teamId));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
-  const sortBy = req.params.sortBy as GoalieFields | undefined;
   const season = parseSeasonParam(req.params.season);
 
   if (!reportTypeAvailable(report)) {
@@ -163,18 +160,17 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getGoaliesStatsSeason(report, season, sortBy, teamId));
+  await withErrorHandlingCached(req, res, () => getGoaliesStatsSeason(report, season, teamId));
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
-  const sortBy = req.params.sortBy as GoalieFields | undefined;
 
   if (!reportTypeAvailable(report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, sortBy, teamId));
+  await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId));
 };

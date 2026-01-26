@@ -317,7 +317,6 @@ describe("routes", () => {
         params: {
           reportType: "regular",
           season: "2024",
-          sortBy: "goals",
         },
       });
       const res = createResponse();
@@ -326,7 +325,7 @@ describe("routes", () => {
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
-      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "goals", "1");
+      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
@@ -388,7 +387,7 @@ describe("routes", () => {
 
       await getPlayersSeason(req, res);
 
-      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined, "1");
+      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
   });
@@ -400,14 +399,14 @@ describe("routes", () => {
       (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
 
       const req = createRequest({
-        params: { reportType: "regular", sortBy: "points" },
+        params: { reportType: "regular" },
       });
       const res = createResponse();
 
       await getPlayersCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "points", "1");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
@@ -439,21 +438,6 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
-    test("passes sortBy to service correctly", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
-
-      const req = createRequest({
-        params: { reportType: "playoffs", sortBy: "goals" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(req, res);
-
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("playoffs", "goals", "1");
-    });
-
     test("works without sortBy parameter", async () => {
       const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
@@ -466,7 +450,7 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", undefined, "1");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1");
     });
   });
 
@@ -479,7 +463,7 @@ describe("routes", () => {
       (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
 
       const req = createRequest({
-        params: { reportType: "regular", season: "2024", sortBy: "wins" },
+        params: { reportType: "regular", season: "2024" },
       });
       const res = createResponse();
 
@@ -487,7 +471,7 @@ describe("routes", () => {
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "wins", "1");
+      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
@@ -549,7 +533,7 @@ describe("routes", () => {
 
       await getGoaliesSeason(req, res);
 
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, undefined, "1");
+      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
     });
   });
 
@@ -560,14 +544,14 @@ describe("routes", () => {
       (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
 
       const req = createRequest({
-        params: { reportType: "regular", sortBy: "wins" },
+        params: { reportType: "regular" },
       });
       const res = createResponse();
 
       await getGoaliesCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "wins", "1");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
@@ -611,7 +595,7 @@ describe("routes", () => {
 
       await getGoaliesCombined(req, res);
 
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", undefined, "1");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1");
     });
   });
 });
