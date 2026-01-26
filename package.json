@@ -27,8 +27,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "verify": "npm run lint:check && npm run build && npm test",
-    "verify:coverage": "npm run lint:check && npm run build && npm run test:coverage"
+    "verify": "npm run lint:check && npm run build && npm run test:coverage"
   },
   "dependencies": {
     "csvtojson": "^2.0.14",

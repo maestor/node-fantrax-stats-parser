@@ -27,4 +27,4 @@ jobs:
         run: npm ci
 
       - name: Validate Pull Request (lint, build, test coverage)
-        run: npm run verify:coverage
+        run: npm run verify
