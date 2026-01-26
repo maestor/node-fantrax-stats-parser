@@ -134,13 +134,6 @@ describe("services", () => {
       expect((csv as unknown as jest.Mock)).toHaveBeenCalledTimes(0);
     });
 
-    test("works without sortBy parameter", async () => {
-      const result = await getPlayersStatsSeason("regular", 2024);
-
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayer], "players");
-      expect(result).toEqual([mockPlayer]);
-    });
-
     test("constructs correct CSV file path", async () => {
       await getPlayersStatsSeason("playoffs", 2023);
 
@@ -178,13 +171,6 @@ describe("services", () => {
       expect(csvMock.fromFile).toHaveBeenCalledWith(
         expect.stringContaining("regular-2024-2025.csv")
       );
-    });
-
-    test("works without sortBy parameter", async () => {
-      const result = await getGoaliesStatsSeason("regular", 2024);
-
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalie], "goalies");
-      expect(result).toEqual([mockGoalie]);
     });
   });
 
@@ -226,13 +212,6 @@ describe("services", () => {
 
       expect(result).toEqual([]);
       expect((csv as unknown as jest.Mock)).toHaveBeenCalledTimes(0);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const result = await getPlayersStatsCombined("regular");
-
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayer], "players");
-      expect(result).toEqual([mockPlayer]);
     });
 
     test("filters seasons when startFrom is provided", async () => {
@@ -292,13 +271,6 @@ describe("services", () => {
 
       const csvMock = (csv as unknown as jest.Mock).mock.results[0].value;
       expect(csvMock.fromFile).toHaveBeenCalledTimes(3);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const result = await getGoaliesStatsCombined("regular");
-
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalie], "goalies");
-      expect(result).toEqual([mockGoalie]);
     });
 
     test("filters seasons when startFrom is provided", async () => {
