@@ -38,6 +38,7 @@ describe("routes", () => {
     resetRouteCachesForTests();
     (resolveTeamId as jest.Mock).mockReturnValue("1");
     (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+    (parseSeasonParam as jest.Mock).mockReturnValue(undefined);
   });
 
   describe("getHealthcheck", () => {
@@ -69,7 +70,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -85,7 +86,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -123,7 +124,7 @@ describe("routes", () => {
 
       await getSeasons({} as unknown as ReturnType<typeof createRequest>, res);
 
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -136,7 +137,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -155,7 +156,7 @@ describe("routes", () => {
 
       await getSeasons(req, res);
 
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
@@ -182,6 +183,42 @@ describe("routes", () => {
       await getSeasons(req, res);
 
       expect(resolveTeamId).toHaveBeenCalledWith(undefined);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
+    test("passes startFrom to service correctly", async () => {
+      const mockSeasons = [{ season: 2020, text: "2020-2021" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
+
+      const req = createRequest({
+        url: "/seasons?startFrom=2020",
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", 2020);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
+    test("works with startFrom query param", async () => {
+      const mockSeasons = [{ season: 2018, text: "2018-2019" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
+
+      const req = createRequest({
+        url: "/seasons/playoffs?startFrom=2018",
+        params: { reportType: "playoffs" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getSeasons(req, res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs", 2018);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
   });
@@ -406,7 +443,7 @@ describe("routes", () => {
       await getPlayersCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
 
@@ -450,7 +487,46 @@ describe("routes", () => {
 
       await getPlayersCombined(req, res);
 
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
+    });
+
+    test("passes startFrom to service correctly", async () => {
+      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
+
+      const req = createRequest({
+        url: "/players/combined/regular?startFrom=2020",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(req, res);
+
+      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", 2020);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
+    });
+
+    test("works with startFrom query param", async () => {
+      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
+
+      const req = createRequest({
+        url: "/players/combined/playoffs?startFrom=2018",
+        params: { reportType: "playoffs" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(req, res);
+
+      expect(getPlayersStatsCombined).toHaveBeenCalledWith("playoffs", "1", 2018);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
   });
 
@@ -551,7 +627,7 @@ describe("routes", () => {
       await getGoaliesCombined(req, res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
 
@@ -595,7 +671,46 @@ describe("routes", () => {
 
       await getGoaliesCombined(req, res);
 
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
+    });
+
+    test("passes startFrom to service correctly", async () => {
+      const mockGoalies = [{ name: "Test Goalie", wins: 100, seasons: [] }];
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
+
+      const req = createRequest({
+        url: "/goalies/combined/regular?startFrom=2020",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(req, res);
+
+      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", 2020);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
+    });
+
+    test("works with startFrom query param", async () => {
+      const mockGoalies = [{ name: "Test Goalie", wins: 100, seasons: [] }];
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
+
+      const req = createRequest({
+        url: "/goalies/combined/playoffs?startFrom=2018",
+        params: { reportType: "playoffs" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(req, res);
+
+      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("playoffs", "1", 2018);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
     });
   });
 });

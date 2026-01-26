@@ -287,7 +287,12 @@ curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons/playo
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/teams
 
 # Deep route example
-curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/playoffs/games?teamId=1"
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/playoffs?teamId=1"
+
+# Filter by season (startFrom parameter)
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?startFrom=2020"
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/regular?startFrom=2020"
+curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/goalies/combined/playoffs?startFrom=2018"
 
 # Same endpoints via /api
 curl https://ffhl-stats-api.vercel.app/api/health
@@ -329,6 +334,8 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 `teamId` - Optional query param. Selects which team dataset to use (CSV folder `csv/<teamId>/`). If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
+
+`startFrom` - Optional. Filter results to start from a specific season (inclusive). Works with `/seasons` endpoint to filter which seasons are returned, and with combined endpoints (`/players/combined`, `/goalies/combined`) to filter which seasons are included in aggregation. Starting year of the first season to include. If not specified, all available seasons are included. Example: `startFrom=2020` returns data from 2020-2021 season onwards.
 
 ## Caching
 
