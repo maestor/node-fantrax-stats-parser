@@ -57,7 +57,7 @@ This repository runs a GitHub Actions workflow on:
 The CI check runs the full verification command:
 
 ```
-npm run verify:coverage
+npm run verify
 ```
 
 That command runs lint, TypeScript build, and Jest with the enforced global coverage thresholds. The workflow definition is in `.github/workflows/ci.yml`.

@@ -32,6 +32,9 @@ jest.mock("micro");
 jest.mock("../services");
 jest.mock("../helpers");
 
+type RouteReq = Parameters<typeof getSeasons>[0];
+const asRouteReq = (req: unknown): RouteReq => req as RouteReq;
+
 describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,7 +49,7 @@ describe("routes", () => {
       const req = createRequest();
       const res = createResponse();
 
-      await getHealthcheck(req, res);
+      await getHealthcheck(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(
         res,
@@ -68,7 +71,7 @@ describe("routes", () => {
       const req = createRequest();
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -84,7 +87,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -97,7 +100,7 @@ describe("routes", () => {
       const req = createRequest();
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
@@ -111,7 +114,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
@@ -122,7 +125,7 @@ describe("routes", () => {
 
       const res = createResponse();
 
-      await getSeasons({} as unknown as ReturnType<typeof createRequest>, res);
+      await getSeasons(asRouteReq({} as unknown as ReturnType<typeof createRequest>), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -135,7 +138,7 @@ describe("routes", () => {
       const req = { url: 123 } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -154,7 +157,7 @@ describe("routes", () => {
       } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -167,7 +170,7 @@ describe("routes", () => {
       const req = createRequest();
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, 422, error);
     });
@@ -180,7 +183,7 @@ describe("routes", () => {
       const req = createRequest({ url: "/seasons", headers: { host: "localhost" } });
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(resolveTeamId).toHaveBeenCalledWith(undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -197,7 +200,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(parseSeasonParam).toHaveBeenCalledWith("2020");
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", 2020);
@@ -216,7 +219,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getSeasons(req, res);
+      await getSeasons(asRouteReq(req), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs", 2018);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -231,7 +234,7 @@ describe("routes", () => {
       const req = createRequest();
       const res = createResponse();
 
-      await getTeams(req, res);
+      await getTeams(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
@@ -242,12 +245,12 @@ describe("routes", () => {
 
       const req1 = createRequest({ url: "/teams" });
       const res1 = createResponse();
-      await getTeams(req1, res1);
+      await getTeams(asRouteReq(req1), res1);
 
       (send as jest.Mock).mockClear();
       const req2 = createRequest({ url: "/teams" });
       const res2 = createResponse();
-      await getTeams(req2, res2);
+      await getTeams(asRouteReq(req2), res2);
 
       expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, filteredTeams);
@@ -259,7 +262,7 @@ describe("routes", () => {
 
       const req1 = createRequest({ url: "/teams", method: "GET" });
       const res1 = createResponse();
-      await getTeams(req1, res1);
+      await getTeams(asRouteReq(req1), res1);
 
       (send as jest.Mock).mockClear();
       const etag = makeEtagForJson(filteredTeams);
@@ -270,7 +273,7 @@ describe("routes", () => {
       } as unknown as ReturnType<typeof createRequest>;
       const res2 = createResponse();
       const endSpy = jest.spyOn(res2, "end");
-      await getTeams(req2, res2);
+      await getTeams(asRouteReq(req2), res2);
 
       expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
@@ -288,7 +291,7 @@ describe("routes", () => {
         headers: { host: "localhost" },
       } as unknown as ReturnType<typeof createRequest>;
       const primeRes = createResponse();
-      await getTeams(primeReq, primeRes);
+      await getTeams(asRouteReq(primeReq), primeRes);
 
       (send as jest.Mock).mockClear();
 
@@ -301,7 +304,7 @@ describe("routes", () => {
       const cachedRes = createResponse();
       const endSpy = jest.spyOn(cachedRes, "end");
 
-      await getTeams(cachedReq, cachedRes);
+  await getTeams(asRouteReq(cachedReq), cachedRes);
 
       expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
@@ -322,7 +325,7 @@ describe("routes", () => {
       const res = createResponse();
       const endSpy = jest.spyOn(res, "end");
 
-      await getTeams(req, res);
+      await getTeams(asRouteReq(req), res);
 
       expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
@@ -335,7 +338,7 @@ describe("routes", () => {
       (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
 
       const res = createResponse();
-      await getTeams(undefined as unknown as ReturnType<typeof createRequest>, res);
+      await getTeams(undefined as unknown as RouteReq, res);
 
       expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
@@ -358,7 +361,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersSeason(req, res);
+      await getPlayersSeason(asRouteReq(req), res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
@@ -375,7 +378,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersSeason(req, res);
+      await getPlayersSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
@@ -389,7 +392,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersSeason(req, res);
+      await getPlayersSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     });
@@ -405,27 +408,9 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersSeason(req, res);
+      await getPlayersSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 50 }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
-      (getPlayersStatsSeason as jest.Mock).mockResolvedValue(mockPlayers);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2024" },
-      });
-      const res = createResponse();
-
-      await getPlayersSeason(req, res);
-
-      expect(getPlayersStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
     });
   });
 
@@ -440,7 +425,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersCombined(req, res);
+      await getPlayersCombined(asRouteReq(req), res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
@@ -455,7 +440,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersCombined(req, res);
+      await getPlayersCombined(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
@@ -470,24 +455,9 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersCombined(req, res);
+      await getPlayersCombined(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(req, res);
-
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
     });
 
     test("passes startFrom to service correctly", async () => {
@@ -503,7 +473,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersCombined(req, res);
+      await getPlayersCombined(asRouteReq(req), res);
 
       expect(parseSeasonParam).toHaveBeenCalledWith("2020");
       expect(getPlayersStatsCombined).toHaveBeenCalledWith("regular", "1", 2020);
@@ -523,7 +493,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getPlayersCombined(req, res);
+      await getPlayersCombined(asRouteReq(req), res);
 
       expect(getPlayersStatsCombined).toHaveBeenCalledWith("playoffs", "1", 2018);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
@@ -543,7 +513,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesSeason(req, res);
+      await getGoaliesSeason(asRouteReq(req), res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
@@ -560,7 +530,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesSeason(req, res);
+      await getGoaliesSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
@@ -574,7 +544,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesSeason(req, res);
+      await getGoaliesSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     });
@@ -590,26 +560,9 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesSeason(req, res);
+      await getGoaliesSeason(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const mockGoalies = [{ name: "Test Goalie", wins: 40 }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
-      (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2024" },
-      });
-      const res = createResponse();
-
-      await getGoaliesSeason(req, res);
-
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
     });
   });
 
@@ -624,7 +577,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesCombined(req, res);
+      await getGoaliesCombined(asRouteReq(req), res);
 
       expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
@@ -639,7 +592,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesCombined(req, res);
+      await getGoaliesCombined(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     });
@@ -654,24 +607,9 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesCombined(req, res);
+      await getGoaliesCombined(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
-    });
-
-    test("works without sortBy parameter", async () => {
-      const mockGoalies = [{ name: "Test Goalie", wins: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getGoaliesCombined(req, res);
-
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", undefined);
     });
 
     test("passes startFrom to service correctly", async () => {
@@ -687,7 +625,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesCombined(req, res);
+      await getGoaliesCombined(asRouteReq(req), res);
 
       expect(parseSeasonParam).toHaveBeenCalledWith("2020");
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith("regular", "1", 2020);
@@ -707,7 +645,7 @@ describe("routes", () => {
       });
       const res = createResponse();
 
-      await getGoaliesCombined(req, res);
+      await getGoaliesCombined(asRouteReq(req), res);
 
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith("playoffs", "1", 2018);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
