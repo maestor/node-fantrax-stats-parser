@@ -1,3 +1,4 @@
+import { spawnSync } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { createInterface } from "readline";
 import path from "path";
@@ -40,12 +41,15 @@ export const requireAuthStateFile = (): void => {
 export const requireLeagueIdsFile = (): void => {
   if (!existsSync(LEAGUE_IDS_PATH)) {
     throw new Error(
-      `Missing ${LEAGUE_IDS_PATH}. Run the league sync script first (npm run playwright:sync:leagues) to save league IDs and season dates.`
+      `Missing ${LEAGUE_IDS_PATH}. Run the league sync script first (npm run playwright:sync:leagues) to save league IDs and season dates.`,
     );
   }
 };
 
-export const saveAuthStateInteractive = async (context: BrowserContext, page: Page): Promise<void> => {
+export const saveAuthStateInteractive = async (
+  context: BrowserContext,
+  page: Page,
+): Promise<void> => {
   await page.goto(FANTRAX_URLS.login, { waitUntil: "domcontentloaded" });
 
   console.info("Login manually in the opened browser.");
@@ -158,7 +162,8 @@ export const parseFantraxDateToISO = (raw: string): string => {
   throw new Error(`Unrecognized Fantrax date format: ${raw}`);
 };
 
-export const normalizeSpacesLower = (s: string): string => s.replace(/\s+/g, " ").trim().toLowerCase();
+export const normalizeSpacesLower = (s: string): string =>
+  s.replace(/\s+/g, " ").trim().toLowerCase();
 
 export const normalizeSpaces = (s: string): string => s.replace(/\s+/g, " ").trim();
 
@@ -175,7 +180,9 @@ export const countOccurrences = (haystack: string, needle: string): number => {
   return count;
 };
 
-export const parseFantraxDateRangeToIso = (s: string): { startDate: string; endDate: string } | null => {
+export const parseFantraxDateRangeToIso = (
+  s: string,
+): { startDate: string; endDate: string } | null => {
   // Example: "(Mon Mar 17, 2025 - Sun Mar 23, 2025)"
   const m = /\(([^)]+)\)/.exec(s);
   const inside = normalizeSpaces(m?.[1] ?? s);
@@ -195,7 +202,7 @@ export const parseFantraxDateRangeToIso = (s: string): { startDate: string; endD
 };
 
 export const scrapePlayoffsPeriodsFromStandingsTables = async (
-  page: Page
+  page: Page,
 ): Promise<{
   periods: Array<RoundWindow & { periodNumber: number }>;
   teamsByPeriod: string[][];
@@ -206,10 +213,18 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
   // "Scoring Period: Playoffs 2" (8 teams)
   // "Scoring Period: Playoffs 3" (4 teams)
   // "Scoring Period: Playoffs 4" (2 teams)
-  const playoffHeaders = page.locator("h4").filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i });
+  const playoffHeaders = page
+    .locator("h4")
+    .filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i });
   const n = await playoffHeaders.count();
   const rosterTeamIdByTeamName: Record<string, string> = {};
-  const found: Array<{ periodNumber: number; label: string; startDate: string; endDate: string; teams: string[] }> = [];
+  const found: Array<{
+    periodNumber: number;
+    label: string;
+    startDate: string;
+    endDate: string;
+    teams: string[];
+  }> = [];
 
   for (let i = 0; i < n; i++) {
     const header = playoffHeaders.nth(i);
@@ -222,7 +237,13 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
       .locator("xpath=ancestor::div[contains(@class,'standings-table-wrapper')][1]")
       .first();
 
-    const dateText = normalizeSpaces(await wrapper.locator("h5").first().innerText().catch(() => ""));
+    const dateText = normalizeSpaces(
+      await wrapper
+        .locator("h5")
+        .first()
+        .innerText()
+        .catch(() => ""),
+    );
     const parsedRange = parseFantraxDateRangeToIso(dateText);
     if (!parsedRange) continue;
 
@@ -264,7 +285,12 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
 
   found.sort((a, b) => a.periodNumber - b.periodNumber);
   return {
-    periods: found.map(({ periodNumber, label, startDate, endDate }) => ({ periodNumber, label, startDate, endDate })),
+    periods: found.map(({ periodNumber, label, startDate, endDate }) => ({
+      periodNumber,
+      label,
+      startDate,
+      endDate,
+    })),
     teamsByPeriod: found.map((f) => f.teams),
     rosterTeamIdByTeamName,
   };
@@ -317,16 +343,25 @@ export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
   return runs.length === 16 ? runs : null;
 };
 
-export const gotoPlayoffsStandings = async (page: Page, leagueId: string, timeoutMs: number): Promise<void> => {
+export const gotoPlayoffsStandings = async (
+  page: Page,
+  leagueId: string,
+  timeoutMs: number,
+): Promise<void> => {
   const url = `${FANTRAX_URLS.league}/${encodeURIComponent(leagueId)}/standings;view=PLAYOFFS`;
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
 
   if (page.url().includes("/login")) {
-    throw new Error(`Not authenticated (redirected to /login) while loading playoffs page for leagueId=${leagueId}`);
+    throw new Error(
+      `Not authenticated (redirected to /login) while loading playoffs page for leagueId=${leagueId}`,
+    );
   }
 
   // Fantrax can take a moment to render the Playoffs period tables.
-  const playoffsHeader = page.locator("h4").filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i }).first();
+  const playoffsHeader = page
+    .locator("h4")
+    .filter({ hasText: /Scoring\s+Period:\s*Playoffs\s+\d+/i })
+    .first();
   try {
     await playoffsHeader.waitFor({ state: "visible", timeout: Math.min(timeoutMs, 15_000) });
   } catch {
@@ -486,7 +521,7 @@ const readLeagueIdsFile = (): LeagueIdsFile => {
   if (file.schemaVersion !== 1 && file.schemaVersion !== 2) {
     throw new Error(
       `Invalid league IDs file schemaVersion in ${LEAGUE_IDS_PATH}. ` +
-        `Re-run npm run playwright:sync:leagues to regenerate it.`
+        `Re-run npm run playwright:sync:leagues to regenerate it.`,
     );
   }
 
@@ -518,7 +553,7 @@ const resolveSeasonInfoForYear = (file: LeagueIdsFile, year: number): LeagueSeas
     if (leagueId) {
       throw new Error(
         `Your ${LEAGUE_IDS_PATH} is schemaVersion 1 (league IDs only). ` +
-          `Re-run npm run playwright:sync:leagues to also save season period dates.`
+          `Re-run npm run playwright:sync:leagues to also save season period dates.`,
       );
     }
   }
@@ -526,7 +561,7 @@ const resolveSeasonInfoForYear = (file: LeagueIdsFile, year: number): LeagueSeas
   const validYears = resolveAvailableYears(file).join(", ");
   throw new Error(
     `Missing league info for year ${year} in ${LEAGUE_IDS_PATH}. Valid years: ${validYears || "(none)"}. ` +
-      `Run npm run playwright:sync:leagues to refresh the mapping.`
+      `Run npm run playwright:sync:leagues to refresh the mapping.`,
   );
 };
 
@@ -534,7 +569,8 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
   const headless = !argv.includes("--headed");
   const slowMoMs = parseNumberArg(argv, "--slowmo") ?? 0;
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
-  const outDir = parseStringArg(argv, "--out") ?? process.env.CSV_OUT_DIR?.trim() ?? DEFAULT_CSV_OUT_DIR;
+  const outDir =
+    parseStringArg(argv, "--out") ?? process.env.CSV_OUT_DIR?.trim() ?? DEFAULT_CSV_OUT_DIR;
 
   const file = readLeagueIdsFile();
   const availableYears = resolveAvailableYears(file);
@@ -544,6 +580,10 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
   const year = yearArg ? Number(yearArg) : yearFallback;
   if (!Number.isFinite(year)) {
     throw new Error(`Invalid year: ${String(yearArg)}`);
+  }
+
+  if (!yearArg && Number.isFinite(yearFallback)) {
+    console.info(`No --year provided; defaulting to most recent mapped season: ${year}.`);
   }
 
   const season = resolveSeasonInfoForYear(file, year);
@@ -564,6 +604,39 @@ export const parseImportLeagueRegularOptions = (argv: string[]): ImportLeagueReg
 
 export const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const runImportTempCsvScriptIfUsingDefaultOutDir = (outDir: string): void => {
+  const repoRoot = process.cwd();
+  const expectedTempDir = path.resolve(repoRoot, "csv", "temp");
+  const resolvedOutDir = path.resolve(outDir);
+
+  if (resolvedOutDir !== expectedTempDir) {
+    console.info(
+      `Skipping ./scripts/import-temp-csv.sh because --out is ${resolvedOutDir} (expected ${expectedTempDir}). ` +
+        `Run ./scripts/import-temp-csv.sh manually if you want to import from csv/temp.`,
+    );
+    return;
+  }
+
+  const scriptPath = path.resolve(repoRoot, "scripts", "import-temp-csv.sh");
+  if (!existsSync(scriptPath)) {
+    throw new Error(`Missing post-import script: ${scriptPath}`);
+  }
+
+  console.info("Running ./scripts/import-temp-csv.sh ...");
+  const result = spawnSync("bash", [scriptPath], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: process.env,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (typeof result.status === "number" && result.status !== 0) {
+    throw new Error(`./scripts/import-temp-csv.sh failed with exit code ${result.status}`);
+  }
 };
 
 export const shouldBlockUrl = (url: string): boolean => {
@@ -649,12 +722,14 @@ const clickTeamFromStandings = async (page: Page, teamDisplayName: string): Prom
     }
   }
 
-  throw new Error(`Could not click team "${teamDisplayName}" in standings table. Last error: ${String(lastError)}`);
+  throw new Error(
+    `Could not click team "${teamDisplayName}" in standings table. Last error: ${String(lastError)}`,
+  );
 };
 
 export const tryGetRosterTeamIdFromStandingsLink = async (
   page: Page,
-  teamDisplayName: string
+  teamDisplayName: string,
 ): Promise<string | null> => {
   const table = page.locator("div.league-standings-table");
   const link = table.getByRole("link", { name: teamDisplayName }).first();
@@ -678,7 +753,7 @@ export const tryGetRosterTeamIdFromStandingsLink = async (
 
 export const getRosterTeamIdFromStandingsByNames = async (
   page: Page,
-  teamDisplayNames: readonly string[]
+  teamDisplayNames: readonly string[],
 ): Promise<string> => {
   // Prefer parsing from href without navigating.
   for (const displayName of teamDisplayNames) {
@@ -706,8 +781,8 @@ export const getRosterTeamIdFromStandingsByNames = async (
 
   throw new Error(
     `Could not resolve roster teamId from standings. Tried names: ${teamDisplayNames.join(" | ")}. Last error: ${String(
-      lastClickError
-    )}`
+      lastClickError,
+    )}`,
   );
 };
 
@@ -754,7 +829,7 @@ export const downloadRosterCsv = async (
   teamId: string,
   outDir: string,
   year: number,
-  kind?: RosterCsvKind
+  kind?: RosterCsvKind,
 ): Promise<string> => {
   // With statsType=3 in the URL this should already be set, but keep this as a best-effort
   // compatibility step in case Fantrax ignores the param for some leagues.

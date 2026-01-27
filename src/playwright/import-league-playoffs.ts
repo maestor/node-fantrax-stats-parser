@@ -16,6 +16,7 @@ import {
   parseNumberArg,
   parseStringArg,
   requireAuthStateFile,
+  runImportTempCsvScriptIfUsingDefaultOutDir,
   sleep,
   type TeamRun,
 } from "./helpers";
@@ -63,7 +64,7 @@ const readPlayoffsFileV2 = (): PlayoffsFileV2 => {
   if (file.schemaVersion !== 2 || !Array.isArray(file.seasons)) {
     throw new Error(
       `Unsupported playoffs mapping schema in ${PLAYOFFS_PATH}. Expected schemaVersion 2. ` +
-        `Re-run npm run playwright:sync:playoffs to regenerate it.`
+        `Re-run npm run playwright:sync:playoffs to regenerate it.`,
     );
   }
 
@@ -75,9 +76,7 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
   const slowMoMs = parseNumberArg(argv, "--slowmo") ?? 0;
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
   const outDir =
-    parseStringArg(argv, "--out") ??
-    process.env.CSV_OUT_DIR?.trim() ??
-    DEFAULT_CSV_OUT_DIR;
+    parseStringArg(argv, "--out") ?? process.env.CSV_OUT_DIR?.trim() ?? DEFAULT_CSV_OUT_DIR;
 
   const file = readPlayoffsFileV2();
 
@@ -93,11 +92,15 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
     throw new Error(`Invalid year: ${String(yearArg)}`);
   }
 
+  if (!yearArg && Number.isFinite(yearFallback)) {
+    console.info(`No --year provided; defaulting to most recent mapped season: ${year}.`);
+  }
+
   const season = file.seasons.find((s) => s.year === year);
   if (!season) {
     throw new Error(
       `Missing playoffs mapping for year ${year} in ${PLAYOFFS_PATH}. ` +
-        `Run npm run playwright:sync:playoffs -- --year=${year} to generate it.`
+        `Run npm run playwright:sync:playoffs -- --year=${year} to generate it.`,
     );
   }
 
@@ -106,7 +109,7 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
   if (missingIds.length) {
     throw new Error(
       `Playoffs mapping is missing rosterTeamId for ${missingIds.length} team(s): ${missingIds.join(", ")}. ` +
-        `Re-run npm run playwright:sync:playoffs -- --year=${year} to regenerate it.`
+        `Re-run npm run playwright:sync:playoffs -- --year=${year} to regenerate it.`,
     );
   }
 
@@ -158,7 +161,9 @@ const main = async (): Promise<void> => {
         kind: "playoffs",
       });
       if (existsSync(outPath)) {
-        console.info(`[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`);
+        console.info(
+          `[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`,
+        );
         continue;
       }
 
@@ -172,7 +177,14 @@ const main = async (): Promise<void> => {
       console.info(`[${team.name}] goto ${rosterUrl}`);
       await page.goto(rosterUrl, { waitUntil: "domcontentloaded" });
 
-      const savedTo = await downloadRosterCsv(page, team.name, team.id, options.outDir, options.year, "playoffs");
+      const savedTo = await downloadRosterCsv(
+        page,
+        team.name,
+        team.id,
+        options.outDir,
+        options.year,
+        "playoffs",
+      );
       console.info(`[${team.name}] saved ${savedTo}`);
       downloaded++;
 
@@ -185,6 +197,8 @@ const main = async (): Promise<void> => {
   } finally {
     await browser.close();
   }
+
+  runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
 };
 
 void main();

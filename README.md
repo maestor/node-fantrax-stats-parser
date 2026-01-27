@@ -23,9 +23,10 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 `/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
-   - Report type can be provided as a path segment:
-   - `/seasons/regular`, `/seasons/playoffs`, or `/seasons/both` (default: `regular` when omitted)
-   - Note: `both` is accepted for compatibility and behaves like `regular` for seasons.
+
+- Report type can be provided as a path segment:
+- `/seasons/regular`, `/seasons/playoffs`, or `/seasons/both` (default: `regular` when omitted)
+- Note: `both` is accepted for compatibility and behaves like `regular` for seasons.
 
 `/players/season/:reportType/:season` - Get player stats for a single season
 
@@ -148,19 +149,22 @@ Useful options:
 Run:
 
 ```
-npm run playwright:import:regular -- --year=2025
+npm run playwright:import:regular
 ```
 
 Notes:
 
 - Output directory defaults to `./csv/temp/`.
 - The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
+- If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-leagues.json`.
+- After downloading, the script runs `./scripts/import-temp-csv.sh` automatically when output dir is `./csv/temp/`.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
 
 Useful options:
 
+- `--year=2025` (override which season to download)
 - `--headed` (default is headless)
 - `--slowmo=250` (slows down actions for debugging)
 - `--pause=500` (sleep between teams; default `250`)
@@ -171,17 +175,20 @@ Useful options:
 Run:
 
 ```
-npm run playwright:import:playoffs -- --year=2025
+npm run playwright:import:playoffs
 ```
 
 Notes:
 
 - Requires the playoffs mapping file from step 2b (`fantrax-playoffs.json`).
 - Output directory defaults to `./csv/temp/`.
+- If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
+- After downloading, the script runs `./scripts/import-temp-csv.sh` automatically when output dir is `./csv/temp/`.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
 
+- `--year=2025` (override which season to download)
 - `--headed` (default is headless)
 - `--slowmo=250` (slows down actions for debugging)
 - `--pause=500` (sleep between teams; default `250`)
@@ -225,14 +232,14 @@ What it does:
 
 - Script: `scripts/import-temp-csv.sh`
 - Assumes input files in `csv/temp/` are named:
-   - `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
+  - `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
 
 It will:
 
 - Read matching files from `csv/temp/`
 - Clean them using `scripts/handle-csv.sh`
 - Write the cleaned CSVs to the API layout:
-   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
+  - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
 - Create `csv/<teamId>/` if it doesn’t exist
 - Not delete anything from `csv/temp/`
 

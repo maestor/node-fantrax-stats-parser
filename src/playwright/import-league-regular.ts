@@ -14,6 +14,7 @@ import {
   installRequestBlocking,
   parseImportLeagueRegularOptions,
   requireAuthStateFile,
+  runImportTempCsvScriptIfUsingDefaultOutDir,
   sleep,
   standingsNameCandidates,
   tryGetRosterTeamIdFromStandingsLink,
@@ -46,6 +47,7 @@ const main = async (): Promise<void> => {
 
   if (!teamsToDownload.length) {
     console.info(`Done. All regular-season CSV files already exist in ${options.outDir}.`);
+    runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
     return;
   }
 
@@ -147,6 +149,8 @@ const main = async (): Promise<void> => {
   } finally {
     await browser.close();
   }
+
+  runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
 
 };
 
