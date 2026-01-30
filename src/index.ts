@@ -13,6 +13,7 @@ import {
   getPlayersSeason,
   getGoaliesCombined,
   getGoaliesSeason,
+  getLastModified,
 } from "./routes";
 
 const service: RequestHandler = async (_req, res) => {
@@ -30,6 +31,7 @@ module.exports = cors(
     get("/", service),
     get("/healthcheck", getHealthcheck),
     get("/health", getHealthcheck),
+    get("/last-modified", protectedRoute(getLastModified)),
     get("/teams", protectedRoute(getTeams)),
     get("/seasons", protectedRoute(getSeasons)),
     get("/seasons/:reportType", protectedRoute(getSeasons)),

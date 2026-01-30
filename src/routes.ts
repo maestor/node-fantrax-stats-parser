@@ -1,6 +1,8 @@
 import { send } from "micro";
 import { AugmentedRequestHandler, ServerResponse } from "microrouter";
 import type { IncomingMessage } from "http";
+import fs from "fs";
+import path from "path";
 import {
   getAvailableSeasons,
   getPlayersStatsSeason,
@@ -176,4 +178,28 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   }
 
   await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId, startFrom));
+};
+
+export const getLastModified: AugmentedRequestHandler = async (req, res) => {
+  await withErrorHandlingCached(req, res, async () => {
+    const teamsWithCsv = getTeamsWithCsvFolders();
+    let mostRecent = 0;
+
+    for (const team of teamsWithCsv) {
+      const teamDir = path.join(process.cwd(), "csv", team.id);
+      const files = fs.readdirSync(teamDir).filter(f => f.endsWith('.csv'));
+
+      for (const file of files) {
+        const filePath = path.join(teamDir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.mtimeMs > mostRecent) {
+          mostRecent = stats.mtimeMs;
+        }
+      }
+    }
+
+    return {
+      lastModified: mostRecent > 0 ? new Date(mostRecent).toISOString() : null
+    };
+  });
 };

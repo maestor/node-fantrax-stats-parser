@@ -1,5 +1,6 @@
 import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
+import fs from "fs";
 import {
   getSeasons,
   getTeams,
@@ -8,6 +9,7 @@ import {
   getPlayersCombined,
   getGoaliesSeason,
   getGoaliesCombined,
+  getLastModified,
   resetRouteCachesForTests,
 } from "../routes";
 import {
@@ -31,6 +33,7 @@ import { makeEtagForJson } from "../cache";
 jest.mock("micro");
 jest.mock("../services");
 jest.mock("../helpers");
+jest.mock("fs");
 
 type RouteReq = Parameters<typeof getSeasons>[0];
 const asRouteReq = (req: unknown): RouteReq => req as RouteReq;
@@ -649,6 +652,246 @@ describe("routes", () => {
 
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith("playoffs", "1", 2018);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
+    });
+  });
+
+  describe("getLastModified", () => {
+    const mockTeams = [
+      { id: "1", name: "colorado" },
+      { id: "2", name: "carolina" },
+    ];
+
+    beforeEach(() => {
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(mockTeams);
+    });
+
+    test("returns 200 with most recent modification timestamp", async () => {
+      const mockTime1 = new Date("2026-01-28T10:00:00.000Z").getTime();
+      const mockTime2 = new Date("2026-01-30T15:30:00.000Z").getTime();
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(["regular-2024-2025.csv", "playoffs-2023-2024.csv"])
+        .mockReturnValueOnce(["regular-2024-2025.csv"]);
+
+      (fs.statSync as jest.Mock)
+        .mockReturnValueOnce({ mtimeMs: mockTime1 })
+        .mockReturnValueOnce({ mtimeMs: mockTime1 - 1000 })
+        .mockReturnValueOnce({ mtimeMs: mockTime2 });
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(fs.readdirSync).toHaveBeenCalledTimes(2);
+      expect(fs.statSync).toHaveBeenCalledTimes(3);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: "2026-01-30T15:30:00.000Z",
+      });
+    });
+
+    test("returns null when no CSV files exist", async () => {
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue([]);
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: null,
+      });
+    });
+
+    test("filters out non-CSV files", async () => {
+      const mockTime = new Date("2026-01-28T10:00:00.000Z").getTime();
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce([
+          "regular-2024-2025.csv",
+          "README.md",
+          ".DS_Store",
+          "playoffs-2024-2025.csv",
+        ])
+        .mockReturnValueOnce(["regular-2023-2024.csv", "backup.txt"]);
+
+      (fs.statSync as jest.Mock)
+        .mockReturnValueOnce({ mtimeMs: mockTime })
+        .mockReturnValueOnce({ mtimeMs: mockTime + 1000 })
+        .mockReturnValueOnce({ mtimeMs: mockTime - 500 });
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(fs.statSync).toHaveBeenCalledTimes(3);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: "2026-01-28T10:00:01.000Z",
+      });
+    });
+
+    test("handles empty CSV directories", async () => {
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce([])
+        .mockReturnValueOnce([]);
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(fs.statSync).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: null,
+      });
+    });
+
+    test("memoizes successful responses and avoids re-calling the handler", async () => {
+      const mockTime = new Date("2026-01-28T10:00:00.000Z").getTime();
+
+      (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2024-2025.csv"]);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: mockTime });
+
+      const req1 = createRequest({ url: "/last-modified" });
+      const res1 = createResponse();
+      await getLastModified(asRouteReq(req1), res1);
+
+      jest.clearAllMocks();
+      (send as jest.Mock).mockClear();
+
+      const req2 = createRequest({ url: "/last-modified" });
+      const res2 = createResponse();
+      await getLastModified(asRouteReq(req2), res2);
+
+      expect(getTeamsWithCsvFolders).not.toHaveBeenCalled();
+      expect(fs.readdirSync).not.toHaveBeenCalled();
+      expect(fs.statSync).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, {
+        lastModified: "2026-01-28T10:00:00.000Z",
+      });
+    });
+
+    test("returns 304 for matching If-None-Match", async () => {
+      const mockTime = new Date("2026-01-28T10:00:00.000Z").getTime();
+      const mockResponse = { lastModified: "2026-01-28T10:00:00.000Z" };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2024-2025.csv"]);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: mockTime });
+
+      const req1 = createRequest({ url: "/last-modified", method: "GET" });
+      const res1 = createResponse();
+      await getLastModified(asRouteReq(req1), res1);
+
+      (send as jest.Mock).mockClear();
+      const etag = makeEtagForJson(mockResponse);
+      const req2 = {
+        method: "GET",
+        url: "/last-modified",
+        headers: { host: "localhost", "if-none-match": etag },
+      } as unknown as ReturnType<typeof createRequest>;
+      const res2 = createResponse();
+      const endSpy = jest.spyOn(res2, "end");
+
+      await getLastModified(asRouteReq(req2), res2);
+
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(res2.statusCode).toBe(304);
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
+      const mockTime = new Date("2026-01-28T10:00:00.000Z").getTime();
+      const mockResponse = { lastModified: "2026-01-28T10:00:00.000Z" };
+
+      (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2024-2025.csv"]);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: mockTime });
+
+      const etag = makeEtagForJson(mockResponse);
+      const req = {
+        method: "GET",
+        url: "/last-modified",
+        headers: { host: "localhost", "if-none-match": etag },
+      } as unknown as ReturnType<typeof createRequest>;
+      const res = createResponse();
+      const endSpy = jest.spyOn(res, "end");
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(res.statusCode).toBe(304);
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    test("works when req is undefined (no caching possible)", async () => {
+      const mockTime = new Date("2026-01-28T10:00:00.000Z").getTime();
+
+      (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2024-2025.csv"]);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtimeMs: mockTime });
+
+      const res = createResponse();
+      await getLastModified(undefined as unknown as RouteReq, res);
+
+      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: "2026-01-28T10:00:00.000Z",
+      });
+    });
+
+    test("returns 500 on filesystem error", async () => {
+      const error = new Error("Filesystem error");
+      (fs.readdirSync as jest.Mock).mockImplementation(() => {
+        throw error;
+      });
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
+    });
+
+    test("handles multiple teams with varying file counts", async () => {
+      const mockTime1 = new Date("2026-01-28T10:00:00.000Z").getTime();
+      const mockTime2 = new Date("2026-01-29T12:00:00.000Z").getTime();
+      const mockTime3 = new Date("2026-01-30T14:00:00.000Z").getTime();
+
+      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue([
+        { id: "1", name: "team1" },
+        { id: "2", name: "team2" },
+        { id: "3", name: "team3" },
+      ]);
+
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(["regular-2024-2025.csv", "playoffs-2024-2025.csv"])
+        .mockReturnValueOnce(["regular-2024-2025.csv"])
+        .mockReturnValueOnce([
+          "regular-2024-2025.csv",
+          "playoffs-2024-2025.csv",
+          "regular-2023-2024.csv",
+        ]);
+
+      (fs.statSync as jest.Mock)
+        .mockReturnValueOnce({ mtimeMs: mockTime1 })
+        .mockReturnValueOnce({ mtimeMs: mockTime1 + 500 })
+        .mockReturnValueOnce({ mtimeMs: mockTime2 })
+        .mockReturnValueOnce({ mtimeMs: mockTime3 })
+        .mockReturnValueOnce({ mtimeMs: mockTime3 - 1000 })
+        .mockReturnValueOnce({ mtimeMs: mockTime1 });
+
+      const req = createRequest({ url: "/last-modified" });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(fs.readdirSync).toHaveBeenCalledTimes(3);
+      expect(fs.statSync).toHaveBeenCalledTimes(6);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+        lastModified: "2026-01-30T14:00:00.000Z",
+      });
     });
   });
 });
