@@ -22,6 +22,8 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 `/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
 
+`/last-modified` - Returns the most recent modification timestamp of all CSV files (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). Useful for polling to detect when data has been updated. Returns `null` if no CSV files exist.
+
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
 
 - Report type can be provided as a path segment:
@@ -43,7 +45,7 @@ Report type values:
 
 For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are omitted (they cannot be combined reliably across regular + playoffs).
 
-Every API except `/teams` have optional query params:
+Every API except `/teams` and `/last-modified` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 
 ## Testing
@@ -296,6 +298,9 @@ curl https://ffhl-stats-api.vercel.app/seasons
 # Hosted demo: data endpoints may require an API key
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/seasons
 
+# Check when data was last updated
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/last-modified
+
 # Team selection (optional, defaults to teamId=1)
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?teamId=1"
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons/playoffs?teamId=1"
@@ -318,7 +323,7 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
 
 This service supports a simple API-key check for production usage.
 
-- **How it works**: when enabled, requests to data endpoints (`/seasons`, `/players/*`, `/goalies/*`) must include an API key.
+- **How it works**: when enabled, requests to data endpoints (`/teams`, `/last-modified`, `/seasons`, `/players/*`, `/goalies/*`) must include an API key.
 - **Unauthenticated** health endpoints remain public: `/health` and `/healthcheck`.
 
 ### Configuration (env vars)
@@ -354,12 +359,38 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 
 ## Caching
 
-Data endpoints (`/teams`, `/seasons`, `/players/*`, `/goalies/*`) are cached in two layers:
+Data endpoints (`/teams`, `/last-modified`, `/seasons`, `/players/*`, `/goalies/*`) are cached in two layers:
 
 - **In-memory per instance**: results are memoized to avoid repeated filesystem reads and CSV parsing.
 - **Edge-friendly HTTP caching**: successful `200` responses include `ETag` and `Cache-Control: s-maxage=...`, and clients/CDNs can use `If-None-Match` to get `304` responses.
 
 Because this API uses header-based API keys, responses include `Vary: authorization, x-api-key` by default to keep caching safe.
+
+### Using `/last-modified` for Change Detection
+
+Consumer applications can poll the `/last-modified` endpoint to detect when data has been updated:
+
+```typescript
+let lastKnownTimestamp: string | null = null;
+
+async function checkForUpdates() {
+  const response = await fetch('https://your-api.com/last-modified', {
+    headers: { 'X-API-Key': 'your-api-key' }
+  });
+  const data = await response.json();
+
+  if (data.lastModified !== lastKnownTimestamp) {
+    console.log('Data updated! Refetching stats...');
+    lastKnownTimestamp = data.lastModified;
+    await refetchAllStats();
+  }
+}
+
+// Poll every 5 minutes
+setInterval(checkForUpdates, 5 * 60 * 1000);
+```
+
+The endpoint supports ETag-based caching, so repeated requests with the same data return `304 Not Modified` responses with minimal overhead.
 
 ## Scoring algorithm
 
