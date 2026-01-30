@@ -22,7 +22,7 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 `/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
 
-`/last-modified` - Returns the most recent modification timestamp of all CSV files (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). Useful for polling to detect when data has been updated. Returns `null` if no CSV files exist.
+`/last-modified` - Returns the timestamp of the last data import (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). The timestamp is stored in `csv/last-modified.txt` and is updated automatically by the import script. Useful for polling to detect when data has been updated. Returns `null` if no timestamp file exists.
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
 
@@ -242,7 +242,8 @@ It will:
 - Clean them using `scripts/handle-csv.sh`
 - Write the cleaned CSVs to the API layout:
   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
-- Create `csv/<teamId>/` if it doesn’t exist
+- Create `csv/<teamId>/` if it doesn't exist
+- Update `csv/last-modified.txt` with the current UTC timestamp (used by the `/last-modified` endpoint)
 - Not delete anything from `csv/temp/`
 
 Preview without writing:

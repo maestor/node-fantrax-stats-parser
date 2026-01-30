@@ -62,6 +62,7 @@ fi
 
 matched=0
 skipped=0
+IMPORTED_COUNT=0
 
 for filepath in "${csv_files[@]}"; do
   filename="$(basename "$filepath")"
@@ -95,6 +96,7 @@ for filepath in "${csv_files[@]}"; do
       mkdir -p "$dest_dir"
       bash "$HANDLER_SCRIPT" "$filepath" "$dest_file" >/dev/null
       echo "Imported: $filename -> csv/${team_id}/$(basename "$dest_file") (teamName=${team_name})"
+      IMPORTED_COUNT=$((IMPORTED_COUNT + 1))
     fi
   else
     skipped=$((skipped + 1))
@@ -102,4 +104,11 @@ for filepath in "${csv_files[@]}"; do
   fi
 done
 
-echo "Done. Matched: $matched, Skipped: $skipped"
+# Write last-modified timestamp if files were imported
+if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
+  TIMESTAMP_FILE="${ROOT_DIR}/csv/last-modified.txt"
+  date -u +"%Y-%m-%dT%H:%M:%S.000Z" > "$TIMESTAMP_FILE"
+  echo "Updated: csv/last-modified.txt"
+fi
+
+echo "Done. Matched: $matched, Skipped: $skipped, Imported: $IMPORTED_COUNT"

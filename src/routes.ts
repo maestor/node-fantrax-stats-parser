@@ -182,24 +182,13 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => {
-    const teamsWithCsv = getTeamsWithCsvFolders();
-    let mostRecent = 0;
+    const timestampFile = path.join(process.cwd(), "csv", "last-modified.txt");
 
-    for (const team of teamsWithCsv) {
-      const teamDir = path.join(process.cwd(), "csv", team.id);
-      const files = fs.readdirSync(teamDir).filter(f => f.endsWith('.csv'));
-
-      for (const file of files) {
-        const filePath = path.join(teamDir, file);
-        const stats = fs.statSync(filePath);
-        if (stats.mtimeMs > mostRecent) {
-          mostRecent = stats.mtimeMs;
-        }
-      }
+    try {
+      const timestamp = fs.readFileSync(timestampFile, "utf-8").trim();
+      return { lastModified: timestamp || null };
+    } catch {
+      return { lastModified: null };
     }
-
-    return {
-      lastModified: mostRecent > 0 ? new Date(mostRecent).toISOString() : null
-    };
   });
 };
