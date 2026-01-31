@@ -88,6 +88,13 @@ describe("auth", () => {
       expect(extractApiKey(req, "x-api-key", true)).toBe("token123");
     });
 
+    test("handles array header with undefined first element", () => {
+      const req = createRequest({
+        headers: { "x-api-key": [undefined, "key2"] as unknown as string, authorization: "Bearer fallback" },
+      });
+      expect(extractApiKey(req, "x-api-key", true)).toBe("fallback");
+    });
+
     test("reads Bearer token when header missing", () => {
       const req = createRequest({ headers: { authorization: "Bearer token123" } });
       expect(extractApiKey(req, "x-api-key", true)).toBe("token123");
@@ -217,6 +224,38 @@ describe("auth", () => {
 
       expect(handler).toHaveBeenCalledWith(req, res);
       expect(send).not.toHaveBeenCalled();
+    });
+
+    test("allows Bearer auth by default when allowBearerAuth not specified", async () => {
+      const handler = jest.fn();
+      const wrapped = withApiKeyAuth(handler, {
+        requireAuth: true,
+        validKeys: ["token123"],
+        // allowBearerAuth not specified - should default to true
+      });
+      const req = createRequest({ headers: { authorization: "Bearer token123" } });
+      const res = createResponse();
+
+      await wrapped(req, res);
+
+      expect(handler).toHaveBeenCalledWith(req, res);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    test("rejects Bearer auth when allowBearerAuth is false", async () => {
+      const handler = jest.fn();
+      const wrapped = withApiKeyAuth(handler, {
+        requireAuth: true,
+        validKeys: ["token123"],
+        allowBearerAuth: false,
+      });
+      const req = createRequest({ headers: { authorization: "Bearer token123" } });
+      const res = createResponse();
+
+      await wrapped(req, res);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, 401, { error: "Missing API key" });
     });
   });
 });

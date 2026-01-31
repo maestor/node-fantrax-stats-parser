@@ -66,6 +66,7 @@ export const TEAMS: ReadonlyArray<Team> = [
 export const CSV = {
   NAME: "field2" as const,
   SKATER_TYPE: "Skaters" as const,
+  PLAYER_POSITION: "field4" as const,
   // Player fields
   PLAYER_GAMES: "field7" as const,
   PLAYER_GOALS: "field8" as const,

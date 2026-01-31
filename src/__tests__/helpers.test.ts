@@ -11,6 +11,7 @@ import {
   ApiError,
   sortItemsByStatField,
   applyPlayerScores,
+  applyPlayerScoresByPosition,
   applyGoalieScores,
   availableSeasons,
   ERROR_MESSAGES,
@@ -66,6 +67,92 @@ describe("helpers", () => {
     expect(first).toBe("1");
     expect(second).toBe("1");
     expect(callsAfterSecond).toBe(callsAfterFirst);
+  });
+
+  test("hasTeamCsvDir re-throws non-ENOENT errors", () => {
+    resetHelperCachesForTests();
+    const permError = new Error("Permission denied") as NodeJS.ErrnoException;
+    permError.code = "EPERM";
+    (fs.readdirSync as unknown as jest.Mock).mockImplementationOnce(() => {
+      throw permError;
+    });
+
+    expect(() => getTeamsWithCsvFolders()).toThrow("Permission denied");
+  });
+
+  test("hasTeamCsvDir re-throws when error has no code property", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock).mockImplementationOnce(() => {
+      throw new Error("Generic error"); // No code property
+    });
+
+    expect(() => getTeamsWithCsvFolders()).toThrow("Generic error");
+  });
+
+  test("hasTeamCsvDir re-throws when thrown value is undefined", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock).mockImplementationOnce(() => {
+      throw undefined;
+    });
+
+    expect(() => getTeamsWithCsvFolders()).toThrow();
+  });
+
+  test("ensureTeamCsvDirOrThrow re-throws non-ENOENT errors", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock)
+      .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
+      .mockImplementationOnce(() => {
+        const permError = new Error("Permission denied") as NodeJS.ErrnoException;
+        permError.code = "EPERM";
+        throw permError;
+      });
+
+    expect(() => listSeasonsForTeam("1", "regular")).toThrow("Permission denied");
+  });
+
+  test("ensureTeamCsvDirOrThrow re-throws when error has no code property", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock)
+      .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
+      .mockImplementationOnce(() => {
+        throw new Error("Generic error"); // No code property
+      });
+
+    expect(() => listSeasonsForTeam("1", "regular")).toThrow("Generic error");
+  });
+
+  test("ensureTeamCsvDirOrThrow re-throws when thrown value is undefined", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock)
+      .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
+      .mockImplementationOnce(() => {
+        throw undefined;
+      });
+
+    expect(() => listSeasonsForTeam("1", "regular")).toThrow();
+  });
+
+  test("ensureTeamCsvDirOrThrow re-throws ENOENT for unconfigured team (not ApiError)", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock).mockImplementation(() => {
+      const err = new Error("ENOENT") as NodeJS.ErrnoException;
+      err.code = "ENOENT";
+      throw err;
+    });
+
+    // Team "999" is not configured, so ENOENT should be re-thrown, not wrapped in ApiError
+    expect(() => listSeasonsForTeam("999", "regular")).toThrow("ENOENT");
+  });
+
+  test("ensureTeamCsvDirOrThrow re-throws undefined for unconfigured team", () => {
+    resetHelperCachesForTests();
+    (fs.readdirSync as unknown as jest.Mock).mockImplementation(() => {
+      throw undefined;
+    });
+
+    // Team "999" is not configured, err is undefined, so should re-throw
+    expect(() => listSeasonsForTeam("999", "regular")).toThrow();
   });
 
   describe("sortItemsByStatField", () => {
@@ -740,6 +827,379 @@ describe("helpers", () => {
     });
   });
 
+  describe("applyPlayerScoresByPosition", () => {
+    test("returns empty array unchanged when no players", () => {
+      const result = applyPlayerScoresByPosition([]);
+      expect(result).toEqual([]);
+    });
+
+    test("scores forwards against forwards only", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Forward High",
+          position: "F",
+          games: 10,
+          goals: 20,
+          assists: 30,
+          points: 50,
+          plusMinus: 10,
+          penalties: 5,
+          shots: 100,
+          ppp: 10,
+          shp: 2,
+          hits: 20,
+          blocks: 5,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Forward Low",
+          position: "F",
+          games: 10,
+          goals: 10,
+          assists: 15,
+          points: 25,
+          plusMinus: 5,
+          penalties: 10,
+          shots: 50,
+          ppp: 5,
+          shp: 1,
+          hits: 10,
+          blocks: 3,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Defenseman",
+          position: "D",
+          games: 10,
+          goals: 5,
+          assists: 10,
+          points: 15,
+          plusMinus: 15,
+          penalties: 2,
+          shots: 30,
+          ppp: 3,
+          shp: 0,
+          hits: 50,
+          blocks: 40,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      // Forward High should score 100 among forwards
+      expect(result[0].scoreByPosition).toBe(100);
+      expect(result[0].scoresByPosition).toBeDefined();
+      expect(result[0].scoreByPositionAdjustedByGames).toBeDefined();
+
+      // Forward Low should score less than Forward High
+      expect((result[1].scoreByPosition as number) < 100).toBe(true);
+      expect(result[1].scoreByPosition).toBeGreaterThan(0);
+
+      // Defenseman is only one in his group, so should score 100
+      expect(result[2].scoreByPosition).toBe(100);
+    });
+
+    test("handles players with no position", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "No Position Player",
+          games: 10,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      // Player without position should not have position scores
+      expect(result[0].scoreByPosition).toBeUndefined();
+    });
+
+    test("sets scoreByPositionAdjustedByGames to 0 for players under minimum games", () => {
+      const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
+      const belowMinGames = Math.max(minGames - 1, 0);
+
+      const testPlayers: Player[] = [
+        {
+          name: "Few Games Forward",
+          position: "F",
+          games: belowMinGames,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Eligible Forward",
+          position: "F",
+          games: minGames,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      expect(result[0].scoreByPositionAdjustedByGames).toBe(0);
+      expect((result[1].scoreByPositionAdjustedByGames as number) > 0).toBe(true);
+    });
+
+    test("handles all players below minimum games in position group", () => {
+      const belowMinGames = Math.max(MIN_GAMES_FOR_ADJUSTED_SCORE - 1, 0);
+
+      const testPlayers: Player[] = [
+        {
+          name: "Few Games Forward 1",
+          position: "F",
+          games: belowMinGames,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Few Games Forward 2",
+          position: "F",
+          games: belowMinGames,
+          goals: 5,
+          assists: 5,
+          points: 10,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 25,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      expect(result[0].scoreByPositionAdjustedByGames).toBe(0);
+      expect(result[1].scoreByPositionAdjustedByGames).toBe(0);
+    });
+
+    test("handles plusMinus with equal values in position group", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Forward 1",
+          position: "F",
+          games: 10,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 5,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Forward 2",
+          position: "F",
+          games: 10,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 5,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      // Equal stats should result in equal scores
+      expect(result[0].scoreByPosition).toBe(result[1].scoreByPosition);
+    });
+
+    test("treats NaN stat values as 0 in position scoring", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "NaN Forward",
+          position: "F",
+          games: 10,
+          goals: NaN,
+          assists: 10,
+          points: 10,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Valid Forward",
+          position: "F",
+          games: 10,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      expect(result[0].scoreByPosition).toBeDefined();
+      expect(result[1].scoreByPosition).toBeDefined();
+      expect((result[0].scoreByPosition as number) >= 0).toBe(true);
+    });
+
+    test("handles negative plusMinus per game in position scoring", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Positive Forward",
+          position: "F",
+          games: 10,
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 20,
+          penalties: 0,
+          shots: 50,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Negative Forward",
+          position: "F",
+          games: 10,
+          goals: 5,
+          assists: 5,
+          points: 10,
+          plusMinus: -15,
+          penalties: 0,
+          shots: 25,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      // Positive plusMinus player should score higher in position scoring
+      expect((result[0].scoreByPositionAdjustedByGames as number) > (result[1].scoreByPositionAdjustedByGames as number)).toBe(true);
+    });
+
+    test("handles all stats at zero in position group", () => {
+      const testPlayers: Player[] = [
+        {
+          name: "Zero Forward 1",
+          position: "F",
+          games: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Zero Forward 2",
+          position: "F",
+          games: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyPlayerScoresByPosition(testPlayers);
+
+      expect(result[0].scoreByPosition).toBeDefined();
+      expect(result[1].scoreByPosition).toBeDefined();
+    });
+  });
+
   describe("applyGoalieScores", () => {
     test("calculates relative scores between 0 and 100 for goalies", () => {
       const testGoalies: Goalie[] = [
@@ -1207,6 +1667,52 @@ describe("helpers", () => {
 
       const [goalie] = applyGoalieScores(testGoalies);
       expect(goalie.score).toBe(0);
+    });
+
+    test("sets GAA score to 0 when GAA is 75% or more worse than best (ratio >= GOALIE_GAA_MAX_DIFF_RATIO)", () => {
+      const testGoalies: Goalie[] = [
+        {
+          name: "Goalie Best GAA",
+          games: 30,
+          wins: 20,
+          saves: 800,
+          shutouts: 3,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          gaa: "2.0",
+          savePercent: "0.920",
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Goalie Extreme GAA",
+          games: 30,
+          wins: 10,
+          saves: 600,
+          shutouts: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          gaa: "4.0", // 100% worse than 2.0 (diff=2.0, ratio=1.0 >= 0.75)
+          savePercent: "0.880",
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [best, extreme] = applyGoalieScores(testGoalies);
+
+      // Best GAA should score 100 for GAA component
+      expect(best.scores?.gaa).toBe(100);
+      // Extreme GAA (100% worse) exceeds 75% threshold, so GAA score should be 0
+      expect(extreme.scores?.gaa).toBe(0);
     });
   });
 

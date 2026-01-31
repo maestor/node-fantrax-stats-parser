@@ -166,6 +166,22 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
     });
 
+    test("parses query params with valid url but no headers object", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
+        typeof raw === "string" && raw ? raw : "1"
+      );
+
+      const req = { url: "/seasons?teamId=1" } as unknown as ReturnType<typeof createRequest>;
+      const res = createResponse();
+
+      await getSeasons(asRouteReq(req), res);
+
+      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
+    });
+
     test("returns statusCode from typed error", async () => {
       const error = { statusCode: 422, message: "missing" };
       (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
@@ -176,6 +192,18 @@ describe("routes", () => {
       await getSeasons(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, 422, error);
+    });
+
+    test("falls back to 500 when error statusCode is falsy (0)", async () => {
+      const error = { statusCode: 0, message: "falsy code" };
+      (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
+
+      const req = createRequest();
+      const res = createResponse();
+
+      await getSeasons(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, error);
     });
 
     test("treats missing teamId query param as undefined", async () => {

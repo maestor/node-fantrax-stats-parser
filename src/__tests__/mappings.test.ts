@@ -13,6 +13,7 @@ import {
   mockRawDataGoalie2012,
   mockRawDataGoalie2014,
   mockRawDataGoalieNoField18,
+  mockRawDataGoalieNonNumericWins,
   mockRawDataFirstRow,
   mockRawDataEmptyName,
   mockRawDataZeroGames,
@@ -59,6 +60,7 @@ describe("mappings", () => {
       const result = mapPlayerData([mockRawDataFirstRow, mockRawDataPlayer]);
       expect(result[0]).toEqual({
         name: "Connor McDavid",
+        position: "F",
         games: 82,
         goals: 50,
         assists: 75,
@@ -427,6 +429,13 @@ describe("mappings", () => {
       const result = mapGoalieData([mockRawDataFirstRow, goalieWithCommaInField18]);
 
       expect(result[0].shp).toBe(1234);
+    });
+
+    test("returns 0 wins when wins field contains no digits (parseWinsFromWG no-match)", () => {
+      const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalieNonNumericWins]);
+
+      expect(result[0].name).toBe("Test Goalie Non-Numeric");
+      expect(result[0].wins).toBe(0);
     });
   });
 

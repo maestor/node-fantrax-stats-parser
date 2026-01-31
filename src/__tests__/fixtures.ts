@@ -272,3 +272,26 @@ export const mockGoalieWithSeason: GoalieWithSeason = {
   ...mockGoalie,
   season: 2024,
 };
+
+// Raw data for goalie with non-numeric wins field (tests parseWinsFromWG no-match branch)
+export const mockRawDataGoalieNonNumericWins: RawData = {
+  Skaters: "G",
+  season: 2014,
+  field2: "Test Goalie Non-Numeric",
+  field3: "TOR",
+  field4: "G",
+  field5: "Act",
+  field6: "@MTL",
+  field7: "30", // GP
+  field8: "N/A", // Non-numeric wins (regex won't match)
+  field9: "2.75",
+  field10: "1500",
+  field11: "0.910",
+  field12: "5",
+  field13: "10",
+  field14: "3",
+  field15: "7",
+  field16: "10",
+  field17: "1",
+  field18: "0",
+};
