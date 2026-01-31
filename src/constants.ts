@@ -125,15 +125,20 @@ export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
 export const GOALIE_SCORE_WEIGHTS: GoalieScoreWeights = {
   wins: 1,
   saves: 1,
-  shutouts: 1,
+  shutouts: 0.25,
   gaa: 1,
   savePercent: 1,
 };
 
+// Dampening exponent for goalie base stats (wins, saves, shutouts)
+// Uses sqrt (0.5) to compress score ranges while preserving rank order
+// Example: with max 26 wins, 14 wins scores 73.4 instead of 53.8
+export const GOALIE_SCORING_DAMPENING_EXPONENT = 0.5;
+
 // Advanced goalie stat scaling (used to avoid extreme 0/100 scores when values are close)
 // If a goalie's GAA is worse than the best GAA by this ratio or more, they get 0 for the GAA component.
-// Example: ratio 0.5 means a goalie with 50% worse GAA than the best maps to 0.
-export const GOALIE_GAA_MAX_DIFF_RATIO = 0.5;
+// Example: ratio 0.75 means a goalie with 75% worse GAA than the best maps to 0.
+export const GOALIE_GAA_MAX_DIFF_RATIO = 0.60;
 
 // Baseline save percentage for scoring (used to avoid extreme 0 scores)
 export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850
