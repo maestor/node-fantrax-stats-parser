@@ -9,6 +9,7 @@ import {
   GOALIE_SCORE_WEIGHTS,
   GOALIE_GAA_MAX_DIFF_RATIO,
   GOALIE_SAVE_PERCENT_BASELINE,
+  GOALIE_SCORING_DAMPENING_EXPONENT,
   MIN_GAMES_FOR_ADJUSTED_SCORE,
   DEFAULT_TEAM_ID,
   TEAMS,
@@ -381,7 +382,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
       if (max > 0) {
         const raw = Number((goalie as unknown as Record<string, number>)[field]);
         const value = Math.max(0, raw);
-        const relative = (value / max) * 100;
+        const relative = Math.pow(value / max, GOALIE_SCORING_DAMPENING_EXPONENT) * 100;
         const weight = GOALIE_SCORE_WEIGHTS[field];
 
         const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
