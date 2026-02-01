@@ -33,12 +33,13 @@ export const resetRouteCachesForTests = (): void => {
   responseCache.clear();
 };
 
-const getQueryParam = (req: unknown, key: string): string | undefined => {
-  const request = req as { url?: unknown; headers?: Record<string, unknown> };
-  if (typeof request?.url !== "string") return undefined;
+type QueryParamRequest = { url?: unknown; headers?: Record<string, unknown> };
 
-  const host = typeof request.headers?.host === "string" ? request.headers.host : "localhost";
-  const url = new URL(request.url, `http://${host}`);
+const getQueryParam = (req: QueryParamRequest, key: string): string | undefined => {
+  if (typeof req.url !== "string") return undefined;
+
+  const host = typeof req.headers?.host === "string" ? req.headers.host : "localhost";
+  const url = new URL(req.url, `http://${host}`);
   const value = url.searchParams.get(key);
   return value === null ? undefined : value;
 };

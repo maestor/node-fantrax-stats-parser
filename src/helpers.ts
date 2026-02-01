@@ -338,6 +338,145 @@ export const applyPlayerScores = (players: Player[]): Player[] => {
   return players;
 };
 
+const applyPositionScoresForGroup = (players: Player[]): void => {
+  if (!players.length) return;
+
+  const fields = PLAYER_SCORE_FIELDS;
+  const weights = PLAYER_SCORE_WEIGHTS;
+  const fieldCount = fields.length;
+
+  // Calculate max/min for the position group
+  const maxByField = getMaxByField(players, fields);
+  const minByField = getMinByField(players, fields);
+
+  // Calculate scoreByPosition and scoresByPosition
+  for (const player of players) {
+    let total = 0;
+    player.scoresByPosition = {};
+
+    for (const field of fields) {
+      const max = maxByField[field];
+      const min = minByField[field];
+
+      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const safeRaw = Number.isFinite(raw) ? raw : 0;
+
+      let relative = 0;
+
+      if (field === "plusMinus") {
+        const range = max - min;
+        if (range > 0) {
+          relative = ((safeRaw - min) / range) * 100;
+        } else {
+          continue;
+        }
+      } else {
+        if (max <= 0) continue;
+        const value = Math.max(0, safeRaw);
+        relative = (value / max) * 100;
+      }
+
+      const clamped = Math.min(Math.max(relative, 0), 100);
+      player.scoresByPosition[field] = toTwoDecimals(clamped);
+
+      const weight = weights[field];
+      total += relative * weight;
+    }
+
+    const average = total / fieldCount;
+    player.scoreByPosition = toTwoDecimals(Math.min(Math.max(average, 0), 100));
+  }
+
+  normalizeFieldToBest(players, "scoreByPosition");
+
+  // Calculate scoreByPositionAdjustedByGames
+  const eligible = players.filter((p) => p.games >= MIN_GAMES_FOR_ADJUSTED_SCORE);
+
+  if (!eligible.length) {
+    for (const player of players) {
+      player.scoreByPositionAdjustedByGames = 0;
+    }
+    return;
+  }
+
+  const maxPerGameByField: Record<string, number> = {};
+  let minPlusMinusPerGame = 0;
+  let maxPlusMinusPerGame = 0;
+
+  for (const field of fields) {
+    maxPerGameByField[field] = 0;
+  }
+
+  for (const player of eligible) {
+    const games = player.games;
+    for (const field of fields) {
+      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const perGame = raw / games;
+
+      if (field === "plusMinus") {
+        if (perGame > maxPlusMinusPerGame) maxPlusMinusPerGame = perGame;
+        if (perGame < minPlusMinusPerGame) minPlusMinusPerGame = perGame;
+      } else {
+        const value = Math.max(0, perGame);
+        if (value > maxPerGameByField[field]) {
+          maxPerGameByField[field] = value;
+        }
+      }
+    }
+  }
+
+  for (const player of players) {
+    if (player.games < MIN_GAMES_FOR_ADJUSTED_SCORE) {
+      player.scoreByPositionAdjustedByGames = 0;
+      continue;
+    }
+
+    const games = player.games;
+    let total = 0;
+
+    for (const field of fields) {
+      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const perGame = raw / games;
+      let relative = 0;
+
+      if (field === "plusMinus") {
+        const range = maxPlusMinusPerGame - minPlusMinusPerGame;
+        if (range > 0) {
+          relative = ((perGame - minPlusMinusPerGame) / range) * 100;
+        }
+      } else {
+        const max = maxPerGameByField[field];
+        if (max > 0) {
+          const value = Math.max(0, perGame);
+          relative = (value / max) * 100;
+        }
+      }
+
+      const weight = weights[field];
+      total += relative * weight;
+    }
+
+    const average = total / fieldCount;
+    player.scoreByPositionAdjustedByGames = toTwoDecimals(Math.min(Math.max(average, 0), 100));
+  }
+
+  normalizeFieldToBest(players, "scoreByPositionAdjustedByGames");
+};
+
+export const applyPlayerScoresByPosition = (players: Player[]): Player[] => {
+  if (!players.length) return players;
+
+  // Group players by position
+  const forwards = players.filter((p) => p.position === "F");
+  const defensemen = players.filter((p) => p.position === "D");
+
+  // Apply position-based scoring to each group
+  applyPositionScoresForGroup(forwards);
+  applyPositionScoresForGroup(defensemen);
+
+  return players;
+};
+
 export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   if (!goalies.length) return goalies;
 

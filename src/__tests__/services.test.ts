@@ -93,6 +93,17 @@ describe("services", () => {
       expect(mapAvailableSeasons).toHaveBeenCalledWith([]);
       expect(result).toEqual(mockSeasons);
     });
+
+    test("uses regular report type when reportType is both", async () => {
+      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
+      (availableSeasons as jest.Mock).mockReturnValue([2012]);
+      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
+
+      const result = await getAvailableSeasons("1", "both");
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+      expect(result).toEqual(mockSeasons);
+    });
   });
 
   describe("getPlayersStatsSeason", () => {

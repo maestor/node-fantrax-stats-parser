@@ -1,5 +1,6 @@
 interface Common {
   name: string;
+  position?: string;
   games: number;
   goals: number;
   assists: number;
@@ -10,6 +11,9 @@ interface Common {
   score: number;
   scoreAdjustedByGames: number;
   scores?: Record<string, number>;
+  scoreByPosition?: number;
+  scoreByPositionAdjustedByGames?: number;
+  scoresByPosition?: Record<string, number>;
 }
 
 export interface Player extends Common {

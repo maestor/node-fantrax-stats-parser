@@ -9,7 +9,7 @@ import {
   GoalieWithSeason,
   CombinedGoalie,
 } from "./types";
-import { applyPlayerScores, applyGoalieScores } from "./helpers";
+import { applyPlayerScores, applyPlayerScoresByPosition, applyGoalieScores } from "./helpers";
 import { CSV } from "./constants";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
@@ -42,6 +42,7 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
     .map(
       (item: RawData): PlayerWithSeason => ({
         name: item[CSV.NAME],
+        position: item[CSV.PLAYER_POSITION],
         games: parseNumber(item[CSV.PLAYER_GAMES]),
         goals: parseNumber(item[CSV.PLAYER_GOALS]),
         assists: parseNumber(item[CSV.PLAYER_ASSISTS]),
@@ -71,7 +72,14 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
   // response reflects the same scoring model as the single-season endpoints.
   const seasonScoreLookup = new Map<
     string,
-    { score: number; scoreAdjustedByGames: number; scores?: Record<string, number> }
+    {
+      score: number;
+      scoreAdjustedByGames: number;
+      scores?: Record<string, number>;
+      scoreByPosition?: number;
+      scoreByPositionAdjustedByGames?: number;
+      scoresByPosition?: Record<string, number>;
+    }
   >();
 
   const playersBySeason = new Map<number, PlayerWithSeason[]>();
@@ -83,11 +91,15 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
 
   for (const [season, players] of playersBySeason) {
     applyPlayerScores(players);
+    applyPlayerScoresByPosition(players);
     for (const player of players) {
       seasonScoreLookup.set(`${player.name}-${season}`, {
         score: player.score,
         scoreAdjustedByGames: player.scoreAdjustedByGames,
         scores: player.scores,
+        scoreByPosition: player.scoreByPosition,
+        scoreByPositionAdjustedByGames: player.scoreByPositionAdjustedByGames,
+        scoresByPosition: player.scoresByPosition,
       });
     }
   }
@@ -97,7 +109,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
       .reduce<Map<string, CombinedPlayer>>((r, currentItem: PlayerWithSeason) => {
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem).filter(
-          (key) => key !== "name" && key !== "season" && key !== "score"
+          (key) => key !== "name" && key !== "position" && key !== "season" && key !== "score"
         ) as PlayerFields[];
 
         let item = r.get(currentItem.name);
@@ -105,6 +117,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
         if (!item) {
           item = {
             name: currentItem.name,
+            position: currentItem.position,
             games: 0,
             goals: 0,
             assists: 0,
@@ -150,6 +163,9 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
           score: seasonScores?.score ?? 0,
           scoreAdjustedByGames: seasonScores?.scoreAdjustedByGames ?? 0,
           scores: seasonScores?.scores,
+          scoreByPosition: seasonScores?.scoreByPosition,
+          scoreByPositionAdjustedByGames: seasonScores?.scoreByPositionAdjustedByGames,
+          scoresByPosition: seasonScores?.scoresByPosition,
         });
 
         return r;

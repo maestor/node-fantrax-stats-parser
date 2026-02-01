@@ -6,6 +6,7 @@ import {
   sortItemsByStatField,
   availableSeasons,
   applyPlayerScores,
+  applyPlayerScoresByPosition,
   applyGoalieScores,
 } from "./helpers";
 import { validateCsvFileOnceOrThrow } from "./csvIntegrity";
@@ -166,12 +167,14 @@ export const getPlayersStatsSeason = async (
     const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
     const merged = mergePlayersSameSeason(mapPlayerData(rawData));
     const scoredData = applyPlayerScores(merged);
+    applyPlayerScoresByPosition(scoredData);
     return sortItemsByStatField(scoredData, "players");
   }
 
   const rawData = await getRawDataFromFiles(teamId, report, seasons);
   const mappedData = mapPlayerData(rawData);
   const scoredData = applyPlayerScores(mappedData);
+  applyPlayerScoresByPosition(scoredData);
   return sortItemsByStatField(scoredData, "players");
 };
 
@@ -198,7 +201,7 @@ const getCombinedStats = async (
   report: CsvReport,
   mapper: (data: RawData[]) => Player[] | Goalie[],
   kind: "players" | "goalies",
-  teamId: string = DEFAULT_TEAM_ID,
+  teamId: string,
   startFrom?: number
 ) => {
   let seasons = availableSeasons(teamId, report);
@@ -209,15 +212,18 @@ const getCombinedStats = async (
 
   const rawData = await getRawDataFromFiles(teamId, report, seasons);
   const mappedData = mapper(rawData);
-  const scoredData =
-    kind === "players"
-      ? applyPlayerScores(mappedData as Player[])
-      : applyGoalieScores(mappedData as Goalie[]);
+  let scoredData;
+  if (kind === "players") {
+    scoredData = applyPlayerScores(mappedData as Player[]);
+    applyPlayerScoresByPosition(scoredData);
+  } else {
+    scoredData = applyGoalieScores(mappedData as Goalie[]);
+  }
   return sortItemsByStatField(scoredData, kind);
 };
 
 const getPlayersStatsCombinedBoth = async (
-  teamId: string = DEFAULT_TEAM_ID,
+  teamId: string,
   startFrom?: number
 ) => {
   let seasons = availableSeasons(teamId, "both");
@@ -229,11 +235,12 @@ const getPlayersStatsCombinedBoth = async (
   const mergedBySeason = mergePlayersSameSeason(mapPlayerData(rawData));
   const combined = mapCombinedPlayerDataFromPlayersWithSeason(mergedBySeason);
   const scored = applyPlayerScores(combined);
+  applyPlayerScoresByPosition(scored);
   return sortItemsByStatField(scored, "players");
 };
 
 const getGoaliesStatsCombinedBoth = async (
-  teamId: string = DEFAULT_TEAM_ID,
+  teamId: string,
   startFrom?: number
 ) => {
   let seasons = availableSeasons(teamId, "both");
