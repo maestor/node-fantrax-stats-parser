@@ -22,31 +22,51 @@ import {
 } from "./helpers";
 
 const main = async (): Promise<void> => {
-  const options: ImportLeagueRegularOptions = parseImportLeagueRegularOptions(process.argv.slice(2));
+  const options: ImportLeagueRegularOptions = parseImportLeagueRegularOptions(
+    process.argv.slice(2),
+  );
   requireAuthStateFile();
   mkdirSync(path.resolve(options.outDir), { recursive: true });
 
-  const outOfEra = TEAMS.filter((t) => t.firstSeason !== undefined && options.year < t.firstSeason);
+  const outOfEra = TEAMS.filter(
+    (t) => t.firstSeason !== undefined && options.year < t.firstSeason,
+  );
   if (outOfEra.length) {
     console.info(
       `Skipping ${outOfEra.length} team(s) not in ${options.year}-${options.year + 1}: ${outOfEra
         .map((t) => t.name)
-        .join(", ")}.`
+        .join(", ")}.`,
     );
   }
 
-  const teamsToDownload = TEAMS.filter((team) => team.firstSeason === undefined || options.year >= team.firstSeason).filter((team) => {
-    const fileName = buildRosterCsvFileName({ teamSlug: team.name, teamId: team.id, year: options.year });
-    const p = buildRosterCsvPath({ outDir: options.outDir, teamSlug: team.name, teamId: team.id, year: options.year });
+  const teamsToDownload = TEAMS.filter(
+    (team) =>
+      team.firstSeason === undefined || options.year >= team.firstSeason,
+  ).filter((team) => {
+    const fileName = buildRosterCsvFileName({
+      teamSlug: team.name,
+      teamId: team.id,
+      year: options.year,
+    });
+    const p = buildRosterCsvPath({
+      outDir: options.outDir,
+      teamSlug: team.name,
+      teamId: team.id,
+      year: options.year,
+    });
     if (existsSync(p)) {
-      console.info(`[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`);
+      console.info(
+        `[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`,
+      );
       return false;
     }
     return true;
   });
 
   if (!teamsToDownload.length) {
-    console.info(`Done. All regular-season CSV files already exist in ${options.outDir}.`);
+    console.info(
+      `Done. All regular-season CSV files already exist in ${options.outDir}.`,
+    );
     runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
     return;
   }
@@ -70,13 +90,20 @@ const main = async (): Promise<void> => {
     // Resolve season-specific roster teamIds from standings once (these change per year).
     await gotoStandings(page, options.leagueId);
     const rosterTeamIdBySlug = new Map<string, string>();
-    const missing: Array<{ slug: string; presentName: string; names: string[] }> = [];
+    const missing: Array<{
+      slug: string;
+      presentName: string;
+      names: string[];
+    }> = [];
 
     for (const team of teamsToDownload) {
       const names = standingsNameCandidates(team);
       let rosterTeamId: string | null = null;
       for (const displayName of names) {
-        rosterTeamId = await tryGetRosterTeamIdFromStandingsLink(page, displayName);
+        rosterTeamId = await tryGetRosterTeamIdFromStandingsLink(
+          page,
+          displayName,
+        );
         if (rosterTeamId) {
           break;
         }
@@ -91,16 +118,19 @@ const main = async (): Promise<void> => {
 
     if (missing.length > 0) {
       console.info(
-        `Standings link href missing for ${missing.length} team(s); falling back to click-through parsing (some may not exist for older seasons).`
+        `Standings link href missing for ${missing.length} team(s); falling back to click-through parsing (some may not exist for older seasons).`,
       );
       for (const team of missing) {
         await gotoStandings(page, options.leagueId);
         try {
-          const rosterTeamId = await getRosterTeamIdFromStandingsByNames(page, team.names);
+          const rosterTeamId = await getRosterTeamIdFromStandingsByNames(
+            page,
+            team.names,
+          );
           rosterTeamIdBySlug.set(team.slug, rosterTeamId);
         } catch (err) {
           console.info(
-            `[${team.slug}] not found in standings for ${options.year}-${options.year + 1}; skipping. (${String(err)})`
+            `[${team.slug}] not found in standings for ${options.year}-${options.year + 1}; skipping. (${String(err)})`,
           );
         }
       }
@@ -109,17 +139,28 @@ const main = async (): Promise<void> => {
     let downloaded = 0;
     let skippedMissing = 0;
     for (const team of teamsToDownload) {
-      const fileName = buildRosterCsvFileName({ teamSlug: team.name, teamId: team.id, year: options.year });
-      const outPath = buildRosterCsvPath({ outDir: options.outDir, teamSlug: team.name, teamId: team.id, year: options.year });
+      const fileName = buildRosterCsvFileName({
+        teamSlug: team.name,
+        teamId: team.id,
+        year: options.year,
+      });
+      const outPath = buildRosterCsvPath({
+        outDir: options.outDir,
+        teamSlug: team.name,
+        teamId: team.id,
+        year: options.year,
+      });
       if (existsSync(outPath)) {
-        console.info(`[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`);
+        console.info(
+          `[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`,
+        );
         continue;
       }
 
       const rosterTeamId = rosterTeamIdBySlug.get(team.name);
       if (!rosterTeamId) {
         console.info(
-          `[${team.name}] missing roster teamId for ${options.year}-${options.year + 1} (likely not in league yet); skipping.`
+          `[${team.name}] missing roster teamId for ${options.year}-${options.year + 1} (likely not in league yet); skipping.`,
         );
         skippedMissing++;
         continue;
@@ -135,7 +176,13 @@ const main = async (): Promise<void> => {
       console.info(`[${team.name}] goto ${rosterUrl}`);
       await page.goto(rosterUrl, { waitUntil: "domcontentloaded" });
 
-      const savedTo = await downloadRosterCsv(page, team.name, team.id, options.outDir, options.year);
+      const savedTo = await downloadRosterCsv(
+        page,
+        team.name,
+        team.id,
+        options.outDir,
+        options.year,
+      );
       console.info(`[${team.name}] saved ${savedTo}`);
       downloaded++;
 
@@ -144,14 +191,17 @@ const main = async (): Promise<void> => {
       }
     }
 
-    const extra = skippedMissing ? ` Skipped ${skippedMissing} team(s) missing from standings.` : "";
-    console.info(`Done. Downloaded ${downloaded} regular-season CSV file(s) (via standings flow).${extra}`);
+    const extra = skippedMissing
+      ? ` Skipped ${skippedMissing} team(s) missing from standings.`
+      : "";
+    console.info(
+      `Done. Downloaded ${downloaded} regular-season CSV file(s) (via standings flow).${extra}`,
+    );
   } finally {
     await browser.close();
   }
 
   runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
-
 };
 
 void main();

@@ -2,7 +2,9 @@ import type { Team } from "../types";
 
 import type { TeamRun } from "./helpers";
 
-export const computeManual2018PlayoffsTeamRuns = (teams: readonly Team[]): TeamRun[] => {
+export const computeManual2018PlayoffsTeamRuns = (
+  teams: readonly Team[],
+): TeamRun[] => {
   // Fantrax playoffs data is corrupted for this league/season.
   // This is a one-off manual mapping based on known results.
   const startDate = "2019-03-04";
@@ -37,13 +39,17 @@ export const computeManual2018PlayoffsTeamRuns = (teams: readonly Team[]): TeamR
   for (const [presentName, endDate] of Object.entries(endByPresentName)) {
     const team = teams.find((t) => t.presentName === presentName);
     if (!team) {
-      throw new Error(`Manual 2018 mapping references unknown team presentName: ${presentName}`);
+      throw new Error(
+        `Manual 2018 mapping references unknown team presentName: ${presentName}`,
+      );
     }
     runs.push({ ...team, startDate, endDate });
   }
 
   if (runs.length !== 16) {
-    throw new Error(`Manual 2018 mapping must contain 16 teams (got ${runs.length})`);
+    throw new Error(
+      `Manual 2018 mapping must contain 16 teams (got ${runs.length})`,
+    );
   }
 
   return runs;

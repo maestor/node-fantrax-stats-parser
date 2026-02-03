@@ -80,7 +80,7 @@ const readLeagueIdsV2 = (): LeagueIdsFileV2 => {
   if (file.schemaVersion !== 2 || !Array.isArray(file.seasons)) {
     throw new Error(
       `Unsupported league IDs file schema in ${LEAGUE_IDS_PATH}. Expected schemaVersion 2. ` +
-        `Re-run npm run playwright:sync:leagues to regenerate it.`
+        `Re-run npm run playwright:sync:leagues to regenerate it.`,
     );
   }
 
@@ -106,7 +106,10 @@ const readExistingPlayoffsFile = (): PlayoffsFile | null => {
 const ensureRosterTeamIds = async (args: {
   page: import("playwright").Page;
   leagueId: string;
-  teams: Array<Omit<PlayoffsTeamRun, "rosterTeamId"> & Partial<Pick<PlayoffsTeamRun, "rosterTeamId">>>;
+  teams: Array<
+    Omit<PlayoffsTeamRun, "rosterTeamId"> &
+      Partial<Pick<PlayoffsTeamRun, "rosterTeamId">>
+  >;
   rosterTeamIdByTeamName?: Record<string, string>;
 }): Promise<PlayoffsTeamRun[]> => {
   const byName = args.rosterTeamIdByTeamName ?? {};
@@ -114,7 +117,12 @@ const ensureRosterTeamIds = async (args: {
   const enriched: PlayoffsTeamRun[] = args.teams.map((t) => {
     const fromMap = byName[normalizeSpacesLower(t.presentName)];
     const rosterTeamId = t.rosterTeamId?.trim() || fromMap || "";
-    return { ...(t as Team), startDate: t.startDate, endDate: t.endDate, rosterTeamId };
+    return {
+      ...(t as Team),
+      startDate: t.startDate,
+      endDate: t.endDate,
+      rosterTeamId,
+    };
   });
 
   const missing = enriched.filter((t) => !t.rosterTeamId);
@@ -129,14 +137,20 @@ const ensureRosterTeamIds = async (args: {
     const names = standingsNameCandidates(team);
     let rosterTeamId: string | null = null;
     for (const displayName of names) {
-      rosterTeamId = await tryGetRosterTeamIdFromStandingsLink(args.page, displayName);
+      rosterTeamId = await tryGetRosterTeamIdFromStandingsLink(
+        args.page,
+        displayName,
+      );
       if (rosterTeamId) break;
     }
 
     if (!rosterTeamId) {
       // Fallback: click-through parsing (slow, but reliable).
       await gotoStandings(args.page, args.leagueId);
-      rosterTeamId = await getRosterTeamIdFromStandingsByNames(args.page, names);
+      rosterTeamId = await getRosterTeamIdFromStandingsByNames(
+        args.page,
+        names,
+      );
       await gotoStandings(args.page, args.leagueId);
     }
 
@@ -170,14 +184,16 @@ async function main(): Promise<void> {
   const leagues = readLeagueIdsV2();
   const seasons = leagues.seasons
     .slice()
-    .filter((s) => (Number.isFinite(onlyYear ?? NaN) ? s.year === onlyYear : true))
+    .filter((s) =>
+      Number.isFinite(onlyYear ?? NaN) ? s.year === onlyYear : true,
+    )
     .sort((a, b) => a.year - b.year);
 
   if (!seasons.length) {
     console.info(
       onlyYear
         ? `No seasons found for --year=${onlyYear} in ${LEAGUE_IDS_PATH}`
-        : `No seasons found in ${LEAGUE_IDS_PATH}`
+        : `No seasons found in ${LEAGUE_IDS_PATH}`,
     );
     return;
   }
@@ -198,12 +214,20 @@ async function main(): Promise<void> {
     }
 
     for (const season of seasons) {
-      console.info(`Syncing playoffs teams for ${season.year} (leagueId=${season.leagueId})`);
+      console.info(
+        `Syncing playoffs teams for ${season.year} (leagueId=${season.leagueId})`,
+      );
 
       try {
         if (season.year === 2018) {
-          const base = computeManual2018PlayoffsTeamRuns(TEAMS) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">>;
-          const teams = await ensureRosterTeamIds({ page, leagueId: season.leagueId, teams: base });
+          const base = computeManual2018PlayoffsTeamRuns(TEAMS) as Array<
+            Omit<PlayoffsTeamRun, "rosterTeamId">
+          >;
+          const teams = await ensureRosterTeamIds({
+            page,
+            leagueId: season.leagueId,
+            teams: base,
+          });
           seasonByYear.set(season.year, {
             year: season.year,
             leagueId: season.leagueId,
@@ -216,8 +240,10 @@ async function main(): Promise<void> {
         await gotoPlayoffsStandings(page, season.leagueId, timeoutMs);
 
         // Preferred: derive winners per round from the per-period playoffs standings tables.
-        const { periods, teamsByPeriod, rosterTeamIdByTeamName } = await scrapePlayoffsPeriodsFromStandingsTables(page);
-        const expectedRoundTeamCounts = season.year === 2019 ? [16, 8] : [16, 8, 4, 2];
+        const { periods, teamsByPeriod, rosterTeamIdByTeamName } =
+          await scrapePlayoffsPeriodsFromStandingsTables(page);
+        const expectedRoundTeamCounts =
+          season.year === 2019 ? [16, 8] : [16, 8, 4, 2];
         let baseTeams = computePlayoffTeamRunsFromPlayoffsPeriods({
           periods,
           teamsByPeriod,
@@ -238,7 +264,9 @@ async function main(): Promise<void> {
         // Fallback: try the older bracket-text heuristic if needed.
         if (!teams) {
           const bracketText = await page.locator("body").innerText();
-          const playoffsYear = Number(season.periods.playoffsStartDate.slice(0, 4));
+          const playoffsYear = Number(
+            season.periods.playoffsStartDate.slice(0, 4),
+          );
 
           const rounds = extractRoundWindowsFromText(bracketText, playoffsYear);
           if (!rounds.length) {
@@ -249,14 +277,17 @@ async function main(): Promise<void> {
                 .filter(Boolean)
                 .filter(
                   (l) =>
-                    /\b(period|round|playoff|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(l) ||
-                    /\d{1,2}\/\d{2}/.test(l)
+                    /\b(period|round|playoff|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i.test(
+                      l,
+                    ) || /\d{1,2}\/\d{2}/.test(l),
                 )
                 .slice(0, 60);
-              console.info(`Debug bracket hints (${season.year}):\n${hints.join("\n") || "(none)"}`);
+              console.info(
+                `Debug bracket hints (${season.year}):\n${hints.join("\n") || "(none)"}`,
+              );
             }
             console.info(
-              `Manual needed: ${season.year} (leagueId=${season.leagueId}) could not parse playoffs periods from playoffs page.`
+              `Manual needed: ${season.year} (leagueId=${season.leagueId}) could not parse playoffs periods from playoffs page.`,
             );
             continue;
           }
@@ -282,7 +313,7 @@ async function main(): Promise<void> {
         const uniqueTeams = teams?.length ?? 0;
         if (!teams || uniqueTeams !== 16) {
           console.info(
-            `Manual needed: ${season.year} (leagueId=${season.leagueId}) found ${uniqueTeams} playoff teams (expected 16). Skipping.`
+            `Manual needed: ${season.year} (leagueId=${season.leagueId}) found ${uniqueTeams} playoff teams (expected 16). Skipping.`,
           );
           continue;
         }
@@ -294,7 +325,9 @@ async function main(): Promise<void> {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.info(`Manual needed: ${season.year} (leagueId=${season.leagueId}) failed to sync playoffs: ${msg}`);
+        console.info(
+          `Manual needed: ${season.year} (leagueId=${season.leagueId}) failed to sync playoffs: ${msg}`,
+        );
       }
     }
 

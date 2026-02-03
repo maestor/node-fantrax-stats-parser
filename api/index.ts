@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
 // `src/index.ts` exports the request handler via CommonJS (module.exports).
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const handler = require("../src/index") as (
   req: IncomingMessage,
-  res: ServerResponse
+  res: ServerResponse,
 ) => unknown | Promise<unknown>;
 
 const stripApiPrefix = (url: string): string => {
@@ -25,7 +25,9 @@ const normalizeUrl = (url: string): string => {
   return query ? `${normalizedPath}?${query}` : normalizedPath;
 };
 
-const getHeaderValue = (value: string | string[] | undefined): string | undefined => {
+const getHeaderValue = (
+  value: string | string[] | undefined,
+): string | undefined => {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) return value[0];
   return undefined;
@@ -48,7 +50,10 @@ const getEffectiveUrl = (req: IncomingMessage): string => {
   return typeof req.url === "string" ? req.url : "/";
 };
 
-export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
+export default async function vercelHandler(
+  req: IncomingMessage,
+  res: ServerResponse,
+) {
   const effectiveUrl = normalizeUrl(stripApiPrefix(getEffectiveUrl(req)));
   req.url = effectiveUrl;
 
