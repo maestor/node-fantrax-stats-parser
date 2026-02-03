@@ -46,15 +46,21 @@ type RulesPageRaw = {
   playoffs: { startPeriod: number | null; rounds: number | null };
 };
 
-const readLeagueArchiveEntries = async (page: Page, timeoutMs: number): Promise<LeagueArchiveEntry[]> => {
-  await page.goto(FANTRAX_URLS.leagueArchive, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+const readLeagueArchiveEntries = async (
+  page: Page,
+  timeoutMs: number,
+): Promise<LeagueArchiveEntry[]> => {
+  await page.goto(FANTRAX_URLS.leagueArchive, {
+    waitUntil: "domcontentloaded",
+    timeout: timeoutMs,
+  });
 
   // Fantrax pages often keep the network busy; "networkidle" can time out indefinitely.
   // Instead, wait for at least one league link or bail with debug artifacts.
   if (page.url().includes("/login")) {
     await debugDump(page, "redirected-to-login");
     throw new Error(
-      `Not authenticated (redirected to /login). Run npm run playwright:login first, then re-run sync.`
+      `Not authenticated (redirected to /login). Run npm run playwright:login first, then re-run sync.`,
     );
   }
 
@@ -64,7 +70,7 @@ const readLeagueArchiveEntries = async (page: Page, timeoutMs: number): Promise<
   } catch {
     await debugDump(page, "no-league-links");
     throw new Error(
-      `Timed out waiting for league links on ${page.url()}. Debug artifacts saved under ${FANTRAX_ARTIFACT_DIR}.`
+      `Timed out waiting for league links on ${page.url()}. Debug artifacts saved under ${FANTRAX_ARTIFACT_DIR}.`,
     );
   }
 
@@ -84,7 +90,9 @@ const readLeagueArchiveEntries = async (page: Page, timeoutMs: number): Promise<
       const startYear = Number(yearMatch[1]);
       if (!Number.isFinite(startYear)) continue;
 
-      const leagueLink = row.querySelector('a[href*="/fantasy/league/"][href$="/home"]');
+      const leagueLink = row.querySelector(
+        'a[href*="/fantasy/league/"][href$="/home"]',
+      );
       const href = leagueLink?.getAttribute("href") ?? "";
       const idMatch = /\/fantasy\/league\/([^/;?]+)/.exec(href);
       const leagueId = idMatch?.[1];
@@ -97,22 +105,28 @@ const readLeagueArchiveEntries = async (page: Page, timeoutMs: number): Promise<
   });
 };
 
-const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: number): Promise<LeaguePeriods> => {
+const readRulesPeriodInfo = async (
+  page: Page,
+  leagueId: string,
+  timeoutMs: number,
+): Promise<LeaguePeriods> => {
   const url = `https://www.fantrax.com/fantasy/league/${leagueId}/rules`;
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
 
   if (page.url().includes("/login")) {
     await debugDump(page, `rules-redirected-to-login-${leagueId}`);
     throw new Error(
-      `Not authenticated while loading rules page (redirected to /login). Run npm run playwright:login first, then re-run sync.`
+      `Not authenticated while loading rules page (redirected to /login). Run npm run playwright:login first, then re-run sync.`,
     );
   }
 
   try {
-    await page.locator("text=Your league stats begin accumulating on:").waitFor({
-      state: "visible",
-      timeout: timeoutMs,
-    });
+    await page
+      .locator("text=Your league stats begin accumulating on:")
+      .waitFor({
+        state: "visible",
+        timeout: timeoutMs,
+      });
   } catch {
     await debugDump(page, `rules-missing-schedule-${leagueId}`);
     throw new Error(`Timed out waiting for schedule section on ${page.url()}`);
@@ -120,7 +134,8 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
 
   const normalize = (s: string): string => s.replace(/\s+/g, " ").trim();
   const looksLikeDate = (s: string): boolean =>
-    /[A-Za-z]{3}\s+\d{1,2},\s*\d{4}/.test(s) || /[A-Za-z]{3}\s+\d{1,2}\/\d{2}/.test(s);
+    /[A-Za-z]{3}\s+\d{1,2},\s*\d{4}/.test(s) ||
+    /[A-Za-z]{3}\s+\d{1,2}\/\d{2}/.test(s);
 
   const isoToUtcDate = (iso: string): Date => new Date(`${iso}T00:00:00.000Z`);
   const utcDateToIso = (d: Date): string => d.toISOString().slice(0, 10);
@@ -129,7 +144,8 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     return utcDateToIso(new Date(ms));
   };
   const inclusiveDaysBetween = (startIso: string, endIso: string): number => {
-    const diffMs = isoToUtcDate(endIso).getTime() - isoToUtcDate(startIso).getTime();
+    const diffMs =
+      isoToUtcDate(endIso).getTime() - isoToUtcDate(startIso).getTime();
     return Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1;
   };
 
@@ -142,9 +158,14 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     const li = schedule.locator("li").filter({ hasText: spanNeedle }).first();
     if ((await li.count()) === 0) return null;
 
-    const label = normalize((await li.locator("span").first().textContent()) ?? "");
+    const label = normalize(
+      (await li.locator("span").first().textContent()) ?? "",
+    );
     const full = normalize((await li.textContent()) ?? "");
-    const value = label && full.startsWith(label) ? normalize(full.slice(label.length)) : full;
+    const value =
+      label && full.startsWith(label)
+        ? normalize(full.slice(label.length))
+        : full;
     return value || null;
   };
 
@@ -158,7 +179,11 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     .filter({ hasText: "End Date" })
     .first();
 
-  const customPeriods: Array<{ period: number; startText: string; endText: string }> = [];
+  const customPeriods: Array<{
+    period: number;
+    startText: string;
+    endText: string;
+  }> = [];
   if ((await periodsTable.count()) > 0) {
     const rows = periodsTable.locator("tbody tr");
     const rowCount = await rows.count();
@@ -174,7 +199,8 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
       if (!Number.isFinite(period)) continue;
 
       const dateCells = cells.filter(looksLikeDate);
-      const startText = cells[1] && looksLikeDate(cells[1]) ? cells[1] : dateCells[0];
+      const startText =
+        cells[1] && looksLikeDate(cells[1]) ? cells[1] : dateCells[0];
       const endText =
         cells[3] && looksLikeDate(cells[3])
           ? cells[3]
@@ -187,10 +213,16 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     }
   }
 
-  const playoffsLi = schedule.locator("li").filter({ hasText: "Playoffs will begin in this Scoring Period" }).first();
+  const playoffsLi = schedule
+    .locator("li")
+    .filter({ hasText: "Playoffs will begin in this Scoring Period" })
+    .first();
   const playoffsText = normalize((await playoffsLi.textContent()) ?? "");
-  const startPeriodMatch = /Playoffs will begin in this Scoring Period:\s*(\d+)/.exec(playoffsText);
-  const roundsMatch = /and last for\s*(\d+)\s*periods?\s*\(rounds\)/.exec(playoffsText);
+  const startPeriodMatch =
+    /Playoffs will begin in this Scoring Period:\s*(\d+)/.exec(playoffsText);
+  const roundsMatch = /and last for\s*(\d+)\s*periods?\s*\(rounds\)/.exec(
+    playoffsText,
+  );
   const startPeriod = startPeriodMatch ? Number(startPeriodMatch[1]) : null;
   const rounds = roundsMatch ? Number(roundsMatch[1]) : null;
 
@@ -199,8 +231,12 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     endAccumulatingText,
     customPeriods,
     playoffs: {
-      startPeriod: typeof startPeriod === "number" && Number.isFinite(startPeriod) ? startPeriod : null,
-      rounds: typeof rounds === "number" && Number.isFinite(rounds) ? rounds : null,
+      startPeriod:
+        typeof startPeriod === "number" && Number.isFinite(startPeriod)
+          ? startPeriod
+          : null,
+      rounds:
+        typeof rounds === "number" && Number.isFinite(rounds) ? rounds : null,
     },
   };
 
@@ -214,13 +250,13 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
     if (!raw.beginAccumulatingText || !raw.endAccumulatingText) {
       await debugDump(page, `rules-no-custom-periods-${leagueId}`);
       throw new Error(
-        `No custom periods table and missing begin/end accumulating dates for league ${leagueId}.`
+        `No custom periods table and missing begin/end accumulating dates for league ${leagueId}.`,
       );
     }
     if (!playoffStartPeriod || !playoffRounds) {
       await debugDump(page, `rules-missing-playoffs-${leagueId}`);
       throw new Error(
-        `No custom periods table and missing playoffs info for league ${leagueId}. Expected "Playoffs will begin" and rounds count.`
+        `No custom periods table and missing playoffs info for league ${leagueId}. Expected "Playoffs will begin" and rounds count.`,
       );
     }
 
@@ -229,18 +265,28 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
 
     const rangeMatch = /\(([^)]+)\)/.exec(playoffsText);
     const rangeText = rangeMatch?.[1] ?? "";
-    const parts = rangeText.split("-").map((p) => p.trim()).filter(Boolean);
+    const parts = rangeText
+      .split("-")
+      .map((p) => p.trim())
+      .filter(Boolean);
     if (parts.length < 1) {
       await debugDump(page, `rules-playoffs-missing-daterange-${leagueId}`);
       throw new Error(
-        `No custom periods table and could not parse playoffs date range for league ${leagueId} from: ${playoffsText}`
+        `No custom periods table and could not parse playoffs date range for league ${leagueId} from: ${playoffsText}`,
       );
     }
 
     const playoffsStartDate = parseFantraxDateToISO(parts[0]);
-    const playoffsPeriodEndDate = parts[1] ? parseFantraxDateToISO(parts[1]) : null;
+    const playoffsPeriodEndDate = parts[1]
+      ? parseFantraxDateToISO(parts[1])
+      : null;
     const playoffsEndDate = playoffsPeriodEndDate
-      ? addDaysIso(playoffsStartDate, inclusiveDaysBetween(playoffsStartDate, playoffsPeriodEndDate) * playoffRounds - 1)
+      ? addDaysIso(
+          playoffsStartDate,
+          inclusiveDaysBetween(playoffsStartDate, playoffsPeriodEndDate) *
+            playoffRounds -
+            1,
+        )
       : seasonEndDate;
 
     return {
@@ -265,17 +311,21 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
   if (!playoffStartPeriod || !playoffRounds) {
     await debugDump(page, `rules-missing-playoffs-${leagueId}`);
     throw new Error(
-      `Missing playoffs info on rules page for league ${leagueId}. Expected "Playoffs will begin" and rounds count.`
+      `Missing playoffs info on rules page for league ${leagueId}. Expected "Playoffs will begin" and rounds count.`,
     );
   }
 
-  const playoffStartIndex = periods.findIndex((p) => p.period === playoffStartPeriod);
+  const playoffStartIndex = periods.findIndex(
+    (p) => p.period === playoffStartPeriod,
+  );
   const playoffEndPeriod = playoffStartPeriod + playoffRounds - 1;
-  const playoffEndIndex = periods.findIndex((p) => p.period === playoffEndPeriod);
+  const playoffEndIndex = periods.findIndex(
+    (p) => p.period === playoffEndPeriod,
+  );
   if (playoffStartIndex < 0 || playoffEndIndex < 0) {
     await debugDump(page, `rules-playoffs-period-out-of-range-${leagueId}`);
     throw new Error(
-      `Playoffs periods not found in custom periods for league ${leagueId}. Start period ${playoffStartPeriod}, end period ${playoffEndPeriod}.`
+      `Playoffs periods not found in custom periods for league ${leagueId}. Start period ${playoffStartPeriod}, end period ${playoffEndPeriod}.`,
     );
   }
 
@@ -283,7 +333,9 @@ const readRulesPeriodInfo = async (page: Page, leagueId: string, timeoutMs: numb
   const regularEndIndex = playoffStartIndex - 1;
   if (regularEndIndex < 0) {
     await debugDump(page, `rules-regular-period-out-of-range-${leagueId}`);
-    throw new Error(`Computed regular season end before start for league ${leagueId}.`);
+    throw new Error(
+      `Computed regular season end before start for league ${leagueId}.`,
+    );
   }
 
   return {
@@ -302,7 +354,8 @@ async function main(): Promise<void> {
   const headless = !hasFlag(argv, "--headed");
   const slowMo = parseNumberArg(argv, "--slowmo") ?? 0;
   const timeoutMs = parseNumberArg(argv, "--timeout") ?? 60_000;
-  const leagueName = parseStringArg(argv, "--league") ?? "Finnish Fantasy Hockey League";
+  const leagueName =
+    parseStringArg(argv, "--league") ?? "Finnish Fantasy Hockey League";
 
   const browser = await chromium.launch({ headless, slowMo });
   try {
@@ -334,8 +387,12 @@ async function main(): Promise<void> {
           const year = Number(yearMatch[1]);
           if (!Number.isFinite(year)) continue;
 
-          const leagueLink = row.querySelector('a[href*="/fantasy/league/"][href$="/home"]');
-          const leagueText = (leagueLink?.textContent ?? "").replace(/\s+/g, " ").trim();
+          const leagueLink = row.querySelector(
+            'a[href*="/fantasy/league/"][href$="/home"]',
+          );
+          const leagueText = (leagueLink?.textContent ?? "")
+            .replace(/\s+/g, " ")
+            .trim();
           if (!leagueText || leagueText !== targetName) continue;
 
           const href = leagueLink?.getAttribute("href") ?? "";
@@ -348,19 +405,24 @@ async function main(): Promise<void> {
 
         return out;
       },
-      leagueName
+      leagueName,
     );
 
-    const selectedEntries = entriesForLeagueName.length ? entriesForLeagueName : entries;
+    const selectedEntries = entriesForLeagueName.length
+      ? entriesForLeagueName
+      : entries;
     if (!entriesForLeagueName.length) {
       console.info(
-        `Warning: Could not filter archive rows by league name "${leagueName}"; falling back to first league per year.`
+        `Warning: Could not filter archive rows by league name "${leagueName}"; falling back to first league per year.`,
       );
     }
 
-    const years = Array.from(new Set(selectedEntries.map((e) => e.year))).sort((a, b) => a - b);
+    const years = Array.from(new Set(selectedEntries.map((e) => e.year))).sort(
+      (a, b) => a - b,
+    );
     const seasons: LeagueSeasonInfo[] = [];
-    const failures: Array<{ year: number; leagueId: string; error: string }> = [];
+    const failures: Array<{ year: number; leagueId: string; error: string }> =
+      [];
 
     for (const year of years) {
       const leagueId = selectedEntries.find((e) => e.year === year)?.leagueId;
@@ -373,16 +435,28 @@ async function main(): Promise<void> {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         failures.push({ year, leagueId, error: msg });
-        console.info(`Warning: Failed to scrape rules for ${year} (leagueId=${leagueId}): ${msg}`);
+        console.info(
+          `Warning: Failed to scrape rules for ${year} (leagueId=${leagueId}): ${msg}`,
+        );
       }
     }
 
     if (failures.length) {
-      const failuresPath = path.join(FANTRAX_ARTIFACT_DIR, "sync-leagues-failures.json");
-      writeFileSync(failuresPath, `${JSON.stringify({ leagueName, scrapedAt: new Date().toISOString(), failures }, null, 2)}\n`, "utf8");
+      const failuresPath = path.join(
+        FANTRAX_ARTIFACT_DIR,
+        "sync-leagues-failures.json",
+      );
+      writeFileSync(
+        failuresPath,
+        `${JSON.stringify({ leagueName, scrapedAt: new Date().toISOString(), failures }, null, 2)}\n`,
+        "utf8",
+      );
       console.info(`Saved failures list to ${failuresPath}`);
     } else {
-      const failuresPath = path.join(FANTRAX_ARTIFACT_DIR, "sync-leagues-failures.json");
+      const failuresPath = path.join(
+        FANTRAX_ARTIFACT_DIR,
+        "sync-leagues-failures.json",
+      );
       try {
         rmSync(failuresPath);
       } catch {
@@ -393,7 +467,7 @@ async function main(): Promise<void> {
     if (!seasons.length) {
       await debugDump(page, "no-seasons-found");
       throw new Error(
-        `No seasons found to write. Fantrax may have changed the page, or your account lacks access.`
+        `No seasons found to write. Fantrax may have changed the page, or your account lacks access.`,
       );
     }
 
@@ -403,7 +477,11 @@ async function main(): Promise<void> {
       scrapedAt: new Date().toISOString(),
       seasons: seasons.sort((a, b) => a.year - b.year),
     };
-    writeFileSync(LEAGUE_IDS_PATH, `${JSON.stringify(file, null, 2)}\n`, "utf8");
+    writeFileSync(
+      LEAGUE_IDS_PATH,
+      `${JSON.stringify(file, null, 2)}\n`,
+      "utf8",
+    );
     console.info(`Saved league IDs + periods to ${LEAGUE_IDS_PATH}`);
   } finally {
     await browser.close();

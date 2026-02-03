@@ -55,11 +55,32 @@ export const TEAMS: ReadonlyArray<Team> = [
   { id: "25", name: "washington", presentName: "Washington Capitals" },
   { id: "26", name: "pittsburgh", presentName: "Pittsburgh Penguins" },
   { id: "27", name: "columbus", presentName: "Columbus Blue Jackets" },
-  { id: "28", name: "seattle", presentName: "Seattle Kraken", firstSeason: 2021 },
+  {
+    id: "28",
+    name: "seattle",
+    presentName: "Seattle Kraken",
+    firstSeason: 2021,
+  },
   { id: "29", name: "dallas", presentName: "Dallas Stars" },
   { id: "30", name: "winnipeg", presentName: "Winnipeg Jets" },
-  { id: "31", name: "utah", presentName: "Utah Mammoth", nameAliases: ['Utah Hockey Club', 'Arizona Coyotes', 'Phoenix Coyotes', 'Arizona', 'Phoenix'] },
-  { id: "32", name: "vegas", presentName: "Vegas Golden Knights", firstSeason: 2017 },
+  {
+    id: "31",
+    name: "utah",
+    presentName: "Utah Mammoth",
+    nameAliases: [
+      "Utah Hockey Club",
+      "Arizona Coyotes",
+      "Phoenix Coyotes",
+      "Arizona",
+      "Phoenix",
+    ],
+  },
+  {
+    id: "32",
+    name: "vegas",
+    presentName: "Vegas Golden Knights",
+    firstSeason: 2017,
+  },
 ];
 
 // CSV field mapping constants
@@ -107,7 +128,11 @@ export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
   "blocks",
 ];
 
-export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = ["wins", "saves", "shutouts"];
+export const GOALIE_SCORE_FIELDS: GoalieScoreField[] = [
+  "wins",
+  "saves",
+  "shutouts",
+];
 
 // Weights for score calculation (banger-leaning league). Adjust these values (0-1) to change weighting.
 export const PLAYER_SCORE_WEIGHTS: PlayerScoreWeights = {
@@ -139,7 +164,7 @@ export const GOALIE_SCORING_DAMPENING_EXPONENT = 0.5;
 // Advanced goalie stat scaling (used to avoid extreme 0/100 scores when values are close)
 // If a goalie's GAA is worse than the best GAA by this ratio or more, they get 0 for the GAA component.
 // Example: ratio 0.75 means a goalie with 75% worse GAA than the best maps to 0.
-export const GOALIE_GAA_MAX_DIFF_RATIO = 0.60;
+export const GOALIE_GAA_MAX_DIFF_RATIO = 0.6;
 
 // Baseline save percentage for scoring (used to avoid extreme 0 scores)
 export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850

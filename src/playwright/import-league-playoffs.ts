@@ -52,7 +52,9 @@ const PLAYOFFS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-playoffs.json");
 
 const readPlayoffsFileV2 = (): PlayoffsFileV2 => {
   if (!existsSync(PLAYOFFS_PATH)) {
-    throw new Error(`Missing ${PLAYOFFS_PATH}. Run npm run playwright:sync:playoffs first.`);
+    throw new Error(
+      `Missing ${PLAYOFFS_PATH}. Run npm run playwright:sync:playoffs first.`,
+    );
   }
 
   const parsed: unknown = JSON.parse(readFileSync(PLAYOFFS_PATH, "utf8"));
@@ -71,12 +73,16 @@ const readPlayoffsFileV2 = (): PlayoffsFileV2 => {
   return parsed as PlayoffsFileV2;
 };
 
-const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsOptions => {
+const parseImportLeaguePlayoffsOptions = (
+  argv: string[],
+): ImportLeaguePlayoffsOptions => {
   const headless = !hasFlag(argv, "--headed");
   const slowMoMs = parseNumberArg(argv, "--slowmo") ?? 0;
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
   const outDir =
-    parseStringArg(argv, "--out") ?? process.env.CSV_OUT_DIR?.trim() ?? DEFAULT_CSV_OUT_DIR;
+    parseStringArg(argv, "--out") ??
+    process.env.CSV_OUT_DIR?.trim() ??
+    DEFAULT_CSV_OUT_DIR;
 
   const file = readPlayoffsFileV2();
 
@@ -85,7 +91,8 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
     .filter((y) => Number.isFinite(y))
     .sort((a, b) => b - a);
 
-  const yearArg = parseStringArg(argv, "--year") ?? argv.find((a) => !a.startsWith("-"));
+  const yearArg =
+    parseStringArg(argv, "--year") ?? argv.find((a) => !a.startsWith("-"));
   const yearFallback = availableYears.length ? availableYears[0] : NaN;
   const year = yearArg ? Number(yearArg) : yearFallback;
   if (!Number.isFinite(year)) {
@@ -93,7 +100,9 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
   }
 
   if (!yearArg && Number.isFinite(yearFallback)) {
-    console.info(`No --year provided; defaulting to most recent mapped season: ${year}.`);
+    console.info(
+      `No --year provided; defaulting to most recent mapped season: ${year}.`,
+    );
   }
 
   const season = file.seasons.find((s) => s.year === year);
@@ -105,7 +114,9 @@ const parseImportLeaguePlayoffsOptions = (argv: string[]): ImportLeaguePlayoffsO
   }
 
   const teams = season.teams.slice().sort((a, b) => a.id.localeCompare(b.id));
-  const missingIds = teams.filter((t) => !t.rosterTeamId).map((t) => t.presentName);
+  const missingIds = teams
+    .filter((t) => !t.rosterTeamId)
+    .map((t) => t.presentName);
   if (missingIds.length) {
     throw new Error(
       `Playoffs mapping is missing rosterTeamId for ${missingIds.length} team(s): ${missingIds.join(", ")}. ` +

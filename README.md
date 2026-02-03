@@ -20,7 +20,7 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 ## Endpoints
 
-`/teams` - Available teams list (item format `{ id: '1', name: 'colorado' }`)
+`/teams` - Available teams list (item format `{ id: '1', name: 'colorado', presentName: 'Colorado Avalanche' }`, may also include optional `nameAliases` array and `firstSeason` number for expansion teams)
 
 `/last-modified` - Returns the timestamp of the last data import (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). The timestamp is stored in `csv/last-modified.txt` and is updated automatically by the import script. Useful for polling to detect when data has been updated. Returns `null` if no timestamp file exists.
 
