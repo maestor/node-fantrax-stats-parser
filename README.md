@@ -320,6 +320,132 @@ curl https://ffhl-stats-api.vercel.app/api/health
 curl https://ffhl-stats-api.vercel.app/api/seasons
 ```
 
+## Cloud Storage (Cloudflare R2)
+
+This API supports storing CSV files in Cloudflare R2 instead of bundling them with the deployment, enabling instant data updates without redeployment.
+
+### Why R2?
+
+- **Instant updates**: No Vercel deployment needed when updating data
+- **Cost-effective**: ~$0.03/year for typical usage (~6MB storage, regular season updates)
+- **Zero egress fees**: Bandwidth is completely free (major advantage over AWS S3)
+- **Simple workflow**: Upload changed files directly, changes are live immediately
+- **Optimized for your pattern**: Only upload current season files (32 teams during regular season, fewer during playoffs)
+
+### Setup
+
+1. **Create Cloudflare R2 bucket:**
+   - Log into Cloudflare Dashboard → R2 Object Storage
+   - Create bucket named `ffhl-stats-csv` (or your preferred name)
+   - Region: Automatic
+
+2. **Generate R2 API credentials:**
+   - Bucket settings → "Manage R2 API Tokens"
+   - Create token with "Object Read & Write" permission
+   - Scope: Specific bucket only
+   - Save the Access Key ID, Secret Access Key, and Endpoint URL
+
+3. **Add environment variables to Vercel:**
+   - Navigate to Vercel Project Settings → Environment Variables
+   - Add the following variables (Production + Preview environments):
+
+```bash
+R2_ENDPOINT=https://[your-account-id].r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=your_access_key_id
+R2_SECRET_ACCESS_KEY=your_secret_access_key
+R2_BUCKET_NAME=ffhl-stats-csv
+USE_R2_STORAGE=true
+```
+
+4. **Upload initial data to R2:**
+
+```bash
+# Set R2 credentials in your local environment
+export R2_ENDPOINT=https://[...]
+export R2_ACCESS_KEY_ID=...
+export R2_SECRET_ACCESS_KEY=...
+export R2_BUCKET_NAME=ffhl-stats-csv
+
+# Test upload (dry run)
+npm run r2:upload:dry
+
+# Upload all historical data (one-time, ~674 files)
+npm run r2:upload
+```
+
+### Updating Season Data with R2
+
+Once R2 is configured and `USE_R2_STORAGE=true` is set in your environment:
+
+**Option 1: Automatic upload (recommended)**
+```bash
+npm run playwright:import:regular -- --year=2025
+./scripts/import-temp-csv.sh
+# Script automatically uploads to R2 when USE_R2_STORAGE=true
+```
+
+**Option 2: One-command wrapper**
+```bash
+./scripts/update-season.sh 2025
+# Runs scraper + import + R2 upload in one command
+```
+
+**Option 3: Manual upload**
+```bash
+npm run r2:upload:current  # Only current season (32 files during regular season)
+npm run r2:upload          # All files (use for initial upload or troubleshooting)
+npm run r2:upload:force    # Force re-upload everything
+```
+
+### R2 Upload Scripts
+
+- `npm run r2:upload` - Upload all CSV files to R2 (initial setup or full sync)
+- `npm run r2:upload:current` - Upload only current season files (2025-2026, optimized for daily updates)
+- `npm run r2:upload:dry` - Preview what would be uploaded without actually uploading
+- `npm run r2:upload:force` - Force re-upload all files even if they exist in R2
+
+### Workflow Comparison
+
+**Before (with git + Vercel deployment):**
+```bash
+1. npm run playwright:import:regular -- --year=2025
+2. ./scripts/import-temp-csv.sh
+3. git add csv/
+4. git commit -m "Update 2025 season data"
+5. git push origin main
+6. Wait for Vercel deployment (~2-3 minutes)
+
+Total time: 5-7 minutes
+```
+
+**After (with R2):**
+```bash
+1. npm run playwright:import:regular -- --year=2025
+2. ./scripts/import-temp-csv.sh
+   # Automatically uploads to R2 when USE_R2_STORAGE=true
+3. Done! Changes are live immediately.
+
+Total time: 1-2 minutes (70% faster)
+```
+
+### Local Development
+
+For local development, you can continue using filesystem-based CSV files:
+
+```bash
+# In .env file
+USE_R2_STORAGE=false
+```
+
+When `USE_R2_STORAGE=false`, the API reads from the local `csv/` directory as before.
+
+### How It Works
+
+- **Storage abstraction layer**: The API transparently switches between filesystem and R2 based on `USE_R2_STORAGE` environment variable
+- **Manifest caching**: A `manifest.json` file is uploaded to R2 containing the list of available seasons for each team, enabling fast season listing without directory traversal
+- **Smart uploads**: The upload script only uploads current season files by default (32 files during regular season, fewer during playoffs), skipping unchanged historical data
+- **Vercel integration**: R2 works seamlessly with Vercel's serverless functions with minimal cold start overhead
+
 ## API key authentication (production)
 
 This service supports a simple API-key check for production usage.

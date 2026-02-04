@@ -31,11 +31,11 @@ describe("helpers", () => {
     resetHelperCachesForTests();
   });
 
-  test("memoizes listSeasonsForTeam results", () => {
+  test("memoizes listSeasonsForTeam results", async () => {
     (fs.readdirSync as unknown as jest.Mock).mockClear();
 
-    const first = listSeasonsForTeam("1", "regular");
-    const second = listSeasonsForTeam("1", "regular");
+    const first = await listSeasonsForTeam("1", "regular");
+    const second = await listSeasonsForTeam("1", "regular");
 
     expect(first).toEqual(second);
     // First call does two readdirSync calls (exists-check + list).
@@ -98,7 +98,7 @@ describe("helpers", () => {
     expect(() => getTeamsWithCsvFolders()).toThrow();
   });
 
-  test("ensureTeamCsvDirOrThrow re-throws non-ENOENT errors", () => {
+  test("ensureTeamCsvDirOrThrow re-throws non-ENOENT errors", async () => {
     resetHelperCachesForTests();
     (fs.readdirSync as unknown as jest.Mock)
       .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
@@ -108,10 +108,10 @@ describe("helpers", () => {
         throw permError;
       });
 
-    expect(() => listSeasonsForTeam("1", "regular")).toThrow("Permission denied");
+    await expect(listSeasonsForTeam("1", "regular")).rejects.toThrow("Permission denied");
   });
 
-  test("ensureTeamCsvDirOrThrow re-throws when error has no code property", () => {
+  test("ensureTeamCsvDirOrThrow re-throws when error has no code property", async () => {
     resetHelperCachesForTests();
     (fs.readdirSync as unknown as jest.Mock)
       .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
@@ -119,7 +119,7 @@ describe("helpers", () => {
         throw new Error("Generic error"); // No code property
       });
 
-    expect(() => listSeasonsForTeam("1", "regular")).toThrow("Generic error");
+    await expect(listSeasonsForTeam("1", "regular")).rejects.toThrow("Generic error");
   });
 
   test("ensureTeamCsvDirOrThrow re-throws when thrown value is undefined", () => {

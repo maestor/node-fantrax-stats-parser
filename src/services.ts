@@ -1,5 +1,7 @@
 import csv from "csvtojson";
 import path from "path";
+import fs from "fs";
+import os from "os";
 
 import {
   ApiError,
@@ -21,11 +23,12 @@ import {
 } from "./mappings";
 import { RawData, Report, CsvReport, Player, Goalie, PlayerWithSeason, GoalieWithSeason } from "./types";
 import { DEFAULT_TEAM_ID } from "./constants";
+import { getStorage, isR2Enabled } from "./storage";
 
 // Parser wants seasons as an array even in one-season cases
-const getSeasonParam = (teamId: string, report: Report, season?: number): number[] => {
+const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
   if (season !== undefined) return [season];
-  const seasons = availableSeasons(teamId, report);
+  const seasons = await availableSeasons(teamId, report);
   if (!seasons.length) return [];
   return [Math.max(...seasons)];
 };
@@ -45,7 +48,29 @@ const getRawDataFromFiles = async (
     );
     try {
       await validateCsvFileOnceOrThrow(filePath);
-      const sourceToJson = await csv().fromFile(filePath);
+
+      let sourceToJson;
+
+      if (isR2Enabled()) {
+        // R2 mode: Read content and write to temp file for parsing
+        const storage = getStorage();
+        const csvContent = await storage.readFile(filePath);
+
+        const tmpFile = path.join(os.tmpdir(), `csv-${Date.now()}-${Math.random()}.csv`);
+        await fs.promises.writeFile(tmpFile, csvContent);
+
+        try {
+          sourceToJson = await csv().fromFile(tmpFile);
+        } finally {
+          // Clean up temp file
+          await fs.promises.unlink(tmpFile).catch(() => {
+            // Ignore cleanup errors
+          });
+        }
+      } else {
+        // Filesystem mode: Use fromFile directly (no temp file needed)
+        sourceToJson = await csv().fromFile(filePath);
+      }
 
       return sourceToJson.map((item) => ({
         ...item,
@@ -148,7 +173,7 @@ export const getAvailableSeasons = async (
   startFrom?: number
 ) => {
   const concreteReport: CsvReport = reportType === "both" ? "regular" : reportType;
-  let seasons = availableSeasons(teamId, concreteReport);
+  let seasons = await availableSeasons(teamId, concreteReport);
 
   if (startFrom !== undefined) {
     seasons = seasons.filter((season) => season >= startFrom);
@@ -162,7 +187,7 @@ export const getPlayersStatsSeason = async (
   season?: number,
   teamId: string = DEFAULT_TEAM_ID
 ) => {
-  const seasons = getSeasonParam(teamId, report, season);
+  const seasons = await getSeasonParam(teamId, report, season);
   if (report === "both") {
     const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
     const merged = mergePlayersSameSeason(mapPlayerData(rawData));
@@ -183,7 +208,7 @@ export const getGoaliesStatsSeason = async (
   season?: number,
   teamId: string = DEFAULT_TEAM_ID
 ) => {
-  const seasons = getSeasonParam(teamId, report, season);
+  const seasons = await getSeasonParam(teamId, report, season);
   if (report === "both") {
     const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
     const merged = mergeGoaliesSameSeason(mapGoalieData(rawData));
@@ -204,7 +229,7 @@ const getCombinedStats = async (
   teamId: string,
   startFrom?: number
 ) => {
-  let seasons = availableSeasons(teamId, report);
+  let seasons = await availableSeasons(teamId, report);
 
   if (startFrom !== undefined) {
     seasons = seasons.filter((season) => season >= startFrom);
@@ -226,7 +251,7 @@ const getPlayersStatsCombinedBoth = async (
   teamId: string,
   startFrom?: number
 ) => {
-  let seasons = availableSeasons(teamId, "both");
+  let seasons = await availableSeasons(teamId, "both");
   if (startFrom !== undefined) {
     seasons = seasons.filter((season) => season >= startFrom);
   }
@@ -243,7 +268,7 @@ const getGoaliesStatsCombinedBoth = async (
   teamId: string,
   startFrom?: number
 ) => {
-  let seasons = availableSeasons(teamId, "both");
+  let seasons = await availableSeasons(teamId, "both");
   if (startFrom !== undefined) {
     seasons = seasons.filter((season) => season >= startFrom);
   }

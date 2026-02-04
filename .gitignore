@@ -4,5 +4,10 @@ lib
 coverage/
 *.lcov
 csv/temp/
+.env
+.env.local
 # Local-only Fantrax Playwright artifacts
 src/playwright/.fantrax/
+
+# Claude code files
+.claude
