@@ -35,6 +35,16 @@ jest.mock("../services");
 jest.mock("../helpers");
 jest.mock("fs");
 
+jest.mock("../storage/r2-client", () => {
+  const mockR2Client = {
+    getObject: jest.fn(),
+  };
+  return {
+    getR2Client: jest.fn(() => mockR2Client),
+    isR2Enabled: jest.fn(() => false),
+  };
+});
+
 type RouteReq = Parameters<typeof getSeasons>[0];
 const asRouteReq = (req: unknown): RouteReq => req as RouteReq;
 
@@ -824,6 +834,80 @@ describe("routes", () => {
       expect(fs.readFileSync).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
+      });
+    });
+
+    describe("R2 mode", () => {
+      let mockR2Client: { getObject: jest.Mock };
+
+      beforeEach(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { getR2Client, isR2Enabled } = require("../storage/r2-client");
+        (isR2Enabled as jest.Mock).mockReturnValue(true);
+        mockR2Client = getR2Client();
+        resetRouteCachesForTests();
+      });
+
+      afterEach(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { isR2Enabled } = require("../storage/r2-client");
+        (isR2Enabled as jest.Mock).mockReturnValue(false);
+      });
+
+      test("fetches timestamp from R2 successfully", async () => {
+        const mockTimestamp = "2026-01-30T15:30:00.000Z";
+        mockR2Client.getObject.mockResolvedValue(`${mockTimestamp}\n`);
+
+        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
+        const res = createResponse();
+
+        await getLastModified(req, res);
+
+        expect(mockR2Client.getObject).toHaveBeenCalledWith("last-modified.txt");
+        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+          lastModified: mockTimestamp,
+        });
+      });
+
+      test("returns null when R2 fetch fails", async () => {
+        mockR2Client.getObject.mockRejectedValue(new Error("Not found"));
+
+        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
+        const res = createResponse();
+
+        await getLastModified(req, res);
+
+        expect(mockR2Client.getObject).toHaveBeenCalledWith("last-modified.txt");
+        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+          lastModified: null,
+        });
+      });
+
+      test("trims whitespace from R2 timestamp", async () => {
+        const mockTimestamp = "2026-01-30T15:30:00.000Z";
+        mockR2Client.getObject.mockResolvedValue(`  ${mockTimestamp}  \n\t`);
+
+        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
+        const res = createResponse();
+
+        await getLastModified(req, res);
+
+        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+          lastModified: mockTimestamp,
+        });
+      });
+
+      test("returns null when R2 timestamp is empty after trimming", async () => {
+        mockR2Client.getObject.mockResolvedValue("  \n\t  ");
+
+        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
+        const res = createResponse();
+
+        await getLastModified(req, res);
+
+        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
+          lastModified: null,
+        });
       });
     });
   });

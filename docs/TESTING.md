@@ -2,28 +2,27 @@
 
 ## Coverage Gates ✅
 
-All new code **must maintain these minimum coverage thresholds:**
+All new code **must maintain 100% test coverage:**
 
-- **≥98% statements coverage**
-- **≥97% branch coverage**
-- **≥99% function coverage**
-- **≥98% line coverage**
+- **100% statements coverage**
+- **100% branch coverage**
+- **100% function coverage**
+- **100% line coverage**
 
 **Enforcement:** `npm run verify` must pass before any commit.
 
-### What Changed from 100%?
+### Cloudflare R2 Storage Testing
 
-This project originally had 100% test coverage. The Cloudflare R2 integration (January 2025) introduced infrastructure code that's difficult to unit test:
+The Cloudflare R2 integration (January 2025) introduced cloud storage functionality that is fully tested through:
 
-- **r2-client.ts**: Excluded from coverage (AWS SDK wrapper - tested via integration)
-- **R2 code paths**: Lines in helpers.ts (54-55, 110-113), routes.ts (190-195), services.ts (56-66)
+- **Manual AWS SDK mock** (`src/__mocks__/@aws-sdk/client-s3.ts`) - Allows Jest to test R2 code paths
+- **Dedicated R2 test suite** (`services-r2.test.ts`) - Tests temp file handling and error scenarios
+- **R2-specific test cases** in helpers, routes, and storage test suites
 
-These paths execute only when `USE_R2_STORAGE=true` and require mocking the AWS S3 SDK, which is complex and provides limited value. They will be tested through:
-- Integration testing during actual R2 deployment
-- Manual verification in staging environment
-- End-to-end Playwright tests (future enhancement)
+**Excluded from coverage:**
+- **r2-client.ts only**: Thin wrapper around AWS SDK - tested via integration and covered by consuming code tests
 
-**Justification:** Infrastructure/adapter code wrapping external SDKs is commonly excluded from coverage when properly isolated and integration-tested.
+All R2 code paths in application logic (helpers, routes, services, storage) achieve 100% coverage through mocking.
 
 ---
 
@@ -100,6 +99,37 @@ const mockStorage = {
 jest.spyOn(storage, "getStorage").mockReturnValue(mockStorage);
 ```
 
+### Mocking AWS SDK for R2 Tests
+
+The AWS SDK is mocked via manual mock in `src/__mocks__/@aws-sdk/client-s3.ts`:
+
+```typescript
+// Manual mock - automatically used by Jest
+export class S3Client {
+  constructor(_config: unknown) {}
+  send = jest.fn();
+}
+
+export class GetObjectCommand {
+  constructor(public input: { Bucket: string; Key: string }) {}
+}
+```
+
+For R2-specific tests, mock the storage layer:
+
+```typescript
+const mockStorage = {
+  readFile: jest.fn(),
+  fileExists: jest.fn(),
+  getLastModified: jest.fn(),
+};
+
+jest.mock("../storage", () => ({
+  isR2Enabled: jest.fn(() => true),
+  getStorage: jest.fn(() => mockStorage),
+}));
+```
+
 ---
 
 ## Test Organization
@@ -112,15 +142,16 @@ src/
     ├── auth.test.ts         # 28 tests - API key authentication
     ├── cache.test.ts        # 12 tests - Response caching & ETags
     ├── csvIntegrity.test.ts # 11 tests - CSV validation
-    ├── helpers.test.ts      # 95 tests - Core utilities & scoring
+    ├── helpers.test.ts      # 100 tests - Core utilities & scoring (includes R2 mode)
     ├── mappings.test.ts     # 47 tests - Data transformation
-    ├── routes.test.ts       # 48 tests - API endpoints
+    ├── routes.test.ts       # 52 tests - API endpoints (includes R2 mode)
     ├── services.test.ts     # 23 tests - Business logic
+    ├── services-r2.test.ts  # 3 tests - R2 temp file handling
     ├── storage.test.ts      # 17 tests - Storage abstraction
     └── fixtures.ts          # Test data
 ```
 
-**Total: 264 tests across 8 test suites**
+**Total: 276 tests across 9 test suites**
 
 ---
 
@@ -136,9 +167,15 @@ src/
 
 **If you can't test something:**
 - Don't exclude it from coverage without discussion
-- Don't lower coverage thresholds without explicit approval
-- Do propose mocking strategies or alternative approaches
+- Don't lower coverage thresholds (100% is required)
+- Do propose mocking strategies (see AWS SDK mock example above)
 - Do document why it's difficult and seek guidance
+
+**For external SDK integrations:**
+- Create manual mocks in `src/__mocks__/` directory
+- Mock at the module boundary (e.g., mock AWS SDK, not your wrapper)
+- Test your wrapper code through the mocked SDK
+- Only exclude the thinnest possible adapter layer (e.g., `r2-client.ts`)
 
 ---
 

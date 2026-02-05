@@ -4,9 +4,20 @@ jest.mock("fs", () => ({
     .mockReturnValue(["regular-2012-2013.csv", "regular-2013-2014.csv", "regular-2014-2015.csv"]),
 }));
 
+jest.mock("../storage/r2-client", () => ({
+  isR2Enabled: jest.fn(() => false),
+  getR2Client: jest.fn(),
+}));
+
+jest.mock("../storage/manifest", () => ({
+  getSeasonManifest: jest.fn(),
+}));
+
 import fs from "fs";
 import path from "path";
 import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../constants";
+import { isR2Enabled } from "../storage/r2-client";
+import { getSeasonManifest } from "../storage/manifest";
 import {
   ApiError,
   sortItemsByStatField,
@@ -1988,6 +1999,70 @@ describe("helpers", () => {
       const teams = getTeamsWithCsvFolders();
       expect(teams).toHaveLength(1);
       expect(teams[0]).toMatchObject({ id: "1", name: "colorado" });
+    });
+  });
+
+  describe("R2 mode", () => {
+    beforeEach(() => {
+      (isR2Enabled as jest.Mock).mockReturnValue(true);
+      resetHelperCachesForTests();
+      jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+      (isR2Enabled as jest.Mock).mockReturnValue(false);
+      resetHelperCachesForTests();
+    });
+
+    test("resolveTeamId returns teamId for any configured team in R2 mode", () => {
+      // In R2 mode, hasTeamCsvDir always returns true, so resolveTeamId returns configured teamId
+      expect(resolveTeamId("2")).toBe("2");
+      expect(fs.readdirSync).not.toHaveBeenCalled();
+    });
+
+    test("getTeamsWithCsvFolders returns all configured teams in R2 mode", () => {
+      const teams = getTeamsWithCsvFolders();
+
+      // All configured teams should be returned since hasTeamCsvDir returns true for all in R2 mode
+      expect(teams.length).toBeGreaterThan(0);
+      expect(fs.readdirSync).not.toHaveBeenCalled();
+    });
+
+    test("listSeasonsForTeam uses manifest in R2 mode", async () => {
+      const mockManifest = {
+        "1": { regular: [2023, 2024, 2025], playoffs: [2023, 2024] },
+        "2": { regular: [2024], playoffs: [] },
+      };
+      (getSeasonManifest as jest.Mock).mockResolvedValue(mockManifest);
+
+      const seasons = await listSeasonsForTeam("1", "regular");
+
+      expect(seasons).toEqual([2023, 2024, 2025]);
+      expect(getSeasonManifest).toHaveBeenCalled();
+      expect(fs.readdirSync).not.toHaveBeenCalled();
+    });
+
+    test("listSeasonsForTeam returns empty array when team not in manifest", async () => {
+      const mockManifest = {
+        "1": { regular: [2023], playoffs: [] },
+      };
+      (getSeasonManifest as jest.Mock).mockResolvedValue(mockManifest);
+
+      const seasons = await listSeasonsForTeam("999", "regular");
+
+      expect(seasons).toEqual([]);
+      expect(getSeasonManifest).toHaveBeenCalled();
+    });
+
+    test("listSeasonsForTeam returns empty array when reportType not in manifest", async () => {
+      const mockManifest = {
+        "1": { regular: [2023], playoffs: [] },
+      };
+      (getSeasonManifest as jest.Mock).mockResolvedValue(mockManifest);
+
+      const seasons = await listSeasonsForTeam("1", "playoffs");
+
+      expect(seasons).toEqual([]);
     });
   });
 });

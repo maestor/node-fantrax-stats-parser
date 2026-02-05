@@ -13,10 +13,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 97, // R2 code paths tested via integration tests
-      functions: 99,
-      lines: 98,
-      statements: 98,
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100,
     },
   },
   coverageReporters: ["text", "html", "lcov"],
