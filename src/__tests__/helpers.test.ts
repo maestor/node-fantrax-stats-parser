@@ -122,7 +122,7 @@ describe("helpers", () => {
     await expect(listSeasonsForTeam("1", "regular")).rejects.toThrow("Generic error");
   });
 
-  test("ensureTeamCsvDirOrThrow re-throws when thrown value is undefined", () => {
+  test("ensureTeamCsvDirOrThrow re-throws when thrown value is undefined", async () => {
     resetHelperCachesForTests();
     (fs.readdirSync as unknown as jest.Mock)
       .mockReturnValueOnce([]) // First call for hasTeamCsvDir succeeds
@@ -130,10 +130,10 @@ describe("helpers", () => {
         throw undefined;
       });
 
-    expect(() => listSeasonsForTeam("1", "regular")).toThrow();
+    await expect(listSeasonsForTeam("1", "regular")).rejects.toBeUndefined();
   });
 
-  test("ensureTeamCsvDirOrThrow re-throws ENOENT for unconfigured team (not ApiError)", () => {
+  test("ensureTeamCsvDirOrThrow re-throws ENOENT for unconfigured team (not ApiError)", async () => {
     resetHelperCachesForTests();
     (fs.readdirSync as unknown as jest.Mock).mockImplementation(() => {
       const err = new Error("ENOENT") as NodeJS.ErrnoException;
@@ -142,17 +142,17 @@ describe("helpers", () => {
     });
 
     // Team "999" is not configured, so ENOENT should be re-thrown, not wrapped in ApiError
-    expect(() => listSeasonsForTeam("999", "regular")).toThrow("ENOENT");
+    await expect(listSeasonsForTeam("999", "regular")).rejects.toThrow("ENOENT");
   });
 
-  test("ensureTeamCsvDirOrThrow re-throws undefined for unconfigured team", () => {
+  test("ensureTeamCsvDirOrThrow re-throws undefined for unconfigured team", async () => {
     resetHelperCachesForTests();
     (fs.readdirSync as unknown as jest.Mock).mockImplementation(() => {
       throw undefined;
     });
 
     // Team "999" is not configured, err is undefined, so should re-throw
-    expect(() => listSeasonsForTeam("999", "regular")).toThrow();
+    await expect(listSeasonsForTeam("999", "regular")).rejects.toBeUndefined();
   });
 
   describe("sortItemsByStatField", () => {
@@ -1754,7 +1754,7 @@ describe("helpers", () => {
       jest.clearAllMocks();
     });
 
-    test("returns seasons parsed from filenames for default team", () => {
+    test("returns seasons parsed from filenames for default team", async () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         "regular-2012-2013.csv",
         "regular-2013-2014.csv",
@@ -1762,12 +1762,12 @@ describe("helpers", () => {
         "playoffs-2012-2013.csv",
       ]);
 
-      const result = availableSeasons();
+      const result = await availableSeasons();
       expect(result).toEqual([2012, 2013, 2014]);
       expect(result.length).toBe(3);
     });
 
-    test("when reportType is both, returns union of regular and playoffs seasons", () => {
+    test("when reportType is both, returns union of regular and playoffs seasons", async () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         "regular-2012-2013.csv",
         "regular-2013-2014.csv",
@@ -1775,29 +1775,29 @@ describe("helpers", () => {
         "playoffs-2014-2015.csv",
       ]);
 
-      const result = availableSeasons("1", "both");
+      const result = await availableSeasons("1", "both");
       expect(result).toEqual([2012, 2013, 2014]);
     });
 
-    test("returns empty array when folder exists but has no matching files", () => {
+    test("returns empty array when folder exists but has no matching files", async () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([]);
 
-      const result = availableSeasons();
+      const result = await availableSeasons();
       expect(result).toEqual([]);
     });
 
-    test("ignores files with invalid season boundary", () => {
+    test("ignores files with invalid season boundary", async () => {
       (fs.readdirSync as jest.Mock).mockReturnValue([
         "regular-2012-2014.csv",
         "regular-2013-2014.csv",
         "not-a-season.txt",
       ]);
 
-      const result = availableSeasons();
+      const result = await availableSeasons();
       expect(result).toEqual([2013]);
     });
 
-    test("skips files when parsed years are not finite", () => {
+    test("skips files when parsed years are not finite", async () => {
       (fs.readdirSync as jest.Mock).mockReturnValue(["regular-2012-2013.csv"]);
 
       const originalIsFinite = Number.isFinite;
@@ -1808,23 +1808,23 @@ describe("helpers", () => {
           return originalIsFinite(value as number);
         });
 
-      const result = availableSeasons();
+      const result = await availableSeasons();
       expect(result).toEqual([]);
 
       isFiniteSpy.mockRestore();
     });
 
-    test("rethrows non-ENOENT fs errors", () => {
+    test("rethrows non-ENOENT fs errors", async () => {
       (fs.readdirSync as jest.Mock).mockImplementation(() => {
         const err = new Error("EACCES") as NodeJS.ErrnoException;
         err.code = "EACCES";
         throw err;
       });
 
-      expect(() => availableSeasons()).toThrow("EACCES");
+      await expect(availableSeasons()).rejects.toThrow("EACCES");
     });
 
-    test("does not convert ENOENT to 422 for unconfigured teams", () => {
+    test("does not convert ENOENT to 422 for unconfigured teams", async () => {
       (fs.readdirSync as jest.Mock).mockImplementation(() => {
         const err = new Error("ENOENT") as NodeJS.ErrnoException;
         err.code = "ENOENT";
@@ -1832,14 +1832,14 @@ describe("helpers", () => {
       });
 
       try {
-        listSeasonsForTeam("999", "regular");
+        await listSeasonsForTeam("999", "regular");
         throw new Error("Expected listSeasonsForTeam to throw");
       } catch (error) {
         expect((error as { statusCode?: number }).statusCode).toBeUndefined();
       }
     });
 
-    test("throws 422 when configured team folder is missing", () => {
+    test("throws 422 when configured team folder is missing", async () => {
       (fs.readdirSync as jest.Mock).mockImplementation(() => {
         const err = new Error("ENOENT") as NodeJS.ErrnoException;
         err.code = "ENOENT";
@@ -1847,7 +1847,7 @@ describe("helpers", () => {
       });
 
       try {
-        availableSeasons();
+        await availableSeasons();
         throw new Error("Expected availableSeasons to throw");
       } catch (error) {
         expect((error as { statusCode?: number }).statusCode).toBe(422);
@@ -1864,19 +1864,19 @@ describe("helpers", () => {
       ]);
     });
 
-    test("returns true for available season", () => {
-      expect(seasonAvailable(2012)).toBe(true);
-      expect(seasonAvailable(2013)).toBe(true);
-      expect(seasonAvailable(2014)).toBe(true);
+    test("returns true for available season", async () => {
+      expect(await seasonAvailable(2012)).toBe(true);
+      expect(await seasonAvailable(2013)).toBe(true);
+      expect(await seasonAvailable(2014)).toBe(true);
     });
 
-    test("returns false for unavailable season", () => {
-      expect(seasonAvailable(2020)).toBe(false);
-      expect(seasonAvailable(2000)).toBe(false);
+    test("returns false for unavailable season", async () => {
+      expect(await seasonAvailable(2020)).toBe(false);
+      expect(await seasonAvailable(2000)).toBe(false);
     });
 
-    test("returns false for undefined season", () => {
-      expect(seasonAvailable(undefined)).toBe(true);
+    test("returns false for undefined season", async () => {
+      expect(await seasonAvailable(undefined)).toBe(true);
     });
   });
 
@@ -1956,16 +1956,16 @@ describe("helpers", () => {
       expect(() => resolveTeamId("2")).toThrow("no access");
     });
 
-    test("listSeasonsForTeam throws ApiError when configured team folder is missing", () => {
+    test("listSeasonsForTeam throws ApiError when configured team folder is missing", async () => {
       (fs.readdirSync as jest.Mock).mockImplementation(() => {
         const err = Object.assign(new Error("not found"), { code: "ENOENT" });
         throw err;
       });
 
-      expect(() => listSeasonsForTeam("2", "regular")).toThrow(ApiError);
+      await expect(listSeasonsForTeam("2", "regular")).rejects.toThrow(ApiError);
 
       try {
-        listSeasonsForTeam("2", "regular");
+        await listSeasonsForTeam("2", "regular");
       } catch (err) {
         expect(err).toBeInstanceOf(ApiError);
         expect((err as ApiError).statusCode).toBe(HTTP_STATUS.UNPROCESSABLE_ENTITY);
