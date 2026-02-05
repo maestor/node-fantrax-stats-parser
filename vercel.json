@@ -1,12 +1,4 @@
 {
-  "functions": {
-    "api/index.ts": {
-      "includeFiles": "csv/**"
-    },
-    "api/[...path].ts": {
-      "includeFiles": "csv/**"
-    }
-  },
   "routes": [
     {
       "handle": "filesystem"

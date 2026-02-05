@@ -1,4 +1,9 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env tsx
+
+// Load environment variables from .env file
+import dotenv from "dotenv";
+dotenv.config();
+
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";

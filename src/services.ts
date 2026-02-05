@@ -81,8 +81,12 @@ const getRawDataFromFiles = async (
       if (typeof error === "object" && error && "statusCode" in error) {
         throw error;
       }
-      // eslint-disable-next-line no-console
-      console.error(`Failed to read CSV file: ${filePath}`, error);
+      // Only log in non-test environments to avoid cluttering test output
+      /* istanbul ignore next - only runs in production, not during tests */
+      if (!process.env.JEST_WORKER_ID) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to read CSV file: ${filePath}`, error);
+      }
       return [];
     }
   });

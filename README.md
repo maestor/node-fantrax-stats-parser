@@ -10,13 +10,20 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 ## Installation and use
 
-```
+```bash
 1. Install Node (>=24 <25 recommended)
 2. Clone repo
 3. npm install
-4. npm run dev
-5. Go to endpoints mentioned below
+4. Set up environment variables:
+   cp .env.example .env
+   # Edit .env and add your R2 credentials
+5. Download CSV files for local development:
+   npm run r2:download
+6. npm run dev
+7. Go to endpoints mentioned below
 ```
+
+**Note:** CSV files are stored in Cloudflare R2, not in version control. The R2 scripts automatically load environment variables from your `.env` file.
 
 ## Endpoints
 
@@ -287,16 +294,26 @@ Examples (both styles work):
 
 ### CSV data files
 
-**Filesystem mode (default):** CSV files in `csv/` are bundled into the deployed function via `vercel.json` (`includeFiles`). The runtime reads CSVs from `process.cwd()/csv`.
+**Production (Vercel):** CSV files are stored in Cloudflare R2. Set `USE_R2_STORAGE=true` in environment variables. CSV files are NOT included in the deployment bundle.
 
-**Cloud storage mode (optional):** Set `USE_R2_STORAGE=true` to read CSV files from Cloudflare R2 instead. See [Cloud Storage](#cloud-storage-cloudflare-r2) section below.
+**Local development:** For local development without R2 credentials, download CSV files from R2 to your local `csv/` directory:
 
-Multi-team layout:
+```bash
+npm run r2:download              # Download all files from R2
+npm run r2:download -- --dry-run # Preview without downloading
+npm run r2:download -- --team=1  # Download only team 1
+```
 
-- `csv/<teamId>/regular-YYYY-YYYY.csv`
-- `csv/<teamId>/playoffs-YYYY-YYYY.csv`
+Then set `USE_R2_STORAGE=false` in your `.env` file to use local filesystem mode.
+
+Multi-team layout (in R2 bucket or local csv/ directory):
+
+- `<teamId>/regular-YYYY-YYYY.csv`
+- `<teamId>/playoffs-YYYY-YYYY.csv`
 
 Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`). If a team is configured but its data is missing, the API returns HTTP `422` for endpoints that need CSV access.
+
+**Note:** CSV files are NOT stored in version control. They are managed in Cloudflare R2 for production and can be downloaded for local development.
 
 ### Example requests
 
@@ -330,11 +347,11 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
 
 ## Cloud Storage (Cloudflare R2)
 
-This API supports storing CSV files in Cloudflare R2 instead of bundling them with the deployment. When enabled, CSV updates don't require redeployment.
+CSV files are stored in Cloudflare R2 for production. This eliminates the need to bundle large CSV files with deployments and allows data updates without redeployment.
 
 ### Configuration (environment variables)
 
-Set these environment variables to enable R2 storage:
+**Production (Vercel):** Set these environment variables:
 
 ```bash
 USE_R2_STORAGE=true
@@ -344,17 +361,31 @@ R2_SECRET_ACCESS_KEY=your_secret_access_key
 R2_BUCKET_NAME=ffhl-stats-csv
 ```
 
-For local development, set `USE_R2_STORAGE=false` to use local filesystem instead.
+**Local Development:** Either:
+1. Use local CSV files (set `USE_R2_STORAGE=false` and run `npm run r2:download`)
+2. Or use your own R2 credentials (set `USE_R2_STORAGE=true` with R2 env vars)
 
-### Usage
+### Managing R2 Data
 
-Upload CSV files to R2:
+**Upload CSV files to R2:**
 
 ```bash
 npm run r2:upload          # Upload all files
 npm run r2:upload:current  # Upload only current season
 npm run r2:upload:dry      # Preview without uploading
 ```
+
+**Download CSV files from R2 (for local development):**
+
+```bash
+npm run r2:download                   # Download new files (skips existing)
+npm run r2:download:force             # Overwrite all existing files
+npm run r2:download:dry               # Preview without downloading
+npm run r2:download -- --team=1       # Download only team 1
+npm run r2:download -- --force        # Force overwrite existing files
+```
+
+**Automatic upload during import:**
 
 When `USE_R2_STORAGE=true`, the import script automatically uploads to R2:
 

@@ -3,9 +3,13 @@ lib
 .DS_Store
 coverage/
 *.lcov
-csv/temp/
 .env
 .env.local
+
+# CSV data files - stored in Cloudflare R2
+csv/
+!csv/.gitkeep
+
 # Local-only Fantrax Playwright artifacts
 src/playwright/.fantrax/
 
