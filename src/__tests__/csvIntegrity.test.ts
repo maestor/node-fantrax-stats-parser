@@ -12,6 +12,7 @@ import {
   validateCsvFileOnceOrThrow,
   validateNormalizedCsvLines,
 } from "../csvIntegrity";
+import * as storage from "../storage";
 
 describe("csvIntegrity", () => {
   beforeEach(() => {
@@ -127,12 +128,19 @@ describe("csvIntegrity", () => {
 
     fs.writeFileSync(tmp, content, "utf8");
 
-    const spy = jest.spyOn(fs, "createReadStream");
+    // Spy on storage.getStorage to check caching behavior
+    const mockStorage = {
+      readFile: jest.fn().mockImplementation((filePath: string) => fs.promises.readFile(filePath, "utf-8")),
+      fileExists: jest.fn(),
+      getLastModified: jest.fn(),
+    };
+    const spy = jest.spyOn(storage, "getStorage").mockReturnValue(mockStorage);
 
     await validateCsvFileOnceOrThrow(tmp);
     await validateCsvFileOnceOrThrow(tmp);
 
-    expect(spy).toHaveBeenCalledTimes(1);
+    // Should only read the file once (second call uses cache)
+    expect(mockStorage.readFile).toHaveBeenCalledTimes(1);
 
     spy.mockRestore();
     fs.unlinkSync(tmp);

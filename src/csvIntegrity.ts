@@ -1,7 +1,5 @@
-import fs from "fs";
-import readline from "readline";
-
 import { ApiError, HTTP_STATUS } from "./helpers";
+import { getStorage } from "./storage";
 
 export type CsvIntegrityIssueCode =
   | "missing_skaters_marker"
@@ -87,32 +85,28 @@ const formatIssues = (issues: CsvIntegrityIssue[]): string => {
 };
 
 const readLinesUntilDone = async (filePath: string): Promise<string[]> => {
-  const stream = fs.createReadStream(filePath, { encoding: "utf8" });
-  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  const storage = getStorage();
+  const content = await storage.readFile(filePath);
+  const allLines = content.split("\n");
 
   const lines: string[] = [];
   let sawSkaters = false;
   let sawGoalies = false;
 
-  try {
-    for await (const line of rl) {
-      lines.push(line);
+  for (const line of allLines) {
+    lines.push(line);
 
-      const trimmed = normalizeLine(line);
-      if (trimmed === EXPECTED_SKATERS_MARKER) sawSkaters = true;
-      if (trimmed === EXPECTED_GOALIES_MARKER) sawGoalies = true;
+    const trimmed = normalizeLine(line);
+    if (trimmed === EXPECTED_SKATERS_MARKER) sawSkaters = true;
+    if (trimmed === EXPECTED_GOALIES_MARKER) sawGoalies = true;
 
-      // Once both markers have been seen, a few extra lines are enough to capture headers.
-      if (sawSkaters && sawGoalies) {
-        // Keep reading a couple more lines in case goalies header is right after marker.
-        if (lines.length > 200) break;
-      }
-
-      if (lines.length > 300) break;
+    // Once both markers have been seen, a few extra lines are enough to capture headers.
+    if (sawSkaters && sawGoalies) {
+      // Keep reading a couple more lines in case goalies header is right after marker.
+      if (lines.length > 200) break;
     }
-  } finally {
-    rl.close();
-    stream.destroy();
+
+    if (lines.length > 300) break;
   }
 
   return lines;

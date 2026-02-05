@@ -9,6 +9,7 @@ module.exports = {
     "!src/types.ts",
     "!src/index.ts",
     "!src/server.ts",
+    "!src/storage/r2-client.ts", // AWS SDK integration code - tested via integration tests
   ],
   coverageThreshold: {
     global: {

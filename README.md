@@ -10,13 +10,20 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 ## Installation and use
 
-```
+```bash
 1. Install Node (>=24 <25 recommended)
 2. Clone repo
 3. npm install
-4. npm run dev
-5. Go to endpoints mentioned below
+4. Set up environment variables:
+   cp .env.example .env
+   # Edit .env and add your R2 credentials
+5. Download CSV files for local development:
+   npm run r2:download
+6. npm run dev
+7. Go to endpoints mentioned below
 ```
+
+**Note:** CSV files are stored in Cloudflare R2, not in version control. The R2 scripts automatically load environment variables from your `.env` file.
 
 ## Endpoints
 
@@ -48,15 +55,21 @@ For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are om
 Every API except `/teams` and `/last-modified` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 
+## Documentation
+
+- [Testing Requirements](docs/TESTING.md)
+- [Development Guide](docs/DEVELOPMENT.md)
+
 ## Testing
 
 ```
 npm test              # Run all tests
 npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
+npm run verify        # Full quality gate (lint + typecheck + build + coverage)
 ```
 
-Coverage reports are generated in the `coverage/` directory. This repo enforces strict global thresholds (including 100% statements).
+Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, production build, and Jest with enforced global coverage thresholds (≥97% across all metrics).
 
 ## CI
 
@@ -281,14 +294,26 @@ Examples (both styles work):
 
 ### CSV data files
 
-The CSV files in `csv/` are bundled into the deployed function via `vercel.json` (`includeFiles`). The runtime reads CSVs from `process.cwd()/csv`.
+**Production (Vercel):** CSV files are stored in Cloudflare R2. Set `USE_R2_STORAGE=true` in environment variables. CSV files are NOT included in the deployment bundle.
 
-Multi-team layout:
+**Local development:** For local development without R2 credentials, download CSV files from R2 to your local `csv/` directory:
 
-- `csv/<teamId>/regular-YYYY-YYYY.csv`
-- `csv/<teamId>/playoffs-YYYY-YYYY.csv`
+```bash
+npm run r2:download              # Download all files from R2
+npm run r2:download -- --dry-run # Preview without downloading
+npm run r2:download -- --team=1  # Download only team 1
+```
 
-Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`). If a team is configured but its `csv/<teamId>/` folder is missing, the API returns HTTP `422` for endpoints that need CSV access.
+Then set `USE_R2_STORAGE=false` in your `.env` file to use local filesystem mode.
+
+Multi-team layout (in R2 bucket or local csv/ directory):
+
+- `<teamId>/regular-YYYY-YYYY.csv`
+- `<teamId>/playoffs-YYYY-YYYY.csv`
+
+Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`). If a team is configured but its data is missing, the API returns HTTP `422` for endpoints that need CSV access.
+
+**Note:** CSV files are NOT stored in version control. They are managed in Cloudflare R2 for production and can be downloaded for local development.
 
 ### Example requests
 
@@ -318,6 +343,54 @@ curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/goalies/combi
 # Same endpoints via /api
 curl https://ffhl-stats-api.vercel.app/api/health
 curl https://ffhl-stats-api.vercel.app/api/seasons
+```
+
+## Cloud Storage (Cloudflare R2)
+
+CSV files are stored in Cloudflare R2 for production. This eliminates the need to bundle large CSV files with deployments and allows data updates without redeployment.
+
+### Configuration (environment variables)
+
+**Production (Vercel):** Set these environment variables:
+
+```bash
+USE_R2_STORAGE=true
+R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=your_access_key_id
+R2_SECRET_ACCESS_KEY=your_secret_access_key
+R2_BUCKET_NAME=ffhl-stats-csv
+```
+
+**Local Development:** Either:
+1. Use local CSV files (set `USE_R2_STORAGE=false` and run `npm run r2:download`)
+2. Or use your own R2 credentials (set `USE_R2_STORAGE=true` with R2 env vars)
+
+### Managing R2 Data
+
+**Upload CSV files to R2:**
+
+```bash
+npm run r2:upload          # Upload all files
+npm run r2:upload:current  # Upload only current season
+npm run r2:upload:dry      # Preview without uploading
+```
+
+**Download CSV files from R2 (for local development):**
+
+```bash
+npm run r2:download                   # Download new files (skips existing)
+npm run r2:download:force             # Overwrite all existing files
+npm run r2:download:dry               # Preview without downloading
+npm run r2:download -- --team=1       # Download only team 1
+npm run r2:download -- --force        # Force overwrite existing files
+```
+
+**Automatic upload during import:**
+
+When `USE_R2_STORAGE=true`, the import script automatically uploads to R2:
+
+```bash
+./scripts/import-temp-csv.sh  # Processes and uploads to R2
 ```
 
 ## API key authentication (production)

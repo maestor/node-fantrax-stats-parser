@@ -26,6 +26,8 @@ import {
   setCachedOkHeaders,
   setNoStoreHeaders,
 } from "./cache";
+import { isR2Enabled } from "./storage";
+import { getR2Client } from "./storage/r2-client";
 
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
@@ -183,13 +185,24 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => {
-    const timestampFile = path.join(process.cwd(), "csv", "last-modified.txt");
-
-    try {
-      const timestamp = fs.readFileSync(timestampFile, "utf-8").trim();
-      return { lastModified: timestamp || null };
-    } catch {
-      return { lastModified: null };
+    if (isR2Enabled()) {
+      // R2 mode: Fetch from R2 bucket
+      try {
+        const r2 = getR2Client();
+        const timestamp = await r2.getObject("last-modified.txt");
+        return { lastModified: timestamp.trim() || null };
+      } catch {
+        return { lastModified: null };
+      }
+    } else {
+      // Filesystem mode: Read from local file
+      const timestampFile = path.join(process.cwd(), "csv", "last-modified.txt");
+      try {
+        const timestamp = fs.readFileSync(timestampFile, "utf-8").trim();
+        return { lastModified: timestamp || null };
+      } catch {
+        return { lastModified: null };
+      }
     }
   });
 };

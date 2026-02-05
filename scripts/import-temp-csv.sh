@@ -109,6 +109,13 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
   TIMESTAMP_FILE="${ROOT_DIR}/csv/last-modified.txt"
   date -u +"%Y-%m-%dT%H:%M:%S.000Z" > "$TIMESTAMP_FILE"
   echo "Updated: csv/last-modified.txt"
+
+  # Upload to R2 if enabled
+  if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then
+    echo ""
+    echo "📤 Uploading to R2..."
+    npm run r2:upload:current
+  fi
 fi
 
 echo "Done. Matched: $matched, Skipped: $skipped, Imported: $IMPORTED_COUNT"

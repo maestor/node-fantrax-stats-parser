@@ -16,6 +16,8 @@ import {
   HTTP_STATUS,
   ERROR_MESSAGES,
 } from "./constants";
+import { isR2Enabled } from "./storage";
+import { getSeasonManifest } from "./storage/manifest";
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
@@ -45,6 +47,14 @@ const getTeamCsvDir = (teamId: string): string => path.join(process.cwd(), "csv"
 const hasTeamCsvDir = (teamId: string): boolean => {
   const cached = helperCaches.teamCsvDirExists.get(teamId);
   if (cached !== undefined) return cached;
+
+  if (isR2Enabled()) {
+    // For R2, we can't efficiently check directory existence
+    // Instead, mark as true and let individual file checks fail gracefully
+    helperCaches.teamCsvDirExists.set(teamId, true);
+    return true;
+  }
+
   try {
     fs.readdirSync(getTeamCsvDir(teamId));
     helperCaches.teamCsvDirExists.set(teamId, true);
@@ -90,11 +100,20 @@ const ensureTeamCsvDirOrThrow = (teamId: string): string => {
   }
 };
 
-export const listSeasonsForTeam = (teamId: string, reportType: CsvReport): number[] => {
+export const listSeasonsForTeam = async (teamId: string, reportType: CsvReport): Promise<number[]> => {
   const cacheKey = `${teamId}:${reportType}`;
   const cached = helperCaches.seasonsForTeam.get(cacheKey);
   if (cached !== undefined) return cached;
 
+  if (isR2Enabled()) {
+    // For R2: Use manifest file
+    const manifest = await getSeasonManifest();
+    const seasons = manifest[teamId]?.[reportType] || [];
+    helperCaches.seasonsForTeam.set(cacheKey, seasons);
+    return seasons;
+  }
+
+  // Filesystem mode
   const dir = ensureTeamCsvDirOrThrow(teamId);
   const files = fs.readdirSync(dir);
 
@@ -657,30 +676,30 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   return goalies;
 };
 
-export const availableSeasons = (
+export const availableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
   reportType: Report = "regular"
-): number[] => {
+): Promise<number[]> => {
   if (reportType === "both") {
     const seasons = new Set<number>();
     for (const report of ["regular", "playoffs"] as const) {
-      for (const season of listSeasonsForTeam(teamId, report)) {
+      for (const season of await listSeasonsForTeam(teamId, report)) {
         seasons.add(season);
       }
     }
     return [...seasons].sort((a, b) => a - b);
   }
 
-  return listSeasonsForTeam(teamId, reportType);
+  return await listSeasonsForTeam(teamId, reportType);
 };
 
-export const seasonAvailable = (
+export const seasonAvailable = async (
   season: number | undefined,
   teamId: string = DEFAULT_TEAM_ID,
   reportType: Report = "regular"
-) => {
+): Promise<boolean> => {
   if (season === undefined) return true;
-  return availableSeasons(teamId, reportType).includes(season);
+  return (await availableSeasons(teamId, reportType)).includes(season);
 };
 
 export const reportTypeAvailable = (report?: Report) => !!report && REPORT_TYPES.includes(report);
