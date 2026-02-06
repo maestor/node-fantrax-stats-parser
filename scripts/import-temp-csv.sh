@@ -114,7 +114,14 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
   if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then
     echo ""
     echo "📤 Uploading to R2..."
-    npm run r2:upload:current
+    if npm run r2:upload:current; then
+      echo ""
+      echo "🧹 Cleaning up temp files..."
+      rm -f "$TEMP_DIR"/*.csv
+      echo "Removed CSV files from csv/temp/"
+    else
+      echo "⚠️  R2 upload failed, keeping temp files" >&2
+    fi
   fi
 fi
 
