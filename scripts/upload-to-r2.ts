@@ -7,7 +7,12 @@ dotenv.config();
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { TEAMS } from "../src/constants";
 
 interface UploadStats {
@@ -92,6 +97,46 @@ const uploadFile = async (
 
   console.log(`  ✅ Uploaded: ${r2Key}`);
   return true;
+};
+
+const fetchExistingManifest = async (
+  client: S3Client,
+  bucket: string
+): Promise<Record<string, ManifestEntry> | null> => {
+  try {
+    const response = await client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: "manifest.json" })
+    );
+    const body = await response.Body?.transformToString();
+    return body ? JSON.parse(body) : null;
+  } catch {
+    return null;
+  }
+};
+
+const mergeManifests = (
+  existing: Record<string, ManifestEntry> | null,
+  local: Record<string, ManifestEntry>
+): Record<string, ManifestEntry> => {
+  if (!existing) return local;
+
+  const merged = { ...existing };
+  for (const [teamId, localEntry] of Object.entries(local)) {
+    if (!merged[teamId]) {
+      merged[teamId] = localEntry;
+      continue;
+    }
+
+    const regularSet = new Set([...merged[teamId].regular, ...localEntry.regular]);
+    const playoffsSet = new Set([...merged[teamId].playoffs, ...localEntry.playoffs]);
+
+    merged[teamId] = {
+      regular: Array.from(regularSet).sort((a, b) => a - b),
+      playoffs: Array.from(playoffsSet).sort((a, b) => a - b),
+    };
+  }
+
+  return merged;
 };
 
 const buildManifest = (csvDir: string): Record<string, ManifestEntry> => {
@@ -211,7 +256,24 @@ const main = async () => {
   // Upload manifest
   console.log("");
   console.log("📋 Generating manifest...");
-  const manifest = buildManifest(csvDir);
+
+  let manifest: Record<string, ManifestEntry>;
+  if (onlyCurrentSeason) {
+    // In current-only mode, merge local seasons into existing R2 manifest
+    // to preserve historical season entries not present on local disk
+    console.log("  📥 Fetching existing manifest from R2 for merge...");
+    const existingManifest = await fetchExistingManifest(client, bucketName);
+    const localManifest = buildManifest(csvDir);
+    manifest = mergeManifests(existingManifest, localManifest);
+    if (existingManifest) {
+      console.log("  🔀 Merged local seasons into existing manifest");
+    } else {
+      console.log("  ⚠️  No existing manifest found, using local manifest");
+    }
+  } else {
+    manifest = buildManifest(csvDir);
+  }
+
   const manifestJson = JSON.stringify(manifest, null, 2);
 
   if (dryRun) {
