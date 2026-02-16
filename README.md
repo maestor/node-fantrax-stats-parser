@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined seasons results by player (regular season &amp; playoffs separately) as JSON. CSV files are exported from [Fantrax](https://www.fantrax.com). The API supports multiple fantasy teams.
+Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is stored in a Turso (SQLite) database and served via a scoring engine that ranks players and goalies. Raw data is originally exported from [Fantrax](https://www.fantrax.com) as CSV files, then imported into the database. The API supports multiple fantasy teams.
 
 [UI written by Angular which uses this API.](https://github.com/maestor/fantrax-stats-parser-ui)
 
@@ -14,22 +14,24 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 1. Install Node (>=24 <25 recommended)
 2. Clone repo
 3. npm install
-4. Set up environment variables:
-   cp .env.example .env
-   # Edit .env and add your R2 credentials
-5. Download CSV files for local development:
-   npm run r2:download
-6. npm run dev
-7. Go to endpoints mentioned below
+4. Set up local database:
+   npm run db:migrate
+5. Get CSV data (choose one):
+   a. Download from R2: cp .env.example .env && edit .env with R2 credentials && npm run r2:download
+   b. Or use existing CSV files in csv/ directory
+6. Import CSV data into local database:
+   npm run db:import:local
+7. npm run dev
+8. Go to endpoints mentioned below
 ```
 
-**Note:** CSV files are stored in Cloudflare R2, not in version control. The R2 scripts automatically load environment variables from your `.env` file.
+**Note:** The API reads all data from the database. CSV files are only needed as the import source.
 
 ## Endpoints
 
 `/teams` - Available teams list (item format `{ id: '1', name: 'colorado', presentName: 'Colorado Avalanche' }`, may also include optional `nameAliases` array and `firstSeason` number for expansion teams)
 
-`/last-modified` - Returns the timestamp of the last data import (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). The timestamp is stored in `csv/last-modified.txt` and is updated automatically by the import script. Useful for polling to detect when data has been updated. Returns `null` if no timestamp file exists.
+`/last-modified` - Returns the timestamp of the last data import (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). The timestamp is stored in the database and updated automatically by the import script. Useful for polling to detect when data has been updated. Returns `null` if no import has been run.
 
 `/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
 
@@ -43,7 +45,7 @@ Lightweight API to parse NHL fantasy league (FFHL) team stats and print combined
 
 Report type values:
 
-- `regular` / `playoffs`: parse the corresponding CSV dataset.
+- `regular` / `playoffs`: return the corresponding dataset.
 - `both`: merges `regular` + `playoffs` stats together, then calculates scores after merging.
 
 `/goalies/season/:reportType/:season` - Get goalie stats for a single season
@@ -69,7 +71,7 @@ npm run test:coverage # Run tests with coverage report
 npm run verify        # Full quality gate (lint + typecheck + build + coverage)
 ```
 
-Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, production build, and Jest with enforced global coverage thresholds (≥97% across all metrics).
+Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, production build, and Jest with enforced 100% global coverage thresholds.
 
 ## CI
 
@@ -222,16 +224,6 @@ The Playwright importer downloads raw Fantrax CSVs. To convert them into the for
 
 Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
 
-### CSV integrity checks (schema)
-
-This API validates the **normalized** CSV schema to detect Fantrax format changes early.
-
-- Validation is performed **once per CSV file per server instance** before parsing.
-- The check verifies the expected section markers and header rows (`"Skaters"` / `"Goalies"` and their column headers).
-- If a file fails validation, the API responds with **HTTP 500** and a descriptive error message so you can re-run the normalization scripts.
-
-This is intentionally strict: the goal is to fail fast if the upstream export format changes.
-
 ### Clean a single CSV
 
 - Script: `scripts/handle-csv.sh`
@@ -256,8 +248,9 @@ It will:
 - Write the cleaned CSVs to the API layout:
   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
 - Create `csv/<teamId>/` if it doesn't exist
-- Update `csv/last-modified.txt` with the current UTC timestamp (used by the `/last-modified` endpoint)
-- Not delete anything from `csv/temp/`
+- Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
+- Import into local database (`npm run db:import:local:current`)
+- Clean up temp files after successful DB import
 
 Preview without writing:
 
@@ -292,28 +285,22 @@ Examples (both styles work):
 - **Build Command**: `npm run build`
 - **Output Directory**: (leave empty)
 
-### CSV data files
+Required environment variables: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and API key configuration.
 
-**Production (Vercel):** CSV files are stored in Cloudflare R2. Set `USE_R2_STORAGE=true` in environment variables. CSV files are NOT included in the deployment bundle.
+### Data storage
 
-**Local development:** For local development without R2 credentials, download CSV files from R2 to your local `csv/` directory:
+**Production:** The API reads from a Turso (SQLite) database. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in Vercel environment variables.
 
-```bash
-npm run r2:download              # Download all files from R2
-npm run r2:download -- --dry-run # Preview without downloading
-npm run r2:download -- --team=1  # Download only team 1
-```
+**Local development:** The API reads from a local SQLite file (`local.db`), created by running `npm run db:migrate` and `npm run db:import:local`.
 
-Then set `USE_R2_STORAGE=false` in your `.env` file to use local filesystem mode.
+**CSV files** are the import source. They can be stored locally in `csv/<teamId>/` and optionally backed up to Cloudflare R2. CSV files are NOT used at runtime by the API.
 
-Multi-team layout (in R2 bucket or local csv/ directory):
+Multi-team CSV layout (local or R2):
 
 - `<teamId>/regular-YYYY-YYYY.csv`
 - `<teamId>/playoffs-YYYY-YYYY.csv`
 
-Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`). If a team is configured but its data is missing, the API returns HTTP `422` for endpoints that need CSV access.
-
-**Note:** CSV files are NOT stored in version control. They are managed in Cloudflare R2 for production and can be downloaded for local development.
+Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`).
 
 ### Example requests
 
@@ -347,23 +334,16 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
 
 ## Cloud Storage (Cloudflare R2)
 
-CSV files are stored in Cloudflare R2 for production. This eliminates the need to bundle large CSV files with deployments and allows data updates without redeployment.
+CSV files can be backed up to Cloudflare R2 for team sharing and archival. R2 is **not** used at runtime by the API — it's purely for managing CSV files.
 
-### Configuration (environment variables)
-
-**Production (Vercel):** Set these environment variables:
+### Configuration (environment variables for R2 scripts)
 
 ```bash
-USE_R2_STORAGE=true
 R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=your_access_key_id
 R2_SECRET_ACCESS_KEY=your_secret_access_key
 R2_BUCKET_NAME=ffhl-stats-csv
 ```
-
-**Local Development:** Either:
-1. Use local CSV files (set `USE_R2_STORAGE=false` and run `npm run r2:download`)
-2. Or use your own R2 credentials (set `USE_R2_STORAGE=true` with R2 env vars)
 
 ### Managing R2 Data
 
@@ -387,33 +367,40 @@ npm run r2:download -- --force        # Force overwrite existing files
 
 **Automatic upload during import:**
 
-When `USE_R2_STORAGE=true`, the import script automatically uploads to R2:
+When `USE_R2_STORAGE=true`, the import pipeline automatically uploads to R2 and imports into the database:
 
 ```bash
-./scripts/import-temp-csv.sh  # Processes and uploads to R2
+./scripts/import-temp-csv.sh  # Cleans CSVs, uploads to R2, imports to DB
 ```
 
 ## Database (Turso/SQLite)
 
-In addition to CSV/R2 storage, this project supports a Turso (libSQL/SQLite) database for structured data access. Currently in Phase 1: the database is populated alongside CSV but the API still reads from CSV/R2.
+The API reads all data from a Turso (libSQL/SQLite) database. CSV files are imported into the database via the import pipeline.
 
 ### Local development
 
-No Turso account needed. The database scripts automatically use a local SQLite file (`local.db`):
+No Turso account needed. The database scripts use a local SQLite file (`local.db`):
 
 ```bash
-npm run db:migrate       # Create database schema
-npm run db:import        # Import all CSV files into database
-npm run db:import:current # Import only current season
+npm run db:migrate              # Create database schema
+npm run db:import:local         # Import all CSV files into local database
+npm run db:import:local:current # Import only current season into local database
 ```
 
 ### Production (Turso hosted)
 
-Set these environment variables:
+Set these environment variables in `.env`:
 
 ```bash
 TURSO_DATABASE_URL=libsql://your-db-name.turso.io
 TURSO_AUTH_TOKEN=your-auth-token
+```
+
+Then import to remote:
+
+```bash
+npm run db:import:remote         # Import all CSV files into remote Turso
+npm run db:import:remote:current # Import only current season into remote Turso
 ```
 
 Get credentials from the [Turso dashboard](https://turso.tech).
@@ -450,7 +437,7 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 
 `reportType` - Required for most endpoints (players/goalies routes). For `/seasons`, it’s optional and can be provided as `/seasons/regular` or `/seasons/playoffs` (default: `regular`).
 
-`teamId` - Optional query param. Selects which team dataset to use (CSV folder `csv/<teamId>/`). If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
+`teamId` - Optional query param. Selects which team dataset to use. If missing or unknown, defaults to `DEFAULT_TEAM_ID`.
 
 `season` - Optional. Needed only in single season endpoint. Starting year of the season want to check. If not specified, latest available season will show.
 
@@ -460,7 +447,7 @@ curl -H "Authorization: Bearer <your-key>" http://localhost:3000/seasons
 
 Data endpoints (`/teams`, `/last-modified`, `/seasons`, `/players/*`, `/goalies/*`) are cached in two layers:
 
-- **In-memory per instance**: results are memoized to avoid repeated filesystem reads and CSV parsing.
+- **In-memory per instance**: results are memoized to avoid repeated database queries.
 - **Edge-friendly HTTP caching**: successful `200` responses include `ETag` and `Cache-Control: s-maxage=...`, and clients/CDNs can use `If-None-Match` to get `304` responses.
 
 Because this API uses header-based API keys, responses include `Vary: authorization, x-api-key` by default to keep caching safe.
@@ -524,7 +511,7 @@ Scoring is calculated in three steps:
 
 5. **Position‑based scoring (players only)**
    - In addition to the overall `score`, players also receive position-based scores where they are compared only against players of the same position (Forward "F" or Defenseman "D").
-   - `position`: The player's position from CSV data ("F" or "D").
+   - `position`: The player's position ("F" or "D").
    - `scoreByPosition`: Overall score compared to same position only (0–100 scale).
    - `scoreByPositionAdjustedByGames`: Per-game adjusted score compared to same position only.
    - `scoresByPosition`: Per-stat breakdown (e.g., `scoresByPosition.goals`) compared to same position only.
@@ -548,13 +535,11 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 ## Technology
 
-Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) server to get routing work. Library called [csvtojson](https://github.com/Keyang/node-csvtojson) used for parsing sources.
+Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) for routing. Data stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files.
 
 ## Future roadmap
 
 - Improve API docs/contract (e.g. publish an OpenAPI spec)
 - Standardize request validation + error response shape
-- ~~Store API data in a database (reduce reliance on CSV files at runtime)~~ Phase 1 complete: Turso/SQLite database layer added with import scripts. Phase 2 pending: switch API to read from DB.
-- Investigate whether Fantrax offers an API to replace manual CSV exports
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

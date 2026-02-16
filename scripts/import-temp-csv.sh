@@ -104,24 +104,27 @@ for filepath in "${csv_files[@]}"; do
   fi
 done
 
-# Write last-modified timestamp if files were imported
+# Upload to R2 and import to database if files were imported
 if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
-  TIMESTAMP_FILE="${ROOT_DIR}/csv/last-modified.txt"
-  date -u +"%Y-%m-%dT%H:%M:%S.000Z" > "$TIMESTAMP_FILE"
-  echo "Updated: csv/last-modified.txt"
-
-  # Upload to R2 if enabled
+  # Upload to R2 if enabled (CSV backup/download store)
   if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then
     echo ""
     echo "📤 Uploading to R2..."
-    if npm run r2:upload:current; then
-      echo ""
-      echo "🧹 Cleaning up temp files..."
-      rm -f "$TEMP_DIR"/*.csv
-      echo "Removed CSV files from csv/temp/"
-    else
-      echo "⚠️  R2 upload failed, keeping temp files" >&2
+    if ! npm run r2:upload:current; then
+      echo "⚠️  R2 upload failed" >&2
     fi
+  fi
+
+  # Import to local database (always — local.db is the working copy)
+  echo ""
+  echo "📥 Importing to local database..."
+  if npm run db:import:local:current; then
+    echo ""
+    echo "🧹 Cleaning up temp files..."
+    rm -f "$TEMP_DIR"/*.csv
+    echo "Removed CSV files from csv/temp/"
+  else
+    echo "⚠️  Database import failed, keeping temp files" >&2
   fi
 fi
 

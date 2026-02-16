@@ -111,7 +111,7 @@ src/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
     ├── helpers.test.ts   # Core utilities, scoring, DB-backed helpers
-    ├── mappings.test.ts  # Data transformation (CSV → types)
+    ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
     ├── queries.test.ts   # Database query layer
     ├── routes.test.ts    # API endpoint handlers
     ├── services.test.ts  # Business logic (DB → scored data)
