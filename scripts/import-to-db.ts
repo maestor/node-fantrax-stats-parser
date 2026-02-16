@@ -54,11 +54,9 @@ const main = async () => {
       const filePath = path.join(teamDir, file);
 
       try {
+        // csvtojson returns untyped rows; same pattern as services.ts getRawDataFromFiles
         const rawData = await csv().fromFile(filePath);
-        const dataWithSeason = rawData.map((item: Record<string, unknown>) => ({
-          ...item,
-          season,
-        }));
+        const dataWithSeason = rawData.map((item) => ({ ...item, season }));
 
         const players = mapPlayerData(dataWithSeason);
         const goalies = mapGoalieData(dataWithSeason);
