@@ -31,6 +31,7 @@
     "r2:download": "tsx scripts/download-from-r2.ts",
     "r2:download:dry": "tsx scripts/download-from-r2.ts --dry-run",
     "r2:download:force": "tsx scripts/download-from-r2.ts --force",
+    "db:migrate": "tsx scripts/db-migrate.ts",
     "parseAndUploadCsv": "set -a && source .env && set +a && ./scripts/import-temp-csv.sh",
     "start": "npm run build && node lib/server.js",
     "test": "jest",
