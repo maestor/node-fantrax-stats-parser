@@ -100,8 +100,15 @@ npm run verify
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema
-- `npm run db:import` - Import all CSV files into database
-- `npm run db:import:current` - Import only current season into database
+- `npm run db:import:local` - Import all CSV files into local database (`local.db`)
+- `npm run db:import:local:current` - Import only current season into local database
+- `npm run db:import:remote` - Import all CSV files into remote Turso (requires `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`)
+- `npm run db:import:remote:current` - Import only current season into remote Turso
+
+### R2 Storage (CSV backup)
+- `npm run r2:upload` - Upload all CSV files to R2
+- `npm run r2:upload:current` - Upload only current season to R2
+- `npm run r2:download` - Download CSV files from R2
 
 ### Utilities
 - `npm run clean` - Remove lib/ directory
@@ -125,6 +132,13 @@ REQUIRE_API_KEY=false     # Set to true to require API keys
 # Turso Database (required for API)
 TURSO_DATABASE_URL=file:local.db   # Local SQLite for development
 # TURSO_AUTH_TOKEN=                 # Not needed for local file
+
+# R2 Storage (optional — only needed for r2:upload/r2:download scripts)
+# R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
+# R2_ACCESS_KEY_ID=your_access_key_id
+# R2_SECRET_ACCESS_KEY=your_secret_access_key
+# R2_BUCKET_NAME=ffhl-stats-csv
+# USE_R2_STORAGE=true               # Enables R2 upload in import pipeline
 ```
 
 ### Production (Vercel)
@@ -157,5 +171,6 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 - Source code: `src/`
 - Tests: `src/__tests__/`
 - Database layer: `src/db/`
+- CSV/data mappings: `src/mappings.ts` (used by import scripts)
 - Build output: `lib/` (gitignored)
 - Import scripts: `scripts/`
