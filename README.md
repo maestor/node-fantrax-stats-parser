@@ -393,6 +393,31 @@ When `USE_R2_STORAGE=true`, the import script automatically uploads to R2:
 ./scripts/import-temp-csv.sh  # Processes and uploads to R2
 ```
 
+## Database (Turso/SQLite)
+
+In addition to CSV/R2 storage, this project supports a Turso (libSQL/SQLite) database for structured data access. Currently in Phase 1: the database is populated alongside CSV but the API still reads from CSV/R2.
+
+### Local development
+
+No Turso account needed. The database scripts automatically use a local SQLite file (`local.db`):
+
+```bash
+npm run db:migrate       # Create database schema
+npm run db:import        # Import all CSV files into database
+npm run db:import:current # Import only current season
+```
+
+### Production (Turso hosted)
+
+Set these environment variables:
+
+```bash
+TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+```
+
+Get credentials from the [Turso dashboard](https://turso.tech).
+
 ## API key authentication (production)
 
 This service supports a simple API-key check for production usage.

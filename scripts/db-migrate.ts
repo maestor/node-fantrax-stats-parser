@@ -32,7 +32,6 @@ const SCHEMA_SQL = [
     season INTEGER NOT NULL,
     report_type TEXT NOT NULL,
     name TEXT NOT NULL,
-    position TEXT,
     games INTEGER NOT NULL DEFAULT 0,
     wins INTEGER NOT NULL DEFAULT 0,
     saves INTEGER NOT NULL DEFAULT 0,

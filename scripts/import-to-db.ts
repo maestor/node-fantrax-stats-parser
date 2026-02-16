@@ -7,12 +7,10 @@ dotenv.config();
 import fs from "fs";
 import path from "path";
 import csv from "csvtojson";
-import { TEAMS } from "../src/constants";
+import { TEAMS, CURRENT_SEASON } from "../src/constants";
 import { mapPlayerData, mapGoalieData } from "../src/mappings";
 import { getDbClient } from "../src/db/client";
 import type { InStatement } from "@libsql/client";
-
-const CURRENT_SEASON = 2025; // Update this each year
 
 const main = async () => {
   const args = process.argv.slice(2);
@@ -105,14 +103,13 @@ const main = async () => {
 
           for (const goalie of goalies) {
             statements.push({
-              sql: `INSERT INTO goalies (team_id, season, report_type, name, position, games, wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, gaa, save_percent)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              sql: `INSERT INTO goalies (team_id, season, report_type, name, games, wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, gaa, save_percent)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               args: [
                 team.id,
                 season,
                 reportType,
                 goalie.name,
-                null,
                 goalie.games,
                 goalie.wins,
                 goalie.saves,

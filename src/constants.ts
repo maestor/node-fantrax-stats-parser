@@ -8,6 +8,7 @@ import {
 } from "./types";
 
 export const START_SEASON = 2012;
+export const CURRENT_SEASON = 2025;
 
 export const REPORT_TYPES: Report[] = ["playoffs", "regular", "both"];
 
