@@ -13,7 +13,7 @@ import {
   HeadObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { TEAMS } from "../src/constants";
+import { TEAMS, CURRENT_SEASON } from "../src/constants";
 
 interface UploadStats {
   uploaded: number;
@@ -26,8 +26,6 @@ interface ManifestEntry {
   regular: number[];
   playoffs: number[];
 }
-
-const CURRENT_SEASON = 2025; // Update this each year
 
 const getEnvOrThrow = (key: string): string => {
   const value = process.env[key];

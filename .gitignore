@@ -15,3 +15,9 @@ src/playwright/.fantrax/
 
 # Claude code files
 .claude
+
+# Local SQLite database (Turso local mode)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

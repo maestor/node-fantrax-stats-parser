@@ -393,6 +393,31 @@ When `USE_R2_STORAGE=true`, the import script automatically uploads to R2:
 ./scripts/import-temp-csv.sh  # Processes and uploads to R2
 ```
 
+## Database (Turso/SQLite)
+
+In addition to CSV/R2 storage, this project supports a Turso (libSQL/SQLite) database for structured data access. Currently in Phase 1: the database is populated alongside CSV but the API still reads from CSV/R2.
+
+### Local development
+
+No Turso account needed. The database scripts automatically use a local SQLite file (`local.db`):
+
+```bash
+npm run db:migrate       # Create database schema
+npm run db:import        # Import all CSV files into database
+npm run db:import:current # Import only current season
+```
+
+### Production (Turso hosted)
+
+Set these environment variables:
+
+```bash
+TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+```
+
+Get credentials from the [Turso dashboard](https://turso.tech).
+
 ## API key authentication (production)
 
 This service supports a simple API-key check for production usage.
@@ -529,7 +554,7 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 - Improve API docs/contract (e.g. publish an OpenAPI spec)
 - Standardize request validation + error response shape
-- Store API data in a database (reduce reliance on CSV files at runtime)
+- ~~Store API data in a database (reduce reliance on CSV files at runtime)~~ Phase 1 complete: Turso/SQLite database layer added with import scripts. Phase 2 pending: switch API to read from DB.
 - Investigate whether Fantrax offers an API to replace manual CSV exports
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
