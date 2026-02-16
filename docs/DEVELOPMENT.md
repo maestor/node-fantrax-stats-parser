@@ -26,7 +26,7 @@ This should:
 - ✅ Pass ESLint checks (no warnings)
 - ✅ Pass TypeScript compilation
 - ✅ Build successfully to lib/
-- ✅ Pass all 264 tests with ≥97% coverage
+- ✅ Pass all tests with 100% coverage
 
 ---
 
@@ -94,12 +94,9 @@ npm run verify
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
 
-### CSV Data Management
+### CSV Data Import
 - `npm run playwright:import:regular` - Import regular season data via Playwright
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright
-- `npm run r2:upload` - Upload all CSV files to R2 (if R2 enabled)
-- `npm run r2:upload:current` - Upload only current season to R2
-- `npm run r2:upload:dry` - Preview R2 upload without executing
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema
@@ -125,12 +122,9 @@ API_KEY=your-test-key-here
 # API_KEYS=key1,key2,key3  # Multiple keys comma-separated
 REQUIRE_API_KEY=false     # Set to true to require API keys
 
-# Cloudflare R2 Storage (optional)
-USE_R2_STORAGE=false      # true = R2, false = local filesystem
-R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
-R2_ACCESS_KEY_ID=your_access_key
-R2_SECRET_ACCESS_KEY=your_secret_key
-R2_BUCKET_NAME=ffhl-stats-csv
+# Turso Database (required for API)
+TURSO_DATABASE_URL=file:local.db   # Local SQLite for development
+# TURSO_AUTH_TOKEN=                 # Not needed for local file
 ```
 
 ### Production (Vercel)
@@ -139,17 +133,6 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 
 - `API_KEY` or `API_KEYS` - Required for production
 - `REQUIRE_API_KEY=true` - Enforce authentication
-- `USE_R2_STORAGE=true` - Enable R2 storage
-- `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` - R2 credentials
-
-See [README.md](../README.md#cloud-storage-cloudflare-r2) for detailed R2 setup instructions.
-
-### Turso Database (optional for Phase 1)
-
-For local development, the database scripts use a local SQLite file (`local.db`) automatically — no configuration needed.
-
-For production (Turso hosted):
-
 - `TURSO_DATABASE_URL` - Turso database URL (e.g., `libsql://your-db.turso.io`)
 - `TURSO_AUTH_TOKEN` - Turso authentication token
 
@@ -172,6 +155,7 @@ For production (Turso hosted):
 
 ### File Organization
 - Source code: `src/`
-- Tests: `src/__tests__/` or `src/module/__tests__/`
+- Tests: `src/__tests__/`
+- Database layer: `src/db/`
 - Build output: `lib/` (gitignored)
-- CSV data: `csv/` (committed to repo, or in R2 when enabled)
+- Import scripts: `scripts/`

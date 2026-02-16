@@ -9,8 +9,7 @@ module.exports = {
     "!src/types.ts",
     "!src/index.ts",
     "!src/server.ts",
-    "!src/storage/r2-client.ts", // AWS SDK integration code - tested via integration tests
-    "!src/db/client.ts",         // Turso/libSQL client wrapper - tested via integration tests
+    "!src/db/client.ts", // Turso/libSQL client wrapper - tested via integration tests
   ],
   coverageThreshold: {
     global: {

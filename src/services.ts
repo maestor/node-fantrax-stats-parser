@@ -1,29 +1,18 @@
-import csv from "csvtojson";
-import path from "path";
-import fs from "fs";
-import os from "os";
-
 import {
-  ApiError,
   sortItemsByStatField,
   availableSeasons,
   applyPlayerScores,
   applyPlayerScoresByPosition,
   applyGoalieScores,
 } from "./helpers";
-import { validateCsvFileOnceOrThrow } from "./csvIntegrity";
 import {
   mapAvailableSeasons,
-  mapPlayerData,
-  mapGoalieData,
-  mapCombinedPlayerData,
-  mapCombinedGoalieData,
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "./mappings";
-import { RawData, Report, CsvReport, Player, Goalie, PlayerWithSeason, GoalieWithSeason } from "./types";
+import { Report, CsvReport, PlayerWithSeason, GoalieWithSeason } from "./types";
 import { DEFAULT_TEAM_ID } from "./constants";
-import { getStorage, isR2Enabled } from "./storage";
+import { getPlayersFromDb, getGoaliesFromDb } from "./db/queries";
 
 // Parser wants seasons as an array even in one-season cases
 const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
@@ -33,74 +22,49 @@ const getSeasonParam = async (teamId: string, report: Report, season?: number): 
   return [Math.max(...seasons)];
 };
 
-const getRawDataFromFiles = async (
+const getPlayersForSeasons = async (
   teamId: string,
   report: CsvReport,
   seasons: number[]
-): Promise<RawData[]> => {
+): Promise<PlayerWithSeason[]> => {
   if (!seasons.length) return [];
-  const sources = seasons.map(async (season) => {
-    const filePath = path.join(
-      process.cwd(),
-      "csv",
-      teamId,
-      `${report}-${season}-${season + 1}.csv`
-    );
-    try {
-      await validateCsvFileOnceOrThrow(filePath);
-
-      let sourceToJson;
-
-      if (isR2Enabled()) {
-        // R2 mode: Read content and write to temp file for parsing
-        const storage = getStorage();
-        const csvContent = await storage.readFile(filePath);
-
-        const tmpFile = path.join(os.tmpdir(), `csv-${Date.now()}-${Math.random()}.csv`);
-        await fs.promises.writeFile(tmpFile, csvContent);
-
-        try {
-          sourceToJson = await csv().fromFile(tmpFile);
-        } finally {
-          // Clean up temp file
-          await fs.promises.unlink(tmpFile).catch(() => {
-            // Ignore cleanup errors
-          });
-        }
-      } else {
-        // Filesystem mode: Use fromFile directly (no temp file needed)
-        sourceToJson = await csv().fromFile(filePath);
-      }
-
-      return sourceToJson.map((item) => ({
-        ...item,
-        season,
-      }));
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-      if (typeof error === "object" && error && "statusCode" in error) {
-        throw error;
-      }
-      // Only log in non-test environments to avoid cluttering test output
-      /* istanbul ignore next - only runs in production, not during tests */
-      if (!process.env.JEST_WORKER_ID) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to read CSV file: ${filePath}`, error);
-      }
-      return [];
-    }
-  });
-  const rawData = await Promise.all(sources);
-
-  return rawData.flat();
+  const results = await Promise.all(
+    seasons.map((season) => getPlayersFromDb(teamId, season, report))
+  );
+  return results.flat();
 };
 
-const getRawDataFromFilesForReports = async (
+const getGoaliesForSeasons = async (
+  teamId: string,
+  report: CsvReport,
+  seasons: number[]
+): Promise<GoalieWithSeason[]> => {
+  if (!seasons.length) return [];
+  const results = await Promise.all(
+    seasons.map((season) => getGoaliesFromDb(teamId, season, report))
+  );
+  return results.flat();
+};
+
+const getPlayersForReports = async (
   teamId: string,
   reports: ReadonlyArray<CsvReport>,
   seasons: number[]
-): Promise<RawData[]> => {
-  const all = await Promise.all(reports.map((report) => getRawDataFromFiles(teamId, report, seasons)));
+): Promise<PlayerWithSeason[]> => {
+  const all = await Promise.all(
+    reports.map((report) => getPlayersForSeasons(teamId, report, seasons))
+  );
+  return all.flat();
+};
+
+const getGoaliesForReports = async (
+  teamId: string,
+  reports: ReadonlyArray<CsvReport>,
+  seasons: number[]
+): Promise<GoalieWithSeason[]> => {
+  const all = await Promise.all(
+    reports.map((report) => getGoaliesForSeasons(teamId, report, seasons))
+  );
   return all.flat();
 };
 
@@ -193,16 +157,15 @@ export const getPlayersStatsSeason = async (
 ) => {
   const seasons = await getSeasonParam(teamId, report, season);
   if (report === "both") {
-    const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
-    const merged = mergePlayersSameSeason(mapPlayerData(rawData));
+    const players = await getPlayersForReports(teamId, ["regular", "playoffs"], seasons);
+    const merged = mergePlayersSameSeason(players);
     const scoredData = applyPlayerScores(merged);
     applyPlayerScoresByPosition(scoredData);
     return sortItemsByStatField(scoredData, "players");
   }
 
-  const rawData = await getRawDataFromFiles(teamId, report, seasons);
-  const mappedData = mapPlayerData(rawData);
-  const scoredData = applyPlayerScores(mappedData);
+  const players = await getPlayersForSeasons(teamId, report, seasons);
+  const scoredData = applyPlayerScores(players);
   applyPlayerScoresByPosition(scoredData);
   return sortItemsByStatField(scoredData, "players");
 };
@@ -214,41 +177,48 @@ export const getGoaliesStatsSeason = async (
 ) => {
   const seasons = await getSeasonParam(teamId, report, season);
   if (report === "both") {
-    const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
-    const merged = mergeGoaliesSameSeason(mapGoalieData(rawData));
+    const goalies = await getGoaliesForReports(teamId, ["regular", "playoffs"], seasons);
+    const merged = mergeGoaliesSameSeason(goalies);
     const scoredData = applyGoalieScores(merged);
     return sortItemsByStatField(scoredData, "goalies");
   }
 
-  const rawData = await getRawDataFromFiles(teamId, report, seasons);
-  const mappedData = mapGoalieData(rawData);
-  const scoredData = applyGoalieScores(mappedData);
+  const goalies = await getGoaliesForSeasons(teamId, report, seasons);
+  const scoredData = applyGoalieScores(goalies);
   return sortItemsByStatField(scoredData, "goalies");
 };
 
-const getCombinedStats = async (
-  report: CsvReport,
-  mapper: (data: RawData[]) => Player[] | Goalie[],
-  kind: "players" | "goalies",
+const getPlayersCombinedForReport = async (
   teamId: string,
+  report: CsvReport,
   startFrom?: number
 ) => {
   let seasons = await availableSeasons(teamId, report);
-
   if (startFrom !== undefined) {
     seasons = seasons.filter((season) => season >= startFrom);
   }
 
-  const rawData = await getRawDataFromFiles(teamId, report, seasons);
-  const mappedData = mapper(rawData);
-  let scoredData;
-  if (kind === "players") {
-    scoredData = applyPlayerScores(mappedData as Player[]);
-    applyPlayerScoresByPosition(scoredData);
-  } else {
-    scoredData = applyGoalieScores(mappedData as Goalie[]);
+  const players = await getPlayersForSeasons(teamId, report, seasons);
+  const combined = mapCombinedPlayerDataFromPlayersWithSeason(players);
+  const scored = applyPlayerScores(combined);
+  applyPlayerScoresByPosition(scored);
+  return sortItemsByStatField(scored, "players");
+};
+
+const getGoaliesCombinedForReport = async (
+  teamId: string,
+  report: CsvReport,
+  startFrom?: number
+) => {
+  let seasons = await availableSeasons(teamId, report);
+  if (startFrom !== undefined) {
+    seasons = seasons.filter((season) => season >= startFrom);
   }
-  return sortItemsByStatField(scoredData, kind);
+
+  const goalies = await getGoaliesForSeasons(teamId, report, seasons);
+  const combined = mapCombinedGoalieDataFromGoaliesWithSeason(goalies);
+  const scored = applyGoalieScores(combined);
+  return sortItemsByStatField(scored, "goalies");
 };
 
 const getPlayersStatsCombinedBoth = async (
@@ -260,8 +230,8 @@ const getPlayersStatsCombinedBoth = async (
     seasons = seasons.filter((season) => season >= startFrom);
   }
 
-  const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
-  const mergedBySeason = mergePlayersSameSeason(mapPlayerData(rawData));
+  const players = await getPlayersForReports(teamId, ["regular", "playoffs"], seasons);
+  const mergedBySeason = mergePlayersSameSeason(players);
   const combined = mapCombinedPlayerDataFromPlayersWithSeason(mergedBySeason);
   const scored = applyPlayerScores(combined);
   applyPlayerScoresByPosition(scored);
@@ -277,8 +247,8 @@ const getGoaliesStatsCombinedBoth = async (
     seasons = seasons.filter((season) => season >= startFrom);
   }
 
-  const rawData = await getRawDataFromFilesForReports(teamId, ["regular", "playoffs"], seasons);
-  const mergedBySeason = mergeGoaliesSameSeason(mapGoalieData(rawData));
+  const goalies = await getGoaliesForReports(teamId, ["regular", "playoffs"], seasons);
+  const mergedBySeason = mergeGoaliesSameSeason(goalies);
   const combined = mapCombinedGoalieDataFromGoaliesWithSeason(mergedBySeason);
   const scored = applyGoalieScores(combined);
   return sortItemsByStatField(scored, "goalies");
@@ -291,7 +261,7 @@ export const getPlayersStatsCombined = async (
 ) =>
   report === "both"
     ? getPlayersStatsCombinedBoth(teamId, startFrom)
-    : getCombinedStats(report, mapCombinedPlayerData, "players", teamId, startFrom);
+    : getPlayersCombinedForReport(teamId, report, startFrom);
 
 export const getGoaliesStatsCombined = async (
   report: Report,
@@ -300,4 +270,4 @@ export const getGoaliesStatsCombined = async (
 ) =>
   report === "both"
     ? getGoaliesStatsCombinedBoth(teamId, startFrom)
-    : getCombinedStats(report, mapCombinedGoalieData, "goalies", teamId, startFrom);
+    : getGoaliesCombinedForReport(teamId, report, startFrom);
