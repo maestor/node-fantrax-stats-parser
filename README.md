@@ -529,7 +529,7 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 - Improve API docs/contract (e.g. publish an OpenAPI spec)
 - Standardize request validation + error response shape
-- Store API data in a database (reduce reliance on CSV files at runtime)
+- ~~Store API data in a database (reduce reliance on CSV files at runtime)~~ Phase 1 complete: Turso/SQLite database layer added with import scripts. Phase 2 pending: switch API to read from DB.
 - Investigate whether Fantrax offers an API to replace manual CSV exports
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

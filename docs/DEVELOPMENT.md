@@ -101,6 +101,11 @@ npm run verify
 - `npm run r2:upload:current` - Upload only current season to R2
 - `npm run r2:upload:dry` - Preview R2 upload without executing
 
+### Database (Turso/SQLite)
+- `npm run db:migrate` - Create/update database schema
+- `npm run db:import` - Import all CSV files into database
+- `npm run db:import:current` - Import only current season into database
+
 ### Utilities
 - `npm run clean` - Remove lib/ directory
 
@@ -138,6 +143,15 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 - `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` - R2 credentials
 
 See [README.md](../README.md#cloud-storage-cloudflare-r2) for detailed R2 setup instructions.
+
+### Turso Database (optional for Phase 1)
+
+For local development, the database scripts use a local SQLite file (`local.db`) automatically — no configuration needed.
+
+For production (Turso hosted):
+
+- `TURSO_DATABASE_URL` - Turso database URL (e.g., `libsql://your-db.turso.io`)
+- `TURSO_AUTH_TOKEN` - Turso authentication token
 
 ---
 
