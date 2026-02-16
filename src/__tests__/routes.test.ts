@@ -1,6 +1,5 @@
 import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
-import fs from "fs";
 import {
   getSeasons,
   getTeams,
@@ -24,26 +23,17 @@ import {
   seasonAvailable,
   parseSeasonParam,
   resolveTeamId,
-  getTeamsWithCsvFolders,
+  getTeamsWithData,
   ERROR_MESSAGES,
   HTTP_STATUS,
 } from "../helpers";
+import { getLastModifiedFromDb } from "../db/queries";
 import { makeEtagForJson } from "../cache";
 
 jest.mock("micro");
 jest.mock("../services");
 jest.mock("../helpers");
-jest.mock("fs");
-
-jest.mock("../storage/r2-client", () => {
-  const mockR2Client = {
-    getObject: jest.fn(),
-  };
-  return {
-    getR2Client: jest.fn(() => mockR2Client),
-    isR2Enabled: jest.fn(() => false),
-  };
-});
+jest.mock("../db/queries");
 
 type RouteReq = Parameters<typeof getSeasons>[0];
 const asRouteReq = (req: unknown): RouteReq => req as RouteReq;
@@ -52,8 +42,9 @@ describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetRouteCachesForTests();
-    (resolveTeamId as jest.Mock).mockReturnValue("1");
+    (resolveTeamId as jest.Mock).mockResolvedValue("1");
     (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+    (seasonAvailable as jest.Mock).mockResolvedValue(true);
     (parseSeasonParam as jest.Mock).mockReturnValue(undefined);
   });
 
@@ -160,7 +151,7 @@ describe("routes", () => {
     test("parses query params even when host header is not a string", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
+      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) =>
         typeof raw === "string" && raw ? raw : "1"
       );
 
@@ -179,7 +170,7 @@ describe("routes", () => {
     test("parses query params with valid url but no headers object", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
+      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) =>
         typeof raw === "string" && raw ? raw : "1"
       );
 
@@ -219,7 +210,7 @@ describe("routes", () => {
     test("treats missing teamId query param as undefined", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) => (raw ? String(raw) : "1"));
+      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) => (raw ? String(raw) : "1"));
 
       const req = createRequest({ url: "/seasons", headers: { host: "localhost" } });
       const res = createResponse();
@@ -270,7 +261,7 @@ describe("routes", () => {
   describe("getTeams", () => {
     test("returns 200 with configured teams", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const req = createRequest();
       const res = createResponse();
@@ -282,7 +273,7 @@ describe("routes", () => {
 
     test("memoizes successful responses and avoids re-calling the handler", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams" });
       const res1 = createResponse();
@@ -293,13 +284,13 @@ describe("routes", () => {
       const res2 = createResponse();
       await getTeams(asRouteReq(req2), res2);
 
-      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, filteredTeams);
     });
 
     test("returns 304 for matching If-None-Match", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams", method: "GET" });
       const res1 = createResponse();
@@ -316,7 +307,7 @@ describe("routes", () => {
       const endSpy = jest.spyOn(res2, "end");
       await getTeams(asRouteReq(req2), res2);
 
-      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res2.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -324,7 +315,7 @@ describe("routes", () => {
 
     test("hits cached 304 branch on repeat request", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const primeReq = {
         method: "GET",
@@ -347,7 +338,7 @@ describe("routes", () => {
 
   await getTeams(asRouteReq(cachedReq), cachedRes);
 
-      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(cachedRes.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -355,7 +346,7 @@ describe("routes", () => {
 
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const etag = makeEtagForJson(filteredTeams);
       const req = {
@@ -368,7 +359,7 @@ describe("routes", () => {
 
       await getTeams(asRouteReq(req), res);
 
-      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -376,12 +367,12 @@ describe("routes", () => {
 
     test("works when req is undefined (no caching possible)", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithCsvFolders as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
 
       const res = createResponse();
       await getTeams(undefined as unknown as RouteReq, res);
 
-      expect(getTeamsWithCsvFolders).toHaveBeenCalledTimes(1);
+      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
   });
@@ -390,7 +381,7 @@ describe("routes", () => {
     test("returns 200 with player stats", async () => {
       const mockPlayers = [{ name: "Test Player", goals: 50 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
       (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getPlayersStatsSeason as jest.Mock).mockResolvedValue(mockPlayers);
 
@@ -412,7 +403,7 @@ describe("routes", () => {
 
     test("returns 400 for invalid report type", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
 
       const req = createRequest({
         params: { reportType: "invalid" },
@@ -426,7 +417,7 @@ describe("routes", () => {
 
     test("returns 400 for unavailable season", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(false);
+      (seasonAvailable as jest.Mock).mockResolvedValue(false);
 
       const req = createRequest({
         params: { reportType: "regular", season: "2030" },
@@ -441,7 +432,7 @@ describe("routes", () => {
     test("returns 500 on service error", async () => {
       const error = new Error("Service error");
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
       (getPlayersStatsSeason as jest.Mock).mockRejectedValue(error);
 
       const req = createRequest({
@@ -545,7 +536,7 @@ describe("routes", () => {
     test("returns 200 with goalie stats", async () => {
       const mockGoalies = [{ name: "Test Goalie", wins: 40 }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
       (parseSeasonParam as jest.Mock).mockReturnValue(2024);
       (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
 
@@ -564,7 +555,7 @@ describe("routes", () => {
 
     test("returns 400 for invalid report type", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
 
       const req = createRequest({
         params: { reportType: "invalid" },
@@ -578,7 +569,7 @@ describe("routes", () => {
 
     test("returns 400 for unavailable season", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(false);
+      (seasonAvailable as jest.Mock).mockResolvedValue(false);
 
       const req = createRequest({
         params: { reportType: "regular", season: "2030" },
@@ -593,7 +584,7 @@ describe("routes", () => {
     test("returns 500 on service error", async () => {
       const error = new Error("Service error");
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
       (getGoaliesStatsSeason as jest.Mock).mockRejectedValue(error);
 
       const req = createRequest({
@@ -694,43 +685,23 @@ describe("routes", () => {
   });
 
   describe("getLastModified", () => {
-    test("returns 200 with timestamp from file", async () => {
+    test("returns 200 with timestamp from DB", async () => {
       const mockTimestamp = "2026-01-30T15:30:00.000Z";
-      (fs.readFileSync as jest.Mock).mockReturnValue(mockTimestamp);
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const req = createRequest({ url: "/last-modified" });
       const res = createResponse();
 
       await getLastModified(asRouteReq(req), res);
 
-      expect(fs.readFileSync).toHaveBeenCalledWith(
-        expect.stringContaining("csv/last-modified.txt"),
-        "utf-8"
-      );
+      expect(getLastModifiedFromDb).toHaveBeenCalled();
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-30T15:30:00.000Z",
       });
     });
 
-    test("trims whitespace from timestamp file", async () => {
-      (fs.readFileSync as jest.Mock).mockReturnValue("  2026-01-30T15:30:00.000Z\n");
-
-      const req = createRequest({ url: "/last-modified" });
-      const res = createResponse();
-
-      await getLastModified(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-        lastModified: "2026-01-30T15:30:00.000Z",
-      });
-    });
-
-    test("returns null when timestamp file does not exist", async () => {
-      (fs.readFileSync as jest.Mock).mockImplementation(() => {
-        const error = new Error("ENOENT") as NodeJS.ErrnoException;
-        error.code = "ENOENT";
-        throw error;
-      });
+    test("returns null when no metadata row exists", async () => {
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(null);
 
       const req = createRequest({ url: "/last-modified" });
       const res = createResponse();
@@ -742,22 +713,9 @@ describe("routes", () => {
       });
     });
 
-    test("returns null when timestamp file is empty", async () => {
-      (fs.readFileSync as jest.Mock).mockReturnValue("");
-
-      const req = createRequest({ url: "/last-modified" });
-      const res = createResponse();
-
-      await getLastModified(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-        lastModified: null,
-      });
-    });
-
-    test("memoizes successful responses and avoids re-reading file", async () => {
+    test("memoizes successful responses and avoids re-querying DB", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
-      (fs.readFileSync as jest.Mock).mockReturnValue(mockTimestamp);
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const req1 = createRequest({ url: "/last-modified" });
       const res1 = createResponse();
@@ -770,7 +728,7 @@ describe("routes", () => {
       const res2 = createResponse();
       await getLastModified(asRouteReq(req2), res2);
 
-      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(getLastModifiedFromDb).not.toHaveBeenCalled();
       expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
       });
@@ -779,7 +737,7 @@ describe("routes", () => {
     test("returns 304 for matching If-None-Match", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
       const mockResponse = { lastModified: mockTimestamp };
-      (fs.readFileSync as jest.Mock).mockReturnValue(mockTimestamp);
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const req1 = createRequest({ url: "/last-modified", method: "GET" });
       const res1 = createResponse();
@@ -805,7 +763,7 @@ describe("routes", () => {
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
       const mockResponse = { lastModified: mockTimestamp };
-      (fs.readFileSync as jest.Mock).mockReturnValue(mockTimestamp);
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const etag = makeEtagForJson(mockResponse);
       const req = {
@@ -818,7 +776,7 @@ describe("routes", () => {
 
       await getLastModified(asRouteReq(req), res);
 
-      expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+      expect(getLastModifiedFromDb).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -826,88 +784,14 @@ describe("routes", () => {
 
     test("works when req is undefined (no caching possible)", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
-      (fs.readFileSync as jest.Mock).mockReturnValue(mockTimestamp);
+      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const res = createResponse();
       await getLastModified(undefined as unknown as RouteReq, res);
 
-      expect(fs.readFileSync).toHaveBeenCalledTimes(1);
+      expect(getLastModifiedFromDb).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
-      });
-    });
-
-    describe("R2 mode", () => {
-      let mockR2Client: { getObject: jest.Mock };
-
-      beforeEach(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { getR2Client, isR2Enabled } = require("../storage/r2-client");
-        (isR2Enabled as jest.Mock).mockReturnValue(true);
-        mockR2Client = getR2Client();
-        resetRouteCachesForTests();
-      });
-
-      afterEach(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { isR2Enabled } = require("../storage/r2-client");
-        (isR2Enabled as jest.Mock).mockReturnValue(false);
-      });
-
-      test("fetches timestamp from R2 successfully", async () => {
-        const mockTimestamp = "2026-01-30T15:30:00.000Z";
-        mockR2Client.getObject.mockResolvedValue(`${mockTimestamp}\n`);
-
-        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
-        const res = createResponse();
-
-        await getLastModified(req, res);
-
-        expect(mockR2Client.getObject).toHaveBeenCalledWith("last-modified.txt");
-        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-          lastModified: mockTimestamp,
-        });
-      });
-
-      test("returns null when R2 fetch fails", async () => {
-        mockR2Client.getObject.mockRejectedValue(new Error("Not found"));
-
-        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
-        const res = createResponse();
-
-        await getLastModified(req, res);
-
-        expect(mockR2Client.getObject).toHaveBeenCalledWith("last-modified.txt");
-        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-          lastModified: null,
-        });
-      });
-
-      test("trims whitespace from R2 timestamp", async () => {
-        const mockTimestamp = "2026-01-30T15:30:00.000Z";
-        mockR2Client.getObject.mockResolvedValue(`  ${mockTimestamp}  \n\t`);
-
-        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
-        const res = createResponse();
-
-        await getLastModified(req, res);
-
-        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-          lastModified: mockTimestamp,
-        });
-      });
-
-      test("returns null when R2 timestamp is empty after trimming", async () => {
-        mockR2Client.getObject.mockResolvedValue("  \n\t  ");
-
-        const req = { method: "GET", url: "/last-modified", headers: { host: "localhost" } } as unknown as RouteReq;
-        const res = createResponse();
-
-        await getLastModified(req, res);
-
-        expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-          lastModified: null,
-        });
       });
     });
   });

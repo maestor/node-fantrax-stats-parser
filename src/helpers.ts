@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { Player, PlayerFields, Goalie, Report, CsvReport, GoalieScoreField } from "./types";
 import {
   REPORT_TYPES,
@@ -13,126 +11,30 @@ import {
   MIN_GAMES_FOR_ADJUSTED_SCORE,
   DEFAULT_TEAM_ID,
   TEAMS,
-  HTTP_STATUS,
-  ERROR_MESSAGES,
 } from "./constants";
-import { isR2Enabled } from "./storage";
-import { getSeasonManifest } from "./storage/manifest";
+import { getAvailableSeasonsFromDb, getTeamIdsWithData } from "./db/queries";
 
 export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 
-export class ApiError extends Error {
-  statusCode: number;
+const isConfiguredTeamId = (teamId: string): boolean => TEAMS.some((t) => t.id === teamId);
 
-  constructor(statusCode: number, message: string) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
-
-const helperCaches = {
-  teamCsvDirExists: new Map<string, boolean>(),
-  seasonsForTeam: new Map<string, number[]>(),
-  teamsWithCsvFolders: undefined as Array<(typeof TEAMS)[number]> | undefined,
+export const getTeamsWithData = async (): Promise<Array<(typeof TEAMS)[number]>> => {
+  const teamIds = await getTeamIdsWithData();
+  const teamIdSet = new Set(teamIds);
+  return TEAMS.filter((team) => teamIdSet.has(team.id));
 };
 
-export const resetHelperCachesForTests = (): void => {
-  helperCaches.teamCsvDirExists.clear();
-  helperCaches.seasonsForTeam.clear();
-  helperCaches.teamsWithCsvFolders = undefined;
-};
-
-const getTeamCsvDir = (teamId: string): string => path.join(process.cwd(), "csv", teamId);
-
-const hasTeamCsvDir = (teamId: string): boolean => {
-  const cached = helperCaches.teamCsvDirExists.get(teamId);
-  if (cached !== undefined) return cached;
-
-  if (isR2Enabled()) {
-    // For R2, we can't efficiently check directory existence
-    // Instead, mark as true and let individual file checks fail gracefully
-    helperCaches.teamCsvDirExists.set(teamId, true);
-    return true;
-  }
-
-  try {
-    fs.readdirSync(getTeamCsvDir(teamId));
-    helperCaches.teamCsvDirExists.set(teamId, true);
-    return true;
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-    if (err?.code === "ENOENT") {
-      helperCaches.teamCsvDirExists.set(teamId, false);
-      return false;
-    }
-    throw error;
-  }
-};
-
-export const getTeamsWithCsvFolders = (): Array<(typeof TEAMS)[number]> => {
-  if (!helperCaches.teamsWithCsvFolders) {
-    helperCaches.teamsWithCsvFolders = TEAMS.filter((team) => hasTeamCsvDir(team.id));
-  }
-  return helperCaches.teamsWithCsvFolders;
-};
-
-export const resolveTeamId = (raw: unknown): string => {
+export const resolveTeamId = async (raw: unknown): Promise<string> => {
   if (typeof raw !== "string") return DEFAULT_TEAM_ID;
   const teamId = raw.trim();
   if (!teamId) return DEFAULT_TEAM_ID;
-
-  return isConfiguredTeamId(teamId) && hasTeamCsvDir(teamId) ? teamId : DEFAULT_TEAM_ID;
-};
-
-const isConfiguredTeamId = (teamId: string): boolean => TEAMS.some((t) => t.id === teamId);
-
-const ensureTeamCsvDirOrThrow = (teamId: string): string => {
-  const dir = getTeamCsvDir(teamId);
-  try {
-    fs.readdirSync(dir);
-    return dir;
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-    if (err?.code === "ENOENT" && isConfiguredTeamId(teamId)) {
-      throw new ApiError(HTTP_STATUS.UNPROCESSABLE_ENTITY, ERROR_MESSAGES.TEAM_CSV_FOLDER_MISSING(teamId));
-    }
-    throw error;
-  }
+  if (!isConfiguredTeamId(teamId)) return DEFAULT_TEAM_ID;
+  const teams = await getTeamsWithData();
+  return teams.some((t) => t.id === teamId) ? teamId : DEFAULT_TEAM_ID;
 };
 
 export const listSeasonsForTeam = async (teamId: string, reportType: CsvReport): Promise<number[]> => {
-  const cacheKey = `${teamId}:${reportType}`;
-  const cached = helperCaches.seasonsForTeam.get(cacheKey);
-  if (cached !== undefined) return cached;
-
-  if (isR2Enabled()) {
-    // For R2: Use manifest file
-    const manifest = await getSeasonManifest();
-    const seasons = manifest[teamId]?.[reportType] || [];
-    helperCaches.seasonsForTeam.set(cacheKey, seasons);
-    return seasons;
-  }
-
-  // Filesystem mode
-  const dir = ensureTeamCsvDirOrThrow(teamId);
-  const files = fs.readdirSync(dir);
-
-  const regex = new RegExp(`^${reportType}-(\\d{4})-(\\d{4})\\.csv$`);
-  const seasons = new Set<number>();
-
-  for (const file of files) {
-    const match = file.match(regex);
-    if (!match) continue;
-    const start = Number(match[1]);
-    const end = Number(match[2]);
-    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
-    if (end !== start + 1) continue;
-    seasons.add(start);
-  }
-
-  const result = [...seasons].sort((a, b) => a - b);
-  helperCaches.seasonsForTeam.set(cacheKey, result);
-  return result;
+  return getAvailableSeasonsFromDb(teamId, reportType);
 };
 
 const defaultSortPlayers = (a: Player, b: Player): number =>

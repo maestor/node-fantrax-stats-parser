@@ -1,8 +1,6 @@
 import { send } from "micro";
 import { AugmentedRequestHandler, ServerResponse } from "microrouter";
 import type { IncomingMessage } from "http";
-import fs from "fs";
-import path from "path";
 import {
   getAvailableSeasons,
   getPlayersStatsSeason,
@@ -16,7 +14,7 @@ import {
   seasonAvailable,
   parseSeasonParam,
   resolveTeamId,
-  getTeamsWithCsvFolders,
+  getTeamsWithData,
 } from "./helpers";
 import { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 import {
@@ -26,8 +24,7 @@ import {
   setCachedOkHeaders,
   setNoStoreHeaders,
 } from "./cache";
-import { isR2Enabled } from "./storage";
-import { getR2Client } from "./storage/r2-client";
+import { getLastModifiedFromDb } from "./db/queries";
 
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
@@ -104,11 +101,11 @@ export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
 };
 
 export const getTeams: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, async () => getTeamsWithCsvFolders());
+  await withErrorHandlingCached(req, res, () => getTeamsWithData());
 };
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const reportRaw = (req as unknown as { params?: { reportType?: unknown } }).params?.reportType;
   const report = (typeof reportRaw === "string" ? reportRaw : "regular") as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
@@ -122,7 +119,7 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
   const season = parseSeasonParam(req.params.season);
 
@@ -131,7 +128,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  if (!seasonAvailable(season, teamId, report)) {
+  if (!(await seasonAvailable(season, teamId, report))) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     return;
   }
@@ -140,7 +137,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
@@ -153,7 +150,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
   const season = parseSeasonParam(req.params.season);
 
@@ -162,7 +159,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  if (!seasonAvailable(season, teamId, report)) {
+  if (!(await seasonAvailable(season, teamId, report))) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
     return;
   }
@@ -171,7 +168,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const report = req.params.reportType as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
@@ -185,24 +182,7 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => {
-    if (isR2Enabled()) {
-      // R2 mode: Fetch from R2 bucket
-      try {
-        const r2 = getR2Client();
-        const timestamp = await r2.getObject("last-modified.txt");
-        return { lastModified: timestamp.trim() || null };
-      } catch {
-        return { lastModified: null };
-      }
-    } else {
-      // Filesystem mode: Read from local file
-      const timestampFile = path.join(process.cwd(), "csv", "last-modified.txt");
-      try {
-        const timestamp = fs.readFileSync(timestampFile, "utf-8").trim();
-        return { lastModified: timestamp || null };
-      } catch {
-        return { lastModified: null };
-      }
-    }
+    const lastModified = await getLastModifiedFromDb();
+    return { lastModified };
   });
 };
