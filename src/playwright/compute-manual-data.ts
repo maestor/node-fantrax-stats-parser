@@ -1,49 +1,61 @@
 import type { Team } from "../types";
 
-import type { TeamRun } from "./helpers";
+import type { TeamRunWithRound } from "./helpers";
 
 export const computeManual2018PlayoffsTeamRuns = (
   teams: readonly Team[],
-): TeamRun[] => {
+): TeamRunWithRound[] => {
   // Fantrax playoffs data is corrupted for this league/season.
   // This is a one-off manual mapping based on known results.
   const startDate = "2019-03-04";
 
-  const endByPresentName: Record<string, string> = {
-    // Round 1 end
-    "Winnipeg Jets": "2019-03-10",
-    "Calgary Flames": "2019-03-10",
-    "Vancouver Canucks": "2019-03-10",
-    "Florida Panthers": "2019-03-10",
-    "New Jersey Devils": "2019-03-10",
-    "New York Islanders": "2019-03-10",
-    "St. Louis Blues": "2019-03-10",
-    "Tampa Bay Lightning": "2019-03-10",
+  const CHAMPION = "Colorado Avalanche";
 
-    // Round 2 end
-    "Nashville Predators": "2019-03-17",
-    "Boston Bruins": "2019-03-17",
-    "Dallas Stars": "2019-03-17",
-    "Philadelphia Flyers": "2019-03-17",
-
-    // Round 3 end
-    "Anaheim Ducks": "2019-03-24",
-    "Montreal Canadiens": "2019-03-24",
-
-    // Final end
-    "New York Rangers": "2019-04-06",
-    "Colorado Avalanche": "2019-04-06",
+  // endDate encodes the round each team was eliminated in (or won).
+  // round 1: eliminated first, round 4: finalist, champion: still round 4 endDate.
+  const roundDataByPresentName: Record<
+    string,
+    { endDate: string; roundReached: number }
+  > = {
+    // Round 1 exits
+    "Winnipeg Jets":       { endDate: "2019-03-10", roundReached: 1 },
+    "Calgary Flames":      { endDate: "2019-03-10", roundReached: 1 },
+    "Vancouver Canucks":   { endDate: "2019-03-10", roundReached: 1 },
+    "Florida Panthers":    { endDate: "2019-03-10", roundReached: 1 },
+    "New Jersey Devils":   { endDate: "2019-03-10", roundReached: 1 },
+    "New York Islanders":  { endDate: "2019-03-10", roundReached: 1 },
+    "St. Louis Blues":     { endDate: "2019-03-10", roundReached: 1 },
+    "Tampa Bay Lightning": { endDate: "2019-03-10", roundReached: 1 },
+    // Round 2 exits
+    "Nashville Predators": { endDate: "2019-03-17", roundReached: 2 },
+    "Boston Bruins":       { endDate: "2019-03-17", roundReached: 2 },
+    "Dallas Stars":        { endDate: "2019-03-17", roundReached: 2 },
+    "Philadelphia Flyers": { endDate: "2019-03-17", roundReached: 2 },
+    // Round 3 exits (Conference Final)
+    "Anaheim Ducks":       { endDate: "2019-03-24", roundReached: 3 },
+    "Montreal Canadiens":  { endDate: "2019-03-24", roundReached: 3 },
+    // Finalists (round 4)
+    "New York Rangers":    { endDate: "2019-04-06", roundReached: 4 },
+    "Colorado Avalanche":  { endDate: "2019-04-06", roundReached: 4 },
   };
 
-  const runs: TeamRun[] = [];
-  for (const [presentName, endDate] of Object.entries(endByPresentName)) {
+  const runs: TeamRunWithRound[] = [];
+  for (const [presentName, { endDate, roundReached }] of Object.entries(
+    roundDataByPresentName,
+  )) {
     const team = teams.find((t) => t.presentName === presentName);
     if (!team) {
       throw new Error(
         `Manual 2018 mapping references unknown team presentName: ${presentName}`,
       );
     }
-    runs.push({ ...team, startDate, endDate });
+    runs.push({
+      ...team,
+      startDate,
+      endDate,
+      roundReached,
+      isChampion: presentName === CHAMPION,
+    });
   }
 
   if (runs.length !== 16) {
