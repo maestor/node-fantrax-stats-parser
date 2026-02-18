@@ -139,3 +139,52 @@ export const getLastModifiedFromDb = async (): Promise<string | null> => {
   if (!result.rows.length) return null;
   return (result.rows[0] as unknown as { value: string }).value;
 };
+
+interface PlayoffLeaderboardRow {
+  team_id: string;
+  championships: number;
+  finals: number;
+  conference_finals: number;
+  second_round: number;
+  first_round: number;
+}
+
+type PlayoffLeaderboardDbEntry = Omit<
+  import("../types").PlayoffLeaderboardEntry,
+  "teamName" | "tieRank"
+>;
+
+const mapLeaderboardRow = (row: PlayoffLeaderboardRow): PlayoffLeaderboardDbEntry => ({
+  teamId: row.team_id,
+  championships: row.championships,
+  finals: row.finals,
+  conferenceFinals: row.conference_finals,
+  secondRound: row.second_round,
+  firstRound: row.first_round,
+});
+
+export const getPlayoffLeaderboard = async (): Promise<
+  PlayoffLeaderboardDbEntry[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       team_id,
+       SUM(CASE WHEN round = 5 THEN 1 ELSE 0 END) AS championships,
+       SUM(CASE WHEN round = 4 THEN 1 ELSE 0 END) AS finals,
+       SUM(CASE WHEN round = 3 THEN 1 ELSE 0 END) AS conference_finals,
+       SUM(CASE WHEN round = 2 THEN 1 ELSE 0 END) AS second_round,
+       SUM(CASE WHEN round = 1 THEN 1 ELSE 0 END) AS first_round
+     FROM playoff_results
+     GROUP BY team_id
+     ORDER BY
+       championships DESC,
+       finals DESC,
+       conference_finals DESC,
+       second_round DESC,
+       first_round DESC`,
+  );
+  return (result.rows as unknown as PlayoffLeaderboardRow[]).map(
+    mapLeaderboardRow,
+  );
+};
