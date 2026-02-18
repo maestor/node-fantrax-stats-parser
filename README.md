@@ -54,6 +54,8 @@ Report type values:
 
 For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are omitted (they cannot be combined reliably across regular + playoffs).
 
+`/leaderboard/playoffs` - All-time playoff leaderboard. Returns each team's count of championships, finals, conference finals, 2nd round appearances, and 1st round appearances, sorted by best record. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record). Item format: `{ teamId, teamName, championships, finals, conferenceFinals, secondRound, firstRound, tieRank }`.
+
 Every API except `/teams` and `/last-modified` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 
@@ -151,15 +153,17 @@ This opens each season’s Fantrax Playoffs bracket page and writes a local mapp
 The mapping includes, per season year:
 
 - which `TEAMS` entries made playoffs (must be 16 teams)
-- each playoff team’s `startDate` and `endDate` for their playoff run
+- each playoff team's `startDate` and `endDate` for their playoff run
+- each playoff team's `roundReached` (1–4) and `isChampion` flag
 
-If the script can’t determine exactly 16 playoff teams for a season (or can’t parse the bracket periods), it will skip that season and print a `Manual needed:` message.
+If the script can't determine exactly 16 playoff teams for a season (or can't parse the bracket periods), it will skip that season and print a `Manual needed:` message.
 
 Useful options:
 
 - `--year=2024` (only sync a single season)
 - `--timeout=120000` (increase timeouts for slow Fantrax page loads)
 - `--debug` (prints bracket hint lines when parsing fails)
+- `--import-db` (after syncing, upsert playoff round results into the local database)
 
 ### 3) Download regular-season roster CSVs
 
