@@ -63,9 +63,12 @@ const readPlayoffsFileV2 = (): PlayoffsFileV2 => {
   }
 
   const file = parsed as Partial<PlayoffsFileV2>;
-  if (file.schemaVersion !== 2 || !Array.isArray(file.seasons)) {
+  if (
+    (file.schemaVersion !== 2 && file.schemaVersion !== 3) ||
+    !Array.isArray(file.seasons)
+  ) {
     throw new Error(
-      `Unsupported playoffs mapping schema in ${PLAYOFFS_PATH}. Expected schemaVersion 2. ` +
+      `Unsupported playoffs mapping schema in ${PLAYOFFS_PATH}. Expected schemaVersion 2 or 3. ` +
         `Re-run npm run playwright:sync:playoffs to regenerate it.`,
     );
   }
