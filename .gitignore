@@ -16,6 +16,9 @@ src/playwright/.fantrax/
 # Claude code files
 .claude
 
+# AI generated plans
+docs/plans/
+
 # Local SQLite database (Turso local mode)
 *.db
 *.db-journal
