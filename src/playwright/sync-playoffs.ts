@@ -270,7 +270,11 @@ async function main(): Promise<void> {
         // Preferred: derive winners per round from the per-period playoffs standings tables.
         const { periods, teamsByPeriod, rosterTeamIdByTeamName } =
           await scrapePlayoffsPeriodsFromStandingsTables(page);
-        const championName = await scrapeChampionFromBracket(page);
+        // 2019 season was cancelled mid-playoffs (COVID) — no champion was crowned.
+        const SEASONS_WITHOUT_CHAMPION = new Set([2019]);
+        const championName = SEASONS_WITHOUT_CHAMPION.has(season.year)
+          ? null
+          : await scrapeChampionFromBracket(page);
         if (!championName) {
           console.info(
             `No champion found in bracket for ${season.year} — isChampion will be false for all teams.`,
