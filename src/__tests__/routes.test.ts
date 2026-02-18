@@ -9,6 +9,7 @@ import {
   getGoaliesSeason,
   getGoaliesCombined,
   getLastModified,
+  getPlayoffsLeaderboard,
   resetRouteCachesForTests,
 } from "../routes";
 import {
@@ -17,6 +18,7 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+  getPlayoffLeaderboardData,
 } from "../services";
 import {
   reportTypeAvailable,
@@ -793,6 +795,59 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
       });
+    });
+  });
+
+  describe("getPlayoffsLeaderboard", () => {
+    test("returns 200 with leaderboard data", async () => {
+      const mockData = [
+        {
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          championships: 3,
+          finals: 2,
+          conferenceFinals: 2,
+          secondRound: 4,
+          firstRound: 2,
+          tieRank: false,
+        },
+      ];
+      (getPlayoffLeaderboardData as jest.Mock).mockResolvedValue(mockData);
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/playoffs" });
+      const res = createResponse();
+
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockData);
+    });
+
+    test("returns 200 with empty array when no data", async () => {
+      (getPlayoffLeaderboardData as jest.Mock).mockResolvedValue([]);
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/playoffs" });
+      const res = createResponse();
+
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, []);
+    });
+
+    test("handles service error", async () => {
+      (getPlayoffLeaderboardData as jest.Mock).mockRejectedValue(
+        new Error("DB error"),
+      );
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/playoffs" });
+      const res = createResponse();
+
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(
+        res,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        expect.any(Error),
+      );
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+  getPlayoffLeaderboardData,
 } from "./services";
 import { Report } from "./types";
 import {
@@ -185,4 +186,11 @@ export const getLastModified: AugmentedRequestHandler = async (req, res) => {
     const lastModified = await getLastModifiedFromDb();
     return { lastModified };
   });
+};
+
+export const getPlayoffsLeaderboard: AugmentedRequestHandler = async (
+  req,
+  res,
+) => {
+  await withErrorHandlingCached(req, res, () => getPlayoffLeaderboardData());
 };
