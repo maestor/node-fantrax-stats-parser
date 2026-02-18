@@ -328,6 +328,18 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
   };
 };
 
+export const scrapeChampionFromBracket = async (
+  page: Page,
+): Promise<string | null> => {
+  const cell = page.locator(
+    ".league-playoff-tree__cell--champion .league-playoff-tree__cell__team",
+  );
+  const count = await cell.count();
+  if (count === 0) return null;
+  const text = normalizeSpaces(await cell.first().innerText().catch(() => ""));
+  return text || null;
+};
+
 export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
   periods: RoundWindow[];
   teamsByPeriod: string[][];
