@@ -11,8 +11,9 @@ import {
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "./mappings";
 import { Report, CsvReport, PlayerWithSeason, GoalieWithSeason } from "./types";
-import { DEFAULT_TEAM_ID } from "./constants";
-import { getPlayersFromDb, getGoaliesFromDb } from "./db/queries";
+import { DEFAULT_TEAM_ID, TEAMS } from "./constants";
+import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard } from "./db/queries";
+import type { PlayoffLeaderboardEntry } from "./types";
 
 // Parser wants seasons as an array even in one-season cases
 const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
@@ -271,3 +272,24 @@ export const getGoaliesStatsCombined = async (
   report === "both"
     ? getGoaliesStatsCombinedBoth(teamId, startFrom)
     : getGoaliesCombinedForReport(teamId, report, startFrom);
+
+export const getPlayoffLeaderboardData = async (): Promise<
+  PlayoffLeaderboardEntry[]
+> => {
+  const rows = await getPlayoffLeaderboard();
+  return rows.map((row, i) => {
+    const team = TEAMS.find((t) => t.id === row.teamId);
+    const teamName = team?.presentName ?? row.teamId;
+
+    const prev = i > 0 ? rows[i - 1] : null;
+    const tieRank =
+      prev !== null &&
+      prev.championships === row.championships &&
+      prev.finals === row.finals &&
+      prev.conferenceFinals === row.conferenceFinals &&
+      prev.secondRound === row.secondRound &&
+      prev.firstRound === row.firstRound;
+
+    return { ...row, teamName, tieRank };
+  });
+};

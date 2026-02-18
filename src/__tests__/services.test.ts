@@ -4,6 +4,7 @@ import {
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
   getGoaliesStatsCombined,
+  getPlayoffLeaderboardData,
 } from "../services";
 import {
   availableSeasons,
@@ -17,7 +18,7 @@ import {
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "../mappings";
-import { getPlayersFromDb, getGoaliesFromDb } from "../db/queries";
+import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard } from "../db/queries";
 import { mockPlayer, mockGoalie, mockPlayerWithSeason, mockGoalieWithSeason } from "./fixtures";
 
 jest.mock("../helpers");
@@ -377,6 +378,69 @@ describe("services", () => {
         }),
       ]);
       expect(result).toEqual([mockGoalie]);
+    });
+  });
+
+  describe("getPlayoffLeaderboardData", () => {
+    const mockGetPlayoffLeaderboard = getPlayoffLeaderboard as jest.MockedFunction<
+      typeof getPlayoffLeaderboard
+    >;
+
+    test("resolves teamName from TEAMS and sets tieRank false for non-tied entries", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 3, finals: 2, conferenceFinals: 2, secondRound: 4, firstRound: 2 },
+        { teamId: "4", championships: 3, finals: 0, conferenceFinals: 4, secondRound: 2, firstRound: 4 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+
+      expect(result[0]).toMatchObject({
+        teamId: "1",
+        teamName: "Colorado Avalanche",
+        tieRank: false,
+      });
+      expect(result[1]).toMatchObject({
+        teamId: "4",
+        teamName: "Vancouver Canucks",
+        tieRank: false,
+      });
+    });
+
+    test("sets tieRank true when 5-tuple matches previous entry", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 1, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 3 },
+        { teamId: "15", championships: 1, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 3 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+
+      expect(result[0].tieRank).toBe(false);
+      expect(result[1].tieRank).toBe(true);
+    });
+
+    test("first entry is always tieRank false", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 5, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 0 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+
+      expect(result[0].tieRank).toBe(false);
+    });
+
+    test("returns empty array when no data", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([]);
+      const result = await getPlayoffLeaderboardData();
+      expect(result).toEqual([]);
+    });
+
+    test("uses teamId as teamName when team not found in TEAMS", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "999", championships: 1, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 0 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+      expect(result[0].teamName).toBe("999");
     });
   });
 });
