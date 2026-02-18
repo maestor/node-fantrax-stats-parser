@@ -95,6 +95,8 @@ npm run verify
 - `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
 
 ### CSV Data Import
+- `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
+- `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
 - `npm run playwright:import:regular` - Import regular season data via Playwright
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright
 
