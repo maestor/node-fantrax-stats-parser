@@ -14,6 +14,11 @@ export type TeamRun<T extends Team = Team> = T & {
   endDate: string;
 };
 
+export type TeamRunWithRound = TeamRun & {
+  roundReached: number;
+  isChampion: boolean;
+};
+
 export const FANTRAX_ARTIFACT_DIR = path.resolve(
   "src",
   "playwright",
@@ -323,12 +328,29 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
   };
 };
 
+const CHAMPION_SELECTOR =
+  ".league-playoff-tree__cell--champion .league-playoff-tree__cell__team";
+
+export const scrapeChampionFromBracket = async (
+  page: Page,
+): Promise<string | null> => {
+  // Wait for Angular to finish rendering the bracket before querying.
+  // Some seasons render the champion cell slowly; without waiting, count() returns 0.
+  await page.waitForSelector(CHAMPION_SELECTOR, { timeout: 5000 }).catch(() => null);
+  const cell = page.locator(CHAMPION_SELECTOR);
+  const count = await cell.count();
+  if (count === 0) return null;
+  const text = normalizeSpaces(await cell.first().innerText().catch(() => ""));
+  return text || null;
+};
+
 export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
   periods: RoundWindow[];
   teamsByPeriod: string[][];
   expectedRoundTeamCounts: number[];
   allTeams: readonly Team[];
-}): TeamRun[] | null => {
+  champion: string | null;
+}): TeamRunWithRound[] | null => {
   if (args.periods.length !== args.teamsByPeriod.length) return null;
   if (args.expectedRoundTeamCounts.length < 1) return null;
 
@@ -362,7 +384,7 @@ export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
   if (participants.length !== 16) return null;
 
   const startDate = periods[0].startDate;
-  const runs: TeamRun[] = [];
+  const runs: TeamRunWithRound[] = [];
 
   for (const team of participants) {
     const norm = normalizeSpacesLower(team.presentName);
@@ -371,7 +393,17 @@ export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
       if (normalizedSets[i].has(norm)) lastIdx = i;
     }
     if (lastIdx < 0) continue;
-    runs.push({ ...team, startDate, endDate: periods[lastIdx].endDate });
+    const roundReached = lastIdx + 1;
+    const isChampion =
+      args.champion !== null &&
+      normalizeSpacesLower(team.presentName) === normalizeSpacesLower(args.champion);
+    runs.push({
+      ...team,
+      startDate,
+      endDate: periods[lastIdx].endDate,
+      roundReached,
+      isChampion,
+    });
   }
 
   return runs.length === 16 ? runs : null;

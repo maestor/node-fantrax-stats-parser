@@ -12,6 +12,7 @@ import {
   getAvailableSeasonsFromDb,
   getTeamIdsWithData,
   getLastModifiedFromDb,
+  getPlayoffLeaderboard,
 } from "../db/queries";
 import type { PlayerWithSeason, GoalieWithSeason } from "../types";
 
@@ -254,6 +255,61 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getLastModifiedFromDb();
       expect(result).toBeNull();
+    });
+  });
+
+  describe("getPlayoffLeaderboard", () => {
+    test("returns mapped leaderboard rows sorted by SQL order", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            team_id: "1",
+            championships: 3,
+            finals: 2,
+            conference_finals: 2,
+            second_round: 4,
+            first_round: 2,
+          },
+          {
+            team_id: "4",
+            championships: 3,
+            finals: 0,
+            conference_finals: 4,
+            second_round: 2,
+            first_round: 4,
+          },
+        ],
+      });
+
+      const result = await getPlayoffLeaderboard();
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.stringContaining("playoff_results"),
+      );
+      expect(result).toEqual([
+        {
+          teamId: "1",
+          championships: 3,
+          finals: 2,
+          conferenceFinals: 2,
+          secondRound: 4,
+          firstRound: 2,
+        },
+        {
+          teamId: "4",
+          championships: 3,
+          finals: 0,
+          conferenceFinals: 4,
+          secondRound: 2,
+          firstRound: 4,
+        },
+      ]);
+    });
+
+    test("returns empty array when no playoff results exist", async () => {
+      mockExecute.mockResolvedValue({ rows: [] });
+      const result = await getPlayoffLeaderboard();
+      expect(result).toEqual([]);
     });
   });
 });

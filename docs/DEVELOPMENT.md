@@ -95,11 +95,15 @@ npm run verify
 - `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
 
 ### CSV Data Import
+- `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
+- `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
 - `npm run playwright:import:regular` - Import regular season data via Playwright
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema
+- `npm run db:import:playoff-results:local` - Import playoff round results from `fantrax-playoffs.json` into local database (requires schemaVersion 3)
+- `npm run db:import:playoff-results:remote` - Same, targeting remote Turso
 - `npm run db:import:local` - Import all CSV files into local database (`local.db`)
 - `npm run db:import:local:current` - Import only current season into local database
 - `npm run db:import:remote` - Import all CSV files into remote Turso (requires `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`)

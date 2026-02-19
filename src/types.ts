@@ -146,3 +146,14 @@ export type Team = {
   // Useful for expansion/relocation where a team doesn't exist in older seasons.
   firstSeason?: number;
 };
+
+export type PlayoffLeaderboardEntry = {
+  teamId: string;
+  teamName: string;
+  championships: number;
+  finals: number;
+  conferenceFinals: number;
+  secondRound: number;
+  firstRound: number;
+  tieRank: boolean;
+};

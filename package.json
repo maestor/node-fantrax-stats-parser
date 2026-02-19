@@ -38,6 +38,8 @@
     "db:import:local:current": "TURSO_DATABASE_URL=file:local.db tsx scripts/import-to-db.ts --current-only",
     "db:import:remote": "tsx scripts/import-to-db.ts",
     "db:import:remote:current": "tsx scripts/import-to-db.ts --current-only",
+    "db:import:playoff-results:local": "TURSO_DATABASE_URL=file:local.db tsx scripts/db-import-playoff-results.ts",
+    "db:import:playoff-results:remote": "tsx scripts/db-import-playoff-results.ts",
     "parseAndUploadCsv": "set -a && source .env && set +a && ./scripts/import-temp-csv.sh",
     "start": "npm run build && node lib/server.js",
     "test": "jest",

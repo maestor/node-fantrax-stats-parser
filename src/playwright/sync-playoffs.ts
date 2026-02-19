@@ -1,6 +1,8 @@
 import { chromium } from "playwright";
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
+import dotenv from "dotenv";
+dotenv.config();
 import {
   AUTH_STATE_PATH,
   computePlayoffTeamRunsFromBracketText,
@@ -18,12 +20,14 @@ import {
   parseNumberArg,
   requireAuthStateFile,
   requireLeagueIdsFile,
+  scrapeChampionFromBracket,
   scrapePlayoffsPeriodsFromStandingsTables,
   standingsNameCandidates,
   tryGetRosterTeamIdFromStandingsLink,
 } from "./helpers";
 import type { Team } from "../types";
 import { TEAMS } from "../constants";
+import { getDbClient } from "../db/client";
 
 import { computeManual2018PlayoffsTeamRuns } from "./compute-manual-data";
 
@@ -51,6 +55,8 @@ type PlayoffsTeamRun = Team & {
   startDate: string;
   endDate: string;
   rosterTeamId: string;
+  roundReached: number;
+  isChampion: boolean;
 };
 
 type PlayoffsSeason = {
@@ -60,7 +66,7 @@ type PlayoffsSeason = {
 };
 
 type PlayoffsFile = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   leagueName: string;
   scrapedAt: string;
   seasons: PlayoffsSeason[];
@@ -93,9 +99,12 @@ const readExistingPlayoffsFile = (): PlayoffsFile | null => {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
 
-    // We only keep schemaVersion 2 (rosterTeamId is required for import-league-playoffs).
+    // We keep schemaVersion 2 or 3 (rosterTeamId is required for import-league-playoffs).
     const file = parsed as { schemaVersion?: number; seasons?: unknown };
-    if (file.schemaVersion !== 2 || !Array.isArray(file.seasons)) return null;
+    if (
+      (file.schemaVersion !== 2 && file.schemaVersion !== 3) ||
+      !Array.isArray(file.seasons)
+    ) return null;
 
     return parsed as PlayoffsFile;
   } catch {
@@ -118,11 +127,9 @@ const ensureRosterTeamIds = async (args: {
     const fromMap = byName[normalizeSpacesLower(t.presentName)];
     const rosterTeamId = t.rosterTeamId?.trim() || fromMap || "";
     return {
-      ...(t as Team),
-      startDate: t.startDate,
-      endDate: t.endDate,
+      ...t,
       rosterTeamId,
-    };
+    } as PlayoffsTeamRun;
   });
 
   const missing = enriched.filter((t) => !t.rosterTeamId);
@@ -170,6 +177,26 @@ const ensureRosterTeamIds = async (args: {
   return enriched;
 };
 
+const upsertPlayoffResultsToDb = async (
+  seasons: PlayoffsSeason[],
+): Promise<void> => {
+  const db = getDbClient();
+  let upserted = 0;
+  for (const season of seasons) {
+    for (const team of season.teams) {
+      if (!team.roundReached) continue; // skip teams without round data (v2 holdover)
+      const round = team.isChampion ? 5 : team.roundReached;
+      await db.execute({
+        sql: `INSERT OR REPLACE INTO playoff_results (team_id, season, round)
+              VALUES (?, ?, ?)`,
+        args: [team.id, season.year, round],
+      });
+      upserted++;
+    }
+  }
+  console.info(`Upserted ${upserted} playoff result(s) into database.`);
+};
+
 async function main(): Promise<void> {
   requireAuthStateFile();
   ensureFantraxArtifactDir();
@@ -180,6 +207,7 @@ async function main(): Promise<void> {
   const timeoutMs = parseNumberArg(argv, "--timeout") ?? 60_000;
   const onlyYear = parseNumberArg(argv, "--year");
   const debug = hasFlag(argv, "--debug");
+  const importDb = hasFlag(argv, "--import-db");
 
   const leagues = readLeagueIdsV2();
   const seasons = leagues.seasons
@@ -242,6 +270,16 @@ async function main(): Promise<void> {
         // Preferred: derive winners per round from the per-period playoffs standings tables.
         const { periods, teamsByPeriod, rosterTeamIdByTeamName } =
           await scrapePlayoffsPeriodsFromStandingsTables(page);
+        // 2019 season was cancelled mid-playoffs (COVID) — no champion was crowned.
+        const SEASONS_WITHOUT_CHAMPION = new Set([2019]);
+        const championName = SEASONS_WITHOUT_CHAMPION.has(season.year)
+          ? null
+          : await scrapeChampionFromBracket(page);
+        if (!championName) {
+          console.info(
+            `No champion found in bracket for ${season.year} — isChampion will be false for all teams.`,
+          );
+        }
         const expectedRoundTeamCounts =
           season.year === 2019 ? [16, 8] : [16, 8, 4, 2];
         let baseTeams = computePlayoffTeamRunsFromPlayoffsPeriods({
@@ -249,6 +287,7 @@ async function main(): Promise<void> {
           teamsByPeriod,
           expectedRoundTeamCounts,
           allTeams: TEAMS,
+          champion: championName,
         }) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">> | null;
 
         let teams: PlayoffsTeamRun[] | null = null;
@@ -301,6 +340,24 @@ async function main(): Promise<void> {
           }) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">> | null;
 
           if (baseTeams) {
+            // Enrich roundReached from round boundary endDates
+            const roundEndDates = rounds.map((r) => r.endDate);
+            baseTeams = baseTeams.map((t) => {
+              const roundIdx = roundEndDates.findIndex(
+                (d) => d >= t.endDate,
+              );
+              return {
+                ...t,
+                roundReached: roundIdx >= 0 ? roundIdx + 1 : rounds.length,
+                isChampion:
+                  championName !== null &&
+                  normalizeSpacesLower(t.presentName) ===
+                    normalizeSpacesLower(championName),
+              };
+            }) as Array<Omit<PlayoffsTeamRun, "rosterTeamId">>;
+          }
+
+          if (baseTeams) {
             teams = await ensureRosterTeamIds({
               page,
               leagueId: season.leagueId,
@@ -332,7 +389,7 @@ async function main(): Promise<void> {
     }
 
     const file: PlayoffsFile = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       leagueName: leagues.leagueName,
       scrapedAt: new Date().toISOString(),
       seasons: [...seasonByYear.values()].sort((a, b) => a.year - b.year),
@@ -340,6 +397,10 @@ async function main(): Promise<void> {
 
     writeFileSync(PLAYOFFS_PATH, `${JSON.stringify(file, null, 2)}\n`, "utf8");
     console.info(`Saved playoffs mapping to ${PLAYOFFS_PATH}`);
+
+    if (importDb) {
+      await upsertPlayoffResultsToDb([...seasonByYear.values()]);
+    }
   } finally {
     await browser.close();
   }
