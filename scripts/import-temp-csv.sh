@@ -115,10 +115,10 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
     fi
   fi
 
-  # Import to local database (always — local.db is the working copy)
+  # Import to database (USE_REMOTE_DB controls local vs remote)
   echo ""
-  echo "📥 Importing to local database..."
-  if npm run db:import:local:current; then
+  echo "📥 Importing to database..."
+  if npm run db:import:stats:current; then
     echo ""
     echo "🧹 Cleaning up temp files..."
     rm -f "$TEMP_DIR"/*.csv

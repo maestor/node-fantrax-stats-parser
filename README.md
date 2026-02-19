@@ -20,7 +20,7 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
    a. Download from R2: cp .env.example .env && edit .env with R2 credentials && npm run r2:download
    b. Or use existing CSV files in csv/ directory
 6. Import CSV data into local database:
-   npm run db:import:local
+   npm run db:import:stats
 7. npm run dev
 8. Go to endpoints mentioned below
 ```
@@ -253,7 +253,7 @@ It will:
   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
 - Create `csv/<teamId>/` if it doesn't exist
 - Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
-- Import into local database (`npm run db:import:local:current`)
+- Import into database (`npm run db:import:stats:current`)
 - Clean up temp files after successful DB import
 
 Preview without writing:
@@ -295,7 +295,7 @@ Required environment variables: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and AP
 
 **Production:** The API reads from a Turso (SQLite) database. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in Vercel environment variables.
 
-**Local development:** The API reads from a local SQLite file (`local.db`), created by running `npm run db:migrate` and `npm run db:import:local`.
+**Local development:** The API reads from a local SQLite file (`local.db`), created by running `npm run db:migrate` and `npm run db:import:stats`.
 
 **CSV files** are the import source. They can be stored locally in `csv/<teamId>/` and optionally backed up to Cloudflare R2. CSV files are NOT used at runtime by the API.
 
@@ -383,12 +383,12 @@ The API reads all data from a Turso (libSQL/SQLite) database. CSV files are impo
 
 ### Local development
 
-No Turso account needed. The database scripts use a local SQLite file (`local.db`):
+No Turso account needed. The database scripts default to a local SQLite file (`local.db`):
 
 ```bash
-npm run db:migrate              # Create database schema
-npm run db:import:local         # Import all CSV files into local database
-npm run db:import:local:current # Import only current season into local database
+npm run db:migrate        # Create database schema
+npm run db:import:stats         # Import all CSV files into local database
+npm run db:import:stats:current # Import only current season into local database
 ```
 
 ### Production (Turso hosted)
@@ -398,13 +398,14 @@ Set these environment variables in `.env`:
 ```bash
 TURSO_DATABASE_URL=libsql://your-db-name.turso.io
 TURSO_AUTH_TOKEN=your-auth-token
+USE_REMOTE_DB=true
 ```
 
 Then import to remote:
 
 ```bash
-npm run db:import:remote         # Import all CSV files into remote Turso
-npm run db:import:remote:current # Import only current season into remote Turso
+npm run db:import:stats         # Import all CSV files into remote Turso
+npm run db:import:stats:current # Import only current season into remote Turso
 ```
 
 Get credentials from the [Turso dashboard](https://turso.tech).

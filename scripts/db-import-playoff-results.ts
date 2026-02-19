@@ -4,11 +4,16 @@
 // into the playoff_results database table — without requiring a full re-sync.
 //
 // Requires schemaVersion 3 (roundReached + isChampion fields).
-// Use: npm run db:import:playoff-results:local
-//      npm run db:import:playoff-results:remote
+// Use: npm run db:import:playoff-results
+// Set USE_REMOTE_DB=true in .env to target remote Turso instead of local.db
 
 import dotenv from "dotenv";
 dotenv.config();
+
+if (process.env.USE_REMOTE_DB !== "true") {
+  process.env.TURSO_DATABASE_URL = "file:local.db";
+  delete process.env.TURSO_AUTH_TOKEN;
+}
 
 import { readFileSync } from "fs";
 import path from "path";

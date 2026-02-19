@@ -4,6 +4,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+if (process.env.USE_REMOTE_DB !== "true") {
+  process.env.TURSO_DATABASE_URL = "file:local.db";
+  delete process.env.TURSO_AUTH_TOKEN;
+}
+
 import fs from "fs";
 import path from "path";
 import csv from "csvtojson";
