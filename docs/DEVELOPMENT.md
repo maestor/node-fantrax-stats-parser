@@ -102,12 +102,9 @@ npm run verify
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema
-- `npm run db:import:playoff-results:local` - Import playoff round results from `fantrax-playoffs.json` into local database (requires schemaVersion 3)
-- `npm run db:import:playoff-results:remote` - Same, targeting remote Turso
-- `npm run db:import:local` - Import all CSV files into local database (`local.db`)
-- `npm run db:import:local:current` - Import only current season into local database
-- `npm run db:import:remote` - Import all CSV files into remote Turso (requires `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`)
-- `npm run db:import:remote:current` - Import only current season into remote Turso
+- `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
+- `npm run db:import:stats:current` - Import only current season into database
+- `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso)
 
 ### R2 Storage (CSV backup)
 - `npm run r2:upload` - Upload all CSV files to R2
@@ -136,6 +133,9 @@ REQUIRE_API_KEY=false     # Set to true to require API keys
 # Turso Database (required for API)
 TURSO_DATABASE_URL=file:local.db   # Local SQLite for development
 # TURSO_AUTH_TOKEN=                 # Not needed for local file
+
+# Controls target database for db:import scripts (default: false = local.db)
+USE_REMOTE_DB=false
 
 # R2 Storage (optional — only needed for r2:upload/r2:download scripts)
 # R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
