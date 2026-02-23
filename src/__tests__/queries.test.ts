@@ -13,6 +13,7 @@ import {
   getTeamIdsWithData,
   getLastModifiedFromDb,
   getPlayoffLeaderboard,
+  getRegularLeaderboard,
 } from "../db/queries";
 import type { PlayerWithSeason, GoalieWithSeason } from "../types";
 
@@ -309,6 +310,73 @@ describe("db/queries", () => {
     test("returns empty array when no playoff results exist", async () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getPlayoffLeaderboard();
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("getRegularLeaderboard", () => {
+    test("returns mapped leaderboard rows sorted by SQL order", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            team_id: "1",
+            seasons: 10,
+            wins: 355,
+            losses: 79,
+            ties: 46,
+            points: 756,
+            div_wins: 86,
+            div_losses: 24,
+            div_ties: 10,
+          },
+          {
+            team_id: "4",
+            seasons: 10,
+            wins: 319,
+            losses: 105,
+            ties: 56,
+            points: 694,
+            div_wins: 76,
+            div_losses: 28,
+            div_ties: 16,
+          },
+        ],
+      });
+
+      const result = await getRegularLeaderboard();
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.stringContaining("regular_results"),
+      );
+      expect(result).toEqual([
+        {
+          teamId: "1",
+          seasons: 10,
+          wins: 355,
+          losses: 79,
+          ties: 46,
+          points: 756,
+          divWins: 86,
+          divLosses: 24,
+          divTies: 10,
+        },
+        {
+          teamId: "4",
+          seasons: 10,
+          wins: 319,
+          losses: 105,
+          ties: 56,
+          points: 694,
+          divWins: 76,
+          divLosses: 28,
+          divTies: 16,
+        },
+      ]);
+    });
+
+    test("returns empty array when no regular results exist", async () => {
+      mockExecute.mockResolvedValue({ rows: [] });
+      const result = await getRegularLeaderboard();
       expect(result).toEqual([]);
     });
   });
