@@ -438,6 +438,25 @@ export const gotoPlayoffsStandings = async (
   }
 };
 
+export const gotoRegularStandings = async (
+  page: Page,
+  leagueId: string,
+  timeoutMs: number,
+): Promise<void> => {
+  const url = `${FANTRAX_URLS.league}/${encodeURIComponent(leagueId)}/standings;view=COMBINED`;
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+
+  if (page.url().includes("/login")) {
+    throw new Error(
+      "Redirected to login page. Run npm run playwright:login first.",
+    );
+  }
+
+  await page
+    .locator("div.league-standings-table")
+    .waitFor({ state: "visible", timeout: timeoutMs });
+};
+
 const parseMonthDayToIso = (token: string, year: number): string | null => {
   const s = token.replace(/\s+/g, " ").trim();
   const m = /^([A-Za-z]{3})\s+(\d{1,2})$/.exec(s);
