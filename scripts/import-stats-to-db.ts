@@ -9,6 +9,8 @@ if (process.env.USE_REMOTE_DB !== "true") {
   delete process.env.TURSO_AUTH_TOKEN;
 }
 
+console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
+
 import fs from "fs";
 import path from "path";
 import csv from "csvtojson";

@@ -15,6 +15,8 @@ if (process.env.USE_REMOTE_DB !== "true") {
   delete process.env.TURSO_AUTH_TOKEN;
 }
 
+console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
+
 import { readFileSync } from "fs";
 import path from "path";
 import { getDbClient } from "../src/db/client";
@@ -49,7 +51,7 @@ const main = async () => {
   } catch {
     console.error(
       `❌  Could not read ${PLAYOFFS_PATH}.\n` +
-        `   Run npm run playwright:sync:playoffs first to generate it.`,
+      `   Run npm run playwright:sync:playoffs first to generate it.`,
     );
     process.exit(1);
   }
@@ -62,7 +64,7 @@ const main = async () => {
   ) {
     console.error(
       `❌  Unsupported schema version (${file.schemaVersion ?? "unknown"}).\n` +
-        `   Expected schemaVersion 2 or 3. Re-run npm run playwright:sync:playoffs.`,
+      `   Expected schemaVersion 2 or 3. Re-run npm run playwright:sync:playoffs.`,
     );
     process.exit(1);
   }
