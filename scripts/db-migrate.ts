@@ -62,6 +62,20 @@ const SCHEMA_SQL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_playoff_results_season
     ON playoff_results(season)`,
+  `CREATE TABLE IF NOT EXISTS regular_results (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id    TEXT    NOT NULL,
+    season     INTEGER NOT NULL,
+    wins       INTEGER NOT NULL,
+    losses     INTEGER NOT NULL,
+    ties       INTEGER NOT NULL,
+    points     INTEGER NOT NULL,
+    div_wins   INTEGER NOT NULL,
+    div_losses INTEGER NOT NULL,
+    div_ties   INTEGER NOT NULL,
+    UNIQUE(team_id, season)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_regular_results_season ON regular_results(season)`,
 ];
 
 const main = async () => {
@@ -79,7 +93,7 @@ const main = async () => {
   });
 
   console.log("✅ Migration complete!");
-  console.log("   Tables: players, goalies, import_metadata, playoff_results");
+  console.log("   Tables: players, goalies, import_metadata, playoff_results, regular_results");
   console.log(
     "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name"
   );
