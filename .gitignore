@@ -13,6 +13,9 @@ csv/
 # Local-only Fantrax Playwright artifacts
 src/playwright/.fantrax/
 
+# Git worktrees
+.worktrees/
+
 # Claude code files
 .claude
 
