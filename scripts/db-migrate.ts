@@ -62,6 +62,21 @@ const SCHEMA_SQL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_playoff_results_season
     ON playoff_results(season)`,
+  `CREATE TABLE IF NOT EXISTS regular_results (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id             TEXT    NOT NULL,
+    season              INTEGER NOT NULL,
+    wins                INTEGER NOT NULL,
+    losses              INTEGER NOT NULL,
+    ties                INTEGER NOT NULL,
+    points              INTEGER NOT NULL,
+    div_wins            INTEGER NOT NULL,
+    div_losses          INTEGER NOT NULL,
+    div_ties            INTEGER NOT NULL,
+    is_regular_champion INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(team_id, season)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_regular_results_season ON regular_results(season)`,
 ];
 
 const main = async () => {
@@ -73,15 +88,25 @@ const main = async () => {
     await db.execute(sql);
   }
 
+  // Add is_regular_champion column to existing regular_results tables.
+  // SQLite has no ADD COLUMN IF NOT EXISTS — silently skip if already present.
+  try {
+    await db.execute(
+      "ALTER TABLE regular_results ADD COLUMN is_regular_champion INTEGER NOT NULL DEFAULT 0",
+    );
+  } catch {
+    // Column already exists — nothing to do.
+  }
+
   await db.execute({
     sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
     args: ["schema_version", "1"],
   });
 
   console.log("✅ Migration complete!");
-  console.log("   Tables: players, goalies, import_metadata, playoff_results");
+  console.log("   Tables: players, goalies, import_metadata, playoff_results, regular_results");
   console.log(
-    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name"
+    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name, idx_playoff_results_season, idx_regular_results_season"
   );
 };
 

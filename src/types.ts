@@ -157,3 +157,20 @@ export type PlayoffLeaderboardEntry = {
   firstRound: number;
   tieRank: boolean;
 };
+
+export type RegularLeaderboardEntry = {
+  teamId: string;
+  teamName: string;
+  seasons: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  divWins: number;
+  divLosses: number;
+  divTies: number;
+  winPercent: number;
+  divWinPercent: number;
+  regularTrophies: number;
+  tieRank: boolean;
+};

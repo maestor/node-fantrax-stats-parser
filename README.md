@@ -56,6 +56,8 @@ For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are om
 
 `/leaderboard/playoffs` - All-time playoff leaderboard. Returns each team's count of championships, finals, conference finals, 2nd round appearances, and 1st round appearances, sorted by best record. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record). Item format: `{ teamId, teamName, championships, finals, conferenceFinals, secondRound, firstRound, tieRank }`.
 
+`/leaderboard/regular` - All-time regular season leaderboard, aggregated across all seasons, sorted by total points (then total wins). Protected endpoint. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record) and `regularTrophies` (count of seasons the team finished rank 1 in the regular standings, only counted once playoffs data is available for that year). Item format: `{ teamId, teamName, seasons, wins, losses, ties, points, divWins, divLosses, divTies, winPercent, divWinPercent, regularTrophies, tieRank }`.
+
 Every API except `/teams` and `/last-modified` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 
@@ -164,6 +166,38 @@ Useful options:
 - `--timeout=120000` (increase timeouts for slow Fantrax page loads)
 - `--debug` (prints bracket hint lines when parsing fails)
 - `--import-db` (after syncing, upsert playoff round results into the local database)
+
+### 2c) Sync regular season standings (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:regular
+```
+
+This opens each season's Fantrax COMBINED standings page and writes a local mapping file to `src/playwright/.fantrax/fantrax-regular.json` (gitignored).
+
+The mapping includes, per season year:
+
+- each team's `wins`, `losses`, `ties`, `points`
+- division record: `divWins`, `divLosses`, `divTies`
+- `isRegularChampion` flag — `true` for the rank-1 team, **only if** `fantrax-playoffs.json` already contains data for that year (a season still in progress has no champion yet)
+
+Useful options:
+
+- `--year=2024` (only sync a single season)
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--timeout=120000` (increase timeouts for slow Fantrax page loads)
+- `--import-db` (after syncing, upsert results into the local database)
+
+After syncing, you can import separately without re-scraping:
+
+```
+npm run db:import:regular-results
+```
+
+Set `USE_REMOTE_DB=true` in `.env` to target a remote Turso database instead of `local.db`.
 
 ### 3) Download regular-season roster CSVs
 

@@ -8,6 +8,7 @@ import {
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
   getPlayoffLeaderboardData,
+  getRegularLeaderboardData,
 } from "./services";
 import { Report } from "./types";
 import {
@@ -193,4 +194,11 @@ export const getPlayoffsLeaderboard: AugmentedRequestHandler = async (
   res,
 ) => {
   await withErrorHandlingCached(req, res, () => getPlayoffLeaderboardData());
+};
+
+export const getRegularLeaderboard: AugmentedRequestHandler = async (
+  req,
+  res,
+) => {
+  await withErrorHandlingCached(req, res, () => getRegularLeaderboardData());
 };

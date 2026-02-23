@@ -10,6 +10,7 @@ import {
   getGoaliesCombined,
   getLastModified,
   getPlayoffsLeaderboard,
+  getRegularLeaderboard,
   resetRouteCachesForTests,
 } from "../routes";
 import {
@@ -19,6 +20,7 @@ import {
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
   getPlayoffLeaderboardData,
+  getRegularLeaderboardData,
 } from "../services";
 import {
   reportTypeAvailable,
@@ -842,6 +844,65 @@ describe("routes", () => {
       const res = createResponse();
 
       await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(
+        res,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe("getRegularLeaderboard", () => {
+    test("returns 200 with leaderboard data", async () => {
+      const mockData = [
+        {
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          seasons: 10,
+          wins: 355,
+          losses: 79,
+          ties: 46,
+          points: 756,
+          divWins: 86,
+          divLosses: 24,
+          divTies: 10,
+          winPercent: 0.74,
+          divWinPercent: 0.717,
+          regularTrophies: 2,
+          tieRank: false,
+        },
+      ];
+      (getRegularLeaderboardData as jest.Mock).mockResolvedValue(mockData);
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
+      const res = createResponse();
+
+      await getRegularLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockData);
+    });
+
+    test("returns 200 with empty array when no data", async () => {
+      (getRegularLeaderboardData as jest.Mock).mockResolvedValue([]);
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
+      const res = createResponse();
+
+      await getRegularLeaderboard(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, []);
+    });
+
+    test("handles service error", async () => {
+      (getRegularLeaderboardData as jest.Mock).mockRejectedValue(
+        new Error("DB error"),
+      );
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
+      const res = createResponse();
+
+      await getRegularLeaderboard(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(
         res,

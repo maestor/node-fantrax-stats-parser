@@ -188,3 +188,61 @@ export const getPlayoffLeaderboard = async (): Promise<
     mapLeaderboardRow,
   );
 };
+
+interface RegularLeaderboardRow {
+  team_id: string;
+  seasons: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  div_wins: number;
+  div_losses: number;
+  div_ties: number;
+  regular_trophies: number;
+}
+
+type RegularLeaderboardDbEntry = Omit<
+  import("../types").RegularLeaderboardEntry,
+  "teamName" | "tieRank" | "winPercent" | "divWinPercent"
+>;
+
+const mapRegularLeaderboardRow = (row: RegularLeaderboardRow): RegularLeaderboardDbEntry => ({
+  teamId: row.team_id,
+  seasons: row.seasons,
+  wins: row.wins,
+  losses: row.losses,
+  ties: row.ties,
+  points: row.points,
+  divWins: row.div_wins,
+  divLosses: row.div_losses,
+  divTies: row.div_ties,
+  regularTrophies: row.regular_trophies,
+});
+
+export const getRegularLeaderboard = async (): Promise<
+  RegularLeaderboardDbEntry[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       team_id,
+       COUNT(*) AS seasons,
+       SUM(wins) AS wins,
+       SUM(losses) AS losses,
+       SUM(ties) AS ties,
+       SUM(points) AS points,
+       SUM(div_wins) AS div_wins,
+       SUM(div_losses) AS div_losses,
+       SUM(div_ties) AS div_ties,
+       SUM(is_regular_champion) AS regular_trophies
+     FROM regular_results
+     GROUP BY team_id
+     ORDER BY
+       SUM(points) DESC,
+       SUM(wins) DESC`,
+  );
+  return (result.rows as unknown as RegularLeaderboardRow[]).map(
+    mapRegularLeaderboardRow,
+  );
+};
