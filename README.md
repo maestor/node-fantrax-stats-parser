@@ -167,6 +167,38 @@ Useful options:
 - `--debug` (prints bracket hint lines when parsing fails)
 - `--import-db` (after syncing, upsert playoff round results into the local database)
 
+### 2c) Sync regular season standings (local mapping)
+
+Run:
+
+```
+npm run playwright:sync:regular
+```
+
+This opens each season's Fantrax COMBINED standings page and writes a local mapping file to `src/playwright/.fantrax/fantrax-regular.json` (gitignored).
+
+The mapping includes, per season year:
+
+- each team's `wins`, `losses`, `ties`, `points`
+- division record: `divWins`, `divLosses`, `divTies`
+- `isRegularChampion` flag — `true` for the rank-1 team, **only if** `fantrax-playoffs.json` already contains data for that year (a season still in progress has no champion yet)
+
+Useful options:
+
+- `--year=2024` (only sync a single season)
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--timeout=120000` (increase timeouts for slow Fantrax page loads)
+- `--import-db` (after syncing, upsert results into the local database)
+
+After syncing, you can import separately without re-scraping:
+
+```
+npm run db:import:regular-results
+```
+
+Set `USE_REMOTE_DB=true` in `.env` to target a remote Turso database instead of `local.db`.
+
 ### 3) Download regular-season roster CSVs
 
 Run:
