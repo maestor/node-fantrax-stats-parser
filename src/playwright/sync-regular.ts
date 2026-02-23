@@ -189,6 +189,7 @@ async function main(): Promise<void> {
         }
 
         const teams: RegularStandingsTeam[] = [];
+        let rowIndex = 0;
 
         for (let i = 0; i < teamCount; i++) {
           const nameRaw = normalizeSpaces(
@@ -197,14 +198,16 @@ async function main(): Promise<void> {
           const team = teamByName.get(nameRaw.toLowerCase());
           if (!team) {
             console.info(`  ⚠️  Unknown team name: "${nameRaw}" — skipping.`);
+            rowIndex++;
             continue;
           }
           // Skip expansion teams that didn't exist yet
           if (team.firstSeason !== undefined && team.firstSeason > league.year) {
+            rowIndex++;
             continue;
           }
 
-          const row = dataRows.nth(i);
+          const row = dataRows.nth(rowIndex++);
           const cells = row.locator("td");
 
           const wins = parseInt(await cells.nth(0).innerText(), 10);

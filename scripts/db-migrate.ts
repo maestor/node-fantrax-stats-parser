@@ -95,7 +95,7 @@ const main = async () => {
   console.log("✅ Migration complete!");
   console.log("   Tables: players, goalies, import_metadata, playoff_results, regular_results");
   console.log(
-    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name"
+    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name, idx_playoff_results_season, idx_regular_results_season"
   );
 };
 
