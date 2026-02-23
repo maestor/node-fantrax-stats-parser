@@ -328,6 +328,7 @@ describe("db/queries", () => {
             div_wins: 86,
             div_losses: 24,
             div_ties: 10,
+            regular_trophies: 3,
           },
           {
             team_id: "4",
@@ -339,6 +340,7 @@ describe("db/queries", () => {
             div_wins: 76,
             div_losses: 28,
             div_ties: 16,
+            regular_trophies: 1,
           },
         ],
       });
@@ -347,6 +349,9 @@ describe("db/queries", () => {
 
       expect(mockExecute).toHaveBeenCalledWith(
         expect.stringContaining("regular_results"),
+      );
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.stringContaining("is_regular_champion"),
       );
       expect(result).toEqual([
         {
@@ -359,6 +364,7 @@ describe("db/queries", () => {
           divWins: 86,
           divLosses: 24,
           divTies: 10,
+          regularTrophies: 3,
         },
         {
           teamId: "4",
@@ -370,6 +376,7 @@ describe("db/queries", () => {
           divWins: 76,
           divLosses: 28,
           divTies: 16,
+          regularTrophies: 1,
         },
       ]);
     });

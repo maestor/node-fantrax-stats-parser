@@ -199,6 +199,7 @@ interface RegularLeaderboardRow {
   div_wins: number;
   div_losses: number;
   div_ties: number;
+  regular_trophies: number;
 }
 
 type RegularLeaderboardDbEntry = Omit<
@@ -216,6 +217,7 @@ const mapRegularLeaderboardRow = (row: RegularLeaderboardRow): RegularLeaderboar
   divWins: row.div_wins,
   divLosses: row.div_losses,
   divTies: row.div_ties,
+  regularTrophies: row.regular_trophies,
 });
 
 export const getRegularLeaderboard = async (): Promise<
@@ -232,7 +234,8 @@ export const getRegularLeaderboard = async (): Promise<
        SUM(points) AS points,
        SUM(div_wins) AS div_wins,
        SUM(div_losses) AS div_losses,
-       SUM(div_ties) AS div_ties
+       SUM(div_ties) AS div_ties,
+       SUM(is_regular_champion) AS regular_trophies
      FROM regular_results
      GROUP BY team_id
      ORDER BY

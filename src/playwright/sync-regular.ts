@@ -62,6 +62,7 @@ type RegularStandingsTeam = Team & {
   divWins: number;
   divLosses: number;
   divTies: number;
+  isRegularChampion: boolean;
 };
 
 type RegularSeason = {
@@ -78,6 +79,19 @@ type RegularFile = {
 };
 
 const REGULAR_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-regular.json");
+const PLAYOFFS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-playoffs.json");
+
+const readPlayoffYears = (): Set<number> => {
+  if (!existsSync(PLAYOFFS_PATH)) return new Set();
+  try {
+    const file = JSON.parse(readFileSync(PLAYOFFS_PATH, "utf8")) as {
+      seasons: { year: number }[];
+    };
+    return new Set(file.seasons.map((s) => s.year));
+  } catch {
+    return new Set();
+  }
+};
 
 const readLeagueIdsV2 = (): LeagueIdsFileV2 => {
   requireLeagueIdsFile();
@@ -112,8 +126,8 @@ const importToDb = async (file: RegularFile): Promise<void> => {
     for (const team of season.teams) {
       await db.execute({
         sql: `INSERT OR REPLACE INTO regular_results
-                (team_id, season, wins, losses, ties, points, div_wins, div_losses, div_ties)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (team_id, season, wins, losses, ties, points, div_wins, div_losses, div_ties, is_regular_champion)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           team.id,
           season.year,
@@ -124,6 +138,7 @@ const importToDb = async (file: RegularFile): Promise<void> => {
           team.divWins,
           team.divLosses,
           team.divTies,
+          team.isRegularChampion ? 1 : 0,
         ],
       });
       upserted++;
@@ -147,6 +162,7 @@ async function main(): Promise<void> {
   const seasons = leagues.seasons.filter((s) =>
     onlyYear !== null ? s.year === onlyYear : true,
   );
+  const playoffYears = readPlayoffYears();
 
   if (seasons.length === 0) {
     console.info(`⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`);
@@ -222,6 +238,9 @@ async function main(): Promise<void> {
           const divParts = divRecord.split("-").map(Number);
           const [divWins, divLosses, divTies] = divParts;
 
+          const isRankOne = teams.length === 0;
+          const isRegularChampion = isRankOne && playoffYears.has(league.year);
+
           teams.push({
             id: team.id,
             name: team.name,
@@ -233,6 +252,7 @@ async function main(): Promise<void> {
             divWins,
             divLosses,
             divTies,
+            isRegularChampion,
           });
         }
 

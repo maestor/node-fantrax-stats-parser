@@ -171,5 +171,6 @@ export type RegularLeaderboardEntry = {
   divTies: number;
   winPercent: number;
   divWinPercent: number;
+  regularTrophies: number;
   tieRank: boolean;
 };

@@ -34,6 +34,7 @@ type TeamEntry = {
   divWins: number;
   divLosses: number;
   divTies: number;
+  isRegularChampion?: boolean;
 };
 
 type Season = {
@@ -75,8 +76,8 @@ const main = async () => {
     for (const team of season.teams) {
       await db.execute({
         sql: `INSERT OR REPLACE INTO regular_results
-                (team_id, season, wins, losses, ties, points, div_wins, div_losses, div_ties)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (team_id, season, wins, losses, ties, points, div_wins, div_losses, div_ties, is_regular_champion)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           team.id,
           season.year,
@@ -87,14 +88,15 @@ const main = async () => {
           team.divWins,
           team.divLosses,
           team.divTies,
+          team.isRegularChampion ? 1 : 0,
         ],
       });
       upserted++;
     }
   }
 
-  console.log(`✅  Imported regular results from ${REGULAR_PATH}`);
-  console.log(`   Upserted: ${upserted}`);
+  console.info(`✅  Imported regular results from ${REGULAR_PATH}`);
+  console.info(`   Upserted: ${upserted}`);
 };
 
 main().catch((error) => {

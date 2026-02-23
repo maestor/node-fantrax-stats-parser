@@ -460,6 +460,7 @@ describe("services", () => {
       divWins: 86,
       divLosses: 24,
       divTies: 10,
+      regularTrophies: 2,
     };
 
     test("resolves teamName from TEAMS and sets tieRank false for first entry", async () => {

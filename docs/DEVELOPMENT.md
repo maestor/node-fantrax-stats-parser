@@ -97,7 +97,7 @@ npm run verify
 ### CSV Data Import
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
-- `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
+- `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
 - `npm run playwright:import:regular` - Import regular season data via Playwright
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright
 
@@ -161,9 +161,14 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 ## Code Style
 
 ### Enforced by Tooling
-- **ESLint**: TypeScript ESLint rules, no warnings allowed
+- **ESLint**: TypeScript ESLint rules, no warnings allowed (`--max-warnings 0`)
 - **Prettier**: Auto-formatting on save (recommended VSCode settings)
 - **TypeScript**: Strict mode enabled
+
+#### Console output rules (ESLint `no-console`)
+`src/playwright/**/*.ts` files are CLI utilities and have a strict rule: only `console.info` and `console.error` are allowed — `console.log` and `console.warn` are ESLint **errors**. The rest of `src/` has `no-console: warn`, which also fails `lint:check` due to `--max-warnings 0`.
+
+**Rule of thumb for any `src/` file:** use `console.info` for informational output and `console.error` for errors. Never use `console.log` or `console.warn`.
 
 ### Conventions
 - Use `async/await` over promise chains
