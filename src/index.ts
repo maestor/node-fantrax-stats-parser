@@ -15,6 +15,7 @@ import {
   getGoaliesSeason,
   getLastModified,
   getPlayoffsLeaderboard,
+  getRegularLeaderboard,
 } from "./routes";
 
 const service: RequestHandler = async (_req, res) => {
@@ -43,6 +44,7 @@ module.exports = cors(
     get("/goalies/season/:reportType", protectedRoute(getGoaliesSeason)),
     get("/goalies/combined/:reportType", protectedRoute(getGoaliesCombined)),
     get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
+    get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
     get("/*", notFound)
   )
 );
