@@ -549,5 +549,25 @@ describe("services", () => {
 
       expect(result).toEqual([]);
     });
+
+    test("returns winPercent 0 when all games are zero", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, wins: 0, losses: 0, ties: 0 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].winPercent).toBe(0);
+    });
+
+    test("returns divWinPercent 0 when all division games are zero", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, divWins: 0, divLosses: 0, divTies: 0 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].divWinPercent).toBe(0);
+    });
   });
 });
