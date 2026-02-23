@@ -12,8 +12,8 @@ import {
 } from "./mappings";
 import { Report, CsvReport, PlayerWithSeason, GoalieWithSeason } from "./types";
 import { DEFAULT_TEAM_ID, TEAMS } from "./constants";
-import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard } from "./db/queries";
-import type { PlayoffLeaderboardEntry } from "./types";
+import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard, getRegularLeaderboard } from "./db/queries";
+import type { PlayoffLeaderboardEntry, RegularLeaderboardEntry } from "./types";
 
 // Parser wants seasons as an array even in one-season cases
 const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
@@ -291,5 +291,28 @@ export const getPlayoffLeaderboardData = async (): Promise<
       prev.firstRound === row.firstRound;
 
     return { ...row, teamName, tieRank };
+  });
+};
+
+export const getRegularLeaderboardData = async (): Promise<
+  RegularLeaderboardEntry[]
+> => {
+  const rows = await getRegularLeaderboard();
+  return rows.map((row, i) => {
+    const team = TEAMS.find((t) => t.id === row.teamId);
+    const teamName = team?.presentName ?? row.teamId;
+
+    const prev = i > 0 ? rows[i - 1] : null;
+    const tieRank =
+      prev !== null &&
+      prev.points === row.points &&
+      prev.wins === row.wins;
+
+    const total = row.wins + row.losses + row.ties;
+    const divTotal = row.divWins + row.divLosses + row.divTies;
+    const winPercent = total > 0 ? Math.round((row.wins / total) * 1000) / 1000 : 0;
+    const divWinPercent = divTotal > 0 ? Math.round((row.divWins / divTotal) * 1000) / 1000 : 0;
+
+    return { ...row, teamName, tieRank, winPercent, divWinPercent };
   });
 };

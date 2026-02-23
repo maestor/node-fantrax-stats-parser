@@ -5,6 +5,7 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsCombined,
   getPlayoffLeaderboardData,
+  getRegularLeaderboardData,
 } from "../services";
 import {
   availableSeasons,
@@ -18,7 +19,7 @@ import {
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "../mappings";
-import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard } from "../db/queries";
+import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard, getRegularLeaderboard } from "../db/queries";
 import { mockPlayer, mockGoalie, mockPlayerWithSeason, mockGoalieWithSeason } from "./fixtures";
 
 jest.mock("../helpers");
@@ -441,6 +442,112 @@ describe("services", () => {
 
       const result = await getPlayoffLeaderboardData();
       expect(result[0].teamName).toBe("999");
+    });
+  });
+
+  describe("getRegularLeaderboardData", () => {
+    const mockGetRegularLeaderboard = getRegularLeaderboard as jest.MockedFunction<
+      typeof getRegularLeaderboard
+    >;
+
+    const baseRow = {
+      teamId: "1",
+      seasons: 10,
+      wins: 355,
+      losses: 79,
+      ties: 46,
+      points: 756,
+      divWins: 86,
+      divLosses: 24,
+      divTies: 10,
+    };
+
+    test("resolves teamName from TEAMS and sets tieRank false for first entry", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0]).toMatchObject({
+        teamId: "1",
+        teamName: "Colorado Avalanche",
+        tieRank: false,
+      });
+    });
+
+    test("calculates winPercent correctly (3 decimal places)", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+
+      const result = await getRegularLeaderboardData();
+
+      // 355 / (355 + 79 + 46) = 355 / 480 = 0.739583... → 0.740
+      expect(result[0].winPercent).toBe(
+        Math.round((355 / (355 + 79 + 46)) * 1000) / 1000,
+      );
+    });
+
+    test("calculates divWinPercent correctly (3 decimal places)", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+
+      const result = await getRegularLeaderboardData();
+
+      // 86 / (86 + 24 + 10) = 86 / 120 = 0.7166... → 0.717
+      expect(result[0].divWinPercent).toBe(
+        Math.round((86 / (86 + 24 + 10)) * 1000) / 1000,
+      );
+    });
+
+    test("sets tieRank true when points AND wins match previous entry", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, teamId: "1", points: 756, wins: 355 },
+        { ...baseRow, teamId: "4", points: 756, wins: 355 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].tieRank).toBe(false);
+      expect(result[1].tieRank).toBe(true);
+    });
+
+    test("sets tieRank false when points match but wins differ", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, teamId: "1", points: 756, wins: 355 },
+        { ...baseRow, teamId: "4", points: 756, wins: 350 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].tieRank).toBe(false);
+      expect(result[1].tieRank).toBe(false);
+    });
+
+    test("sets tieRank false when wins match but points differ", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, teamId: "1", points: 756, wins: 355 },
+        { ...baseRow, teamId: "4", points: 700, wins: 355 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].tieRank).toBe(false);
+      expect(result[1].tieRank).toBe(false);
+    });
+
+    test("falls back to teamId when team not found in TEAMS", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, teamId: "999" },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].teamName).toBe("999");
+    });
+
+    test("returns empty array when no data", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result).toEqual([]);
     });
   });
 });
