@@ -56,6 +56,8 @@ For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are om
 
 `/leaderboard/playoffs` - All-time playoff leaderboard. Returns each team's count of championships, finals, conference finals, 2nd round appearances, and 1st round appearances, sorted by best record. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record). Item format: `{ teamId, teamName, championships, finals, conferenceFinals, secondRound, firstRound, tieRank }`.
 
+`/leaderboard/regular` - All-time regular season leaderboard, aggregated across all seasons, sorted by total points (then total wins). Protected endpoint. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record). Item format: `{ teamId, teamName, seasons, wins, losses, ties, points, divWins, divLosses, divTies, winPercent, divWinPercent, tieRank }`.
+
 Every API except `/teams` and `/last-modified` have optional query params:
 `teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
 

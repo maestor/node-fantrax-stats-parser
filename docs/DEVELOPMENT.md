@@ -97,6 +97,7 @@ npm run verify
 ### CSV Data Import
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
+- `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
 - `npm run playwright:import:regular` - Import regular season data via Playwright
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright
 
@@ -105,6 +106,7 @@ npm run verify
 - `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
 - `npm run db:import:stats:current` - Import only current season into database
 - `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso)
+- `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso.
 
 ### R2 Storage (CSV backup)
 - `npm run r2:upload` - Upload all CSV files to R2
