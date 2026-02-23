@@ -169,16 +169,20 @@ async function main(): Promise<void> {
       try {
         await gotoRegularStandings(page, league.leagueId, timeoutMs);
 
-        // Team names (in rank order) from the aside panel
-        const teamCells = page.locator(
-          "section.minimal-scrollbar aside._ut__aside td",
+        // Scope to the first standings table only (--h2hrotisserie1).
+        // The COMBINED view also renders scoring-period breakdown tables
+        // (--h2hrotisserie2) which share the same inner selectors and would
+        // produce duplicate/wrong team rows if not excluded.
+        const standingsTable = page.locator(
+          "div.standings-table-wrapper--h2hrotisserie1",
         );
+
+        // Team names (in rank order) from the aside panel
+        const teamCells = standingsTable.locator("aside._ut__aside td");
         const teamCount = await teamCells.count();
 
         // Stat rows (same order as teams) from the content panel
-        const dataRows = page.locator(
-          "section.minimal-scrollbar div._ut__content table tr",
-        );
+        const dataRows = standingsTable.locator("div._ut__content table tr");
 
         // Build lookup: normalised display name → Team
         const teamByName = new Map<string, Team>();
