@@ -100,7 +100,7 @@ const readExistingFile = (): Map<number, RegularSeason> => {
       seasonByYear.set(season.year, season);
     }
   } catch {
-    console.warn("⚠️  Could not parse existing fantrax-regular.json — starting fresh.");
+    console.info("⚠️  Could not parse existing fantrax-regular.json — starting fresh.");
   }
   return seasonByYear;
 };
@@ -129,7 +129,7 @@ const importToDb = async (file: RegularFile): Promise<void> => {
       upserted++;
     }
   }
-  console.log(`✅  Imported ${upserted} regular season records into DB.`);
+  console.info(`✅  Imported ${upserted} regular season records into DB.`);
 };
 
 async function main(): Promise<void> {
@@ -149,7 +149,7 @@ async function main(): Promise<void> {
   );
 
   if (seasons.length === 0) {
-    console.warn(`⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`);
+    console.info(`⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`);
     return;
   }
 
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
     const seasonByYear = readExistingFile();
 
     for (const league of seasons) {
-      console.log(`\n📅  Scraping ${league.year} (${league.leagueId})...`);
+      console.info(`\n📅  Scraping ${league.year} (${league.leagueId})...`);
       try {
         await gotoRegularStandings(page, league.leagueId, timeoutMs);
 
@@ -196,7 +196,7 @@ async function main(): Promise<void> {
           );
           const team = teamByName.get(nameRaw.toLowerCase());
           if (!team) {
-            console.warn(`  ⚠️  Unknown team name: "${nameRaw}" — skipping.`);
+            console.info(`  ⚠️  Unknown team name: "${nameRaw}" — skipping.`);
             continue;
           }
           // Skip expansion teams that didn't exist yet
@@ -235,7 +235,7 @@ async function main(): Promise<void> {
           teams: teams.sort((a, b) => a.id.localeCompare(b.id)),
         });
 
-        console.log(`  ✅  ${teams.length} teams scraped.`);
+        console.info(`  ✅  ${teams.length} teams scraped.`);
       } catch (err) {
         console.error(`  ❌  Failed for ${league.year}: ${err}`);
       }
@@ -249,7 +249,7 @@ async function main(): Promise<void> {
     };
 
     writeFileSync(REGULAR_PATH, `${JSON.stringify(file, null, 2)}\n`, "utf8");
-    console.log(`\n💾  Saved to ${REGULAR_PATH}`);
+    console.info(`\n💾  Saved to ${REGULAR_PATH}`);
 
     if (shouldImportDb) {
       await importToDb(file);
