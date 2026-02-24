@@ -294,6 +294,20 @@ describe("services", () => {
       ]);
       expect(result).toEqual([mockPlayer]);
     });
+
+    test("when reportType is both and startFrom is undefined, uses all seasons", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+      (getPlayersFromDb as jest.Mock)
+        .mockResolvedValueOnce([mockPlayerWithSeason]) // regular
+        .mockResolvedValueOnce([mockPlayerWithSeason]); // playoffs
+      (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([mockPlayer]);
+
+      const result = await getPlayersStatsCombined("both", "1", undefined);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
+      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
+      expect(result).toEqual([mockPlayer]);
+    });
   });
 
   describe("getGoaliesStatsCombined", () => {
@@ -378,6 +392,20 @@ describe("services", () => {
           savePercent: undefined,
         }),
       ]);
+      expect(result).toEqual([mockGoalie]);
+    });
+
+    test("when reportType is both and startFrom is undefined, uses all seasons", async () => {
+      (availableSeasons as jest.Mock).mockReturnValue([2024]);
+      (getGoaliesFromDb as jest.Mock)
+        .mockResolvedValueOnce([mockGoalieWithSeason]) // regular
+        .mockResolvedValueOnce([mockGoalieWithSeason]); // playoffs
+      (mapCombinedGoalieDataFromGoaliesWithSeason as jest.Mock).mockReturnValue([mockGoalie]);
+
+      const result = await getGoaliesStatsCombined("both", "1", undefined);
+
+      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
+      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
       expect(result).toEqual([mockGoalie]);
     });
   });
