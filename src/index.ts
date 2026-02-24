@@ -17,6 +17,7 @@ import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
 } from "./routes";
+import { getOpenApiSpec, getSwaggerUi } from "./openapi";
 
 const service: RequestHandler = async (_req, res) => {
   send(res, 200, "Hello there! The FFHL Stats Service is running.");
@@ -45,6 +46,8 @@ module.exports = cors(
     get("/goalies/combined/:reportType", protectedRoute(getGoaliesCombined)),
     get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
     get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
+    get("/openapi.json", getOpenApiSpec),
+    get("/api-docs", getSwaggerUi),
     get("/*", notFound)
   )
 );
