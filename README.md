@@ -29,8 +29,8 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 
 ## Endpoints
 
-See [`/api-docs`](/api-docs) for the interactive API reference (Swagger UI).
-The OpenAPI spec is also available as JSON at [`/openapi.json`](/openapi.json).
+See [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs) for the interactive API reference (Swagger UI).
+The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json).
 
 ## Documentation
 

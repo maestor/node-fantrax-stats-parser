@@ -8,6 +8,8 @@ info:
     passed as the `x-api-key` request header.
 
 servers:
+  - url: https://ffhl-stats-api.vercel.app
+    description: Production
   - url: http://localhost:3000
     description: Local development
 
