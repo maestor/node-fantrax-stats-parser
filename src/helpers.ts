@@ -69,7 +69,7 @@ const normalizeFieldToBest = <T, K extends keyof T & string>(items: T[], field: 
   }
 };
 
-const getMaxByField = <T extends Record<K, number>, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
+const getMaxByField = <T extends Record<K, number>, K extends keyof T>(items: readonly T[], fields: readonly K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
       let max = 0;
@@ -87,7 +87,7 @@ const getMaxByField = <T extends Record<K, number>, K extends keyof T>(items: T[
   );
 };
 
-const getMinByField = <T extends Record<K, number>, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
+const getMinByField = <T extends Record<K, number>, K extends keyof T>(items: readonly T[], fields: readonly K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
       let min = 0;
