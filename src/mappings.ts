@@ -110,7 +110,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem).filter(
           (key) => key !== "name" && key !== "position" && key !== "season" && key !== "score"
-        ) as PlayerFields[];
+        ) as (keyof Player)[];
 
         let item = r.get(currentItem.name);
 
@@ -138,9 +138,8 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
 
         // Sum statfields to previously combined data
         itemKeys.forEach((itemKey) => {
-          const key = itemKey as keyof Player;
-          if (typeof item[key] === "number") {
-            (item[key] as number) += currentItem[key] as number;
+          if (typeof item[itemKey] === "number") {
+            (item[itemKey] as number) += currentItem[itemKey] as number;
           }
         });
 
@@ -252,7 +251,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
             key !== "gaa" &&
             key !== "savePercent" &&
             key !== "score"
-        ) as GoalieFields[];
+        ) as (keyof Goalie)[];
 
         let item = r.get(currentItem.name);
 
@@ -278,9 +277,8 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
 
         // Sum statfields to previously combined data
         itemKeys.forEach((itemKey) => {
-          const key = itemKey as keyof Goalie;
-          if (typeof item[key] === "number") {
-            (item[key] as number) += currentItem[key] as number;
+          if (typeof item[itemKey] === "number") {
+            (item[itemKey] as number) += currentItem[itemKey] as number;
           }
         });
 

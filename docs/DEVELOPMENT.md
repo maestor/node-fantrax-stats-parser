@@ -178,6 +178,52 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 - Keep functions focused and small
 - Comment complex logic (but prefer self-documenting code)
 
+### TypeScript patterns
+
+**Derive types from constants — don't duplicate them:**
+```ts
+// ✅ Single source of truth
+export const REPORT_TYPES = ["playoffs", "regular", "both"] as const satisfies readonly Report[];
+export type Report = (typeof REPORT_TYPES)[number];
+
+// ❌ Two things to keep in sync
+export type Report = "playoffs" | "regular" | "both";
+export const REPORT_TYPES: Report[] = ["playoffs", "regular", "both"];
+```
+
+**Use `satisfies` to validate constant shapes without widening types:**
+```ts
+// ✅ Validates all values are numbers; literal types are preserved
+export const HTTP_STATUS = { OK: 200, BAD_REQUEST: 400 } as const satisfies Record<string, number>;
+```
+
+**Add `readonly` to array parameters that are not mutated:**
+```ts
+// ✅ Communicates intent; callers can pass as-const arrays without a type error
+const getMaxByField = <T, K>(items: readonly T[], fields: readonly K[]) => { ... };
+```
+
+**Cast DB rows through a named helper — don't scatter double-casts:**
+```ts
+// ✅ Single trust boundary, one place to update if the DB client improves
+function castRows<T>(rows: unknown[]): T[] { return rows as T[]; }
+return castRows<PlayerRow>(result.rows).map(mapPlayerRow);
+
+// ❌ Noisy, intent unclear
+return (result.rows as unknown as PlayerRow[]).map(mapPlayerRow);
+```
+
+**Validate before casting union types — use existing guards:**
+```ts
+// ✅ Cast only happens in the valid branch
+if (!reportTypeAvailable(req.params.reportType as Report)) { return 400; }
+const report = req.params.reportType as Report;
+
+// ❌ Cast before validation
+const report = req.params.reportType as Report;
+if (!reportTypeAvailable(report)) { return 400; }
+```
+
 ### File Organization
 - Source code: `src/`
 - Tests: `src/__tests__/`

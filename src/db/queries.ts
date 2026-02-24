@@ -1,6 +1,11 @@
 import { getDbClient } from "./client";
 import type { PlayerWithSeason, GoalieWithSeason, CsvReport } from "../types";
 
+/** Cast DB rows to a known shape. Trust the schema — no runtime validation. */
+function castRows<T>(rows: unknown[]): T[] {
+  return rows as T[];
+}
+
 interface PlayerRow {
   name: string;
   position: string | null;
@@ -86,7 +91,7 @@ export const getPlayersFromDb = async (
           WHERE team_id = ? AND season = ? AND report_type = ?`,
     args: [teamId, season, reportType],
   });
-  return (result.rows as unknown as PlayerRow[]).map(mapPlayerRow);
+  return castRows<PlayerRow>(result.rows).map(mapPlayerRow);
 };
 
 export const getGoaliesFromDb = async (
@@ -102,7 +107,7 @@ export const getGoaliesFromDb = async (
           WHERE team_id = ? AND season = ? AND report_type = ?`,
     args: [teamId, season, reportType],
   });
-  return (result.rows as unknown as GoalieRow[]).map(mapGoalieRow);
+  return castRows<GoalieRow>(result.rows).map(mapGoalieRow);
 };
 
 export const getAvailableSeasonsFromDb = async (
@@ -116,7 +121,7 @@ export const getAvailableSeasonsFromDb = async (
           ORDER BY season`,
     args: [teamId, reportType],
   });
-  return (result.rows as unknown as { season: number }[]).map((r) => r.season);
+  return castRows<{ season: number }>(result.rows).map((r) => r.season);
 };
 
 export const getTeamIdsWithData = async (): Promise<string[]> => {
@@ -127,7 +132,7 @@ export const getTeamIdsWithData = async (): Promise<string[]> => {
      SELECT DISTINCT team_id FROM goalies
      ORDER BY team_id`
   );
-  return (result.rows as unknown as { team_id: string }[]).map((r) => r.team_id);
+  return castRows<{ team_id: string }>(result.rows).map((r) => r.team_id);
 };
 
 export const getLastModifiedFromDb = async (): Promise<string | null> => {
@@ -137,7 +142,7 @@ export const getLastModifiedFromDb = async (): Promise<string | null> => {
     args: ["last_modified"],
   });
   if (!result.rows.length) return null;
-  return (result.rows[0] as unknown as { value: string }).value;
+  return castRows<{ value: string }>(result.rows)[0].value;
 };
 
 interface PlayoffLeaderboardRow {
@@ -184,9 +189,7 @@ export const getPlayoffLeaderboard = async (): Promise<
        second_round DESC,
        first_round DESC`,
   );
-  return (result.rows as unknown as PlayoffLeaderboardRow[]).map(
-    mapLeaderboardRow,
-  );
+  return castRows<PlayoffLeaderboardRow>(result.rows).map(mapLeaderboardRow);
 };
 
 interface RegularLeaderboardRow {
@@ -242,7 +245,5 @@ export const getRegularLeaderboard = async (): Promise<
        SUM(points) DESC,
        SUM(wins) DESC`,
   );
-  return (result.rows as unknown as RegularLeaderboardRow[]).map(
-    mapRegularLeaderboardRow,
-  );
+  return castRows<RegularLeaderboardRow>(result.rows).map(mapRegularLeaderboardRow);
 };

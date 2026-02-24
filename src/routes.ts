@@ -30,6 +30,14 @@ import { getLastModifiedFromDb } from "./db/queries";
 
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
+const getStatusCode = (err: unknown): number => {
+  if (typeof err === "object" && err !== null && "statusCode" in err) {
+    const code = Number((err as Record<string, unknown>).statusCode);
+    return Number.isFinite(code) ? code : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+  }
+  return HTTP_STATUS.INTERNAL_SERVER_ERROR;
+};
+
 export const resetRouteCachesForTests = (): void => {
   responseCache.clear();
 };
@@ -80,11 +88,7 @@ const withErrorHandlingCached = async (
     send(res, HTTP_STATUS.OK, data);
   } catch (error) {
     setNoStoreHeaders(res);
-    const statusCode =
-      typeof error === "object" && error && "statusCode" in error
-        ? Number((error as { statusCode?: unknown }).statusCode) || HTTP_STATUS.INTERNAL_SERVER_ERROR
-        : HTTP_STATUS.INTERNAL_SERVER_ERROR;
-    send(res, statusCode, error);
+    send(res, getStatusCode(error), error);
   }
 };
 
@@ -110,25 +114,24 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
-  const report = (req.params.reportType || "regular") as Report;
-
-  if (!reportTypeAvailable(report)) {
+  const rawReport = req.params.reportType || "regular";
+  if (!reportTypeAvailable(rawReport as Report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
+  const report = rawReport as Report;
 
   await withErrorHandlingCached(req, res, () => getAvailableSeasons(teamId, report, startFrom));
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
-  const report = req.params.reportType as Report;
   const season = parseSeasonParam(req.params.season);
-
-  if (!reportTypeAvailable(report)) {
+  if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
+  const report = req.params.reportType as Report;
 
   if (!(await seasonAvailable(season, teamId, report))) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
@@ -140,26 +143,24 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
-  const report = req.params.reportType as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
-
-  if (!reportTypeAvailable(report)) {
+  if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
+  const report = req.params.reportType as Report;
 
   await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, teamId, startFrom));
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
-  const report = req.params.reportType as Report;
   const season = parseSeasonParam(req.params.season);
-
-  if (!reportTypeAvailable(report)) {
+  if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
+  const report = req.params.reportType as Report;
 
   if (!(await seasonAvailable(season, teamId, report))) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
@@ -171,13 +172,12 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
-  const report = req.params.reportType as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
-
-  if (!reportTypeAvailable(report)) {
+  if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
     return;
   }
+  const report = req.params.reportType as Report;
 
   await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId, startFrom));
 };
