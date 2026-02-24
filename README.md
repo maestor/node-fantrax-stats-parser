@@ -29,37 +29,8 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 
 ## Endpoints
 
-`/teams` - Available teams list (item format `{ id: '1', name: 'colorado', presentName: 'Colorado Avalanche' }`, may also include optional `nameAliases` array and `firstSeason` number for expansion teams)
-
-`/last-modified` - Returns the timestamp of the last data import (format: `{ lastModified: '2026-01-30T15:30:00.000Z' }`). The timestamp is stored in the database and updated automatically by the import script. Useful for polling to detect when data has been updated. Returns `null` if no import has been run.
-
-`/seasons` - Available seasons list (item format `{ season: 2012, text: '2012-2013' }`)
-
-- Report type can be provided as a path segment:
-- `/seasons/regular`, `/seasons/playoffs`, or `/seasons/both` (default: `regular` when omitted)
-- Note: `both` is accepted for compatibility and behaves like `regular` for seasons.
-
-`/players/season/:reportType/:season` - Get player stats for a single season
-
-`/players/combined/:reportType` - Get player stats combined (repository data starting from 12-13 season). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata.
-
-Report type values:
-
-- `regular` / `playoffs`: return the corresponding dataset.
-- `both`: merges `regular` + `playoffs` stats together, then calculates scores after merging.
-
-`/goalies/season/:reportType/:season` - Get goalie stats for a single season
-
-`/goalies/combined/:reportType` - Get goalie stats combined (repository data starting from 12-13 season, goal against average and save percentage NOT included as combined!). Includes a 'seasons' array with individual season stats, each of which also has its own per-season `score`, `scoreAdjustedByGames`, and `scores` metadata (including per-season `gaa` and `savePercent` when available).
-
-For `goalies/*` endpoints with `reportType=both`, `gaa` and `savePercent` are omitted (they cannot be combined reliably across regular + playoffs).
-
-`/leaderboard/playoffs` - All-time playoff leaderboard. Returns each team's count of championships, finals, conference finals, 2nd round appearances, and 1st round appearances, sorted by best record. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record). Item format: `{ teamId, teamName, championships, finals, conferenceFinals, secondRound, firstRound, tieRank }`.
-
-`/leaderboard/regular` - All-time regular season leaderboard, aggregated across all seasons, sorted by total points (then total wins). Protected endpoint. Each entry includes a `tieRank` boolean (true when the entry's record matches the previous entry's record) and `regularTrophies` (count of seasons the team finished rank 1 in the regular standings, only counted once playoffs data is available for that year). Item format: `{ teamId, teamName, seasons, wins, losses, ties, points, divWins, divLosses, divTies, winPercent, divWinPercent, regularTrophies, tieRank }`.
-
-Every API except `/teams` and `/last-modified` have optional query params:
-`teamId` (default: `1`) - if provided, check other than this repo maintainers data. teamId's are defined in `constants.ts` file `TEAMS` definition.
+See [`/api-docs`](/api-docs) for the interactive API reference (Swagger UI).
+The OpenAPI spec is also available as JSON at [`/openapi.json`](/openapi.json).
 
 ## Documentation
 
