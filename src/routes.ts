@@ -33,7 +33,7 @@ const responseCache = new Map<string, { etag: string; data: unknown }>();
 const getStatusCode = (err: unknown): number => {
   if (typeof err === "object" && err !== null && "statusCode" in err) {
     const code = Number((err as Record<string, unknown>).statusCode);
-    return Number.isFinite(code) ? code : HTTP_STATUS.INTERNAL_SERVER_ERROR;
+    return code || HTTP_STATUS.INTERNAL_SERVER_ERROR;
   }
   return HTTP_STATUS.INTERNAL_SERVER_ERROR;
 };

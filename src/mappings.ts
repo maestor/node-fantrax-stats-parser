@@ -1,9 +1,7 @@
 import {
   RawData,
   Player,
-  PlayerFields,
   Goalie,
-  GoalieFields,
   PlayerWithSeason,
   CombinedPlayer,
   GoalieWithSeason,
