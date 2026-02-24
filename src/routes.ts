@@ -108,8 +108,7 @@ export const getTeams: AugmentedRequestHandler = async (req, res) => {
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
-  const reportRaw = (req as unknown as { params?: { reportType?: unknown } }).params?.reportType;
-  const report = (typeof reportRaw === "string" ? reportRaw : "regular") as Report;
+  const report = (req.params.reportType || "regular") as Report;
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
   if (!reportTypeAvailable(report)) {

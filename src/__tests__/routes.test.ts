@@ -133,7 +133,7 @@ describe("routes", () => {
 
       const res = createResponse();
 
-      await getSeasons(asRouteReq({} as unknown as ReturnType<typeof createRequest>), res);
+      await getSeasons(asRouteReq({ params: {} } as unknown as ReturnType<typeof createRequest>), res);
 
       expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", undefined);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
@@ -143,7 +143,7 @@ describe("routes", () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
 
-      const req = { url: 123 } as unknown as ReturnType<typeof createRequest>;
+      const req = { url: 123, params: {} } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
       await getSeasons(asRouteReq(req), res);
@@ -162,6 +162,7 @@ describe("routes", () => {
       const req = {
         url: "/seasons?teamId=1",
         headers: { host: 123 },
+        params: {},
       } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
@@ -178,7 +179,7 @@ describe("routes", () => {
         typeof raw === "string" && raw ? raw : "1"
       );
 
-      const req = { url: "/seasons?teamId=1" } as unknown as ReturnType<typeof createRequest>;
+      const req = { url: "/seasons?teamId=1", params: {} } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
       await getSeasons(asRouteReq(req), res);

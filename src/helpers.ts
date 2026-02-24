@@ -69,12 +69,12 @@ const normalizeFieldToBest = <T, K extends keyof T & string>(items: T[], field: 
   }
 };
 
-const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
+const getMaxByField = <T extends Record<K, number>, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
       let max = 0;
       for (const item of items) {
-        const raw = Number((item as unknown as Record<K, number>)[field]);
+        const raw = Number(item[field]);
         const value = Number.isFinite(raw) ? Math.max(0, raw) : 0;
         if (value > max) {
           max = value;
@@ -87,12 +87,12 @@ const getMaxByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
   );
 };
 
-const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
+const getMinByField = <T extends Record<K, number>, K extends keyof T>(items: T[], fields: K[]): Record<K, number> => {
   return fields.reduce(
     (acc, field) => {
       let min = 0;
       for (const item of items) {
-        const raw = Number((item as unknown as Record<K, number>)[field]);
+        const raw = Number(item[field]);
         const value = Number.isFinite(raw) ? raw : 0;
         if (value < min) {
           min = value;
@@ -105,7 +105,10 @@ const getMinByField = <T, K extends keyof T>(items: T[], fields: K[]): Record<K,
   );
 };
 
-const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
+const applyScoresInternal = <
+  T extends Record<K, number> & { score?: number; scores?: Record<string, number> },
+  K extends keyof T & string,
+>(
   items: T[],
   fields: K[],
   weights: Record<K, number>
@@ -118,13 +121,13 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
 
   for (const item of items) {
     let total = 0;
-    (item as unknown as { scores?: Record<string, number> }).scores = {};
+    item.scores = {};
 
     for (const field of fields) {
       const max = maxByField[field];
       const min = minByField[field];
 
-      const raw = Number((item as unknown as Record<K, number>)[field]);
+      const raw = Number(item[field]);
       const safeRaw = Number.isFinite(raw) ? raw : 0;
 
       let relative = 0;
@@ -142,8 +145,7 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
         relative = (value / max) * 100;
       }
 
-      const scores = (item as unknown as { scores: Record<string, number> }).scores;
-      scores[String(field)] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
+      item.scores![field] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
 
       const weight = weights[field];
       total += relative * weight;
@@ -197,7 +199,7 @@ const applyPlayerScoresByGames = (players: Player[]): void => {
     const games = player.games;
 
     for (const field of PLAYER_SCORE_FIELDS) {
-      const raw = Number((player as unknown as Record<PlayerFields, number>)[field]);
+      const raw = Number(player[field]);
       const perGame = raw / games;
 
       if (field === "plusMinus") {
@@ -222,7 +224,7 @@ const applyPlayerScoresByGames = (players: Player[]): void => {
     let total = 0;
 
     for (const field of PLAYER_SCORE_FIELDS) {
-      const raw = Number((player as unknown as Record<PlayerFields, number>)[field]);
+      const raw = Number(player[field]);
       const perGame = raw / games;
       let relative = 0;
 
@@ -276,7 +278,7 @@ const applyPositionScoresForGroup = (players: Player[]): void => {
       const max = maxByField[field];
       const min = minByField[field];
 
-      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const raw = Number(player[field]);
       const safeRaw = Number.isFinite(raw) ? raw : 0;
 
       let relative = 0;
@@ -328,7 +330,7 @@ const applyPositionScoresForGroup = (players: Player[]): void => {
   for (const player of eligible) {
     const games = player.games;
     for (const field of fields) {
-      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const raw = Number(player[field]);
       const perGame = raw / games;
 
       if (field === "plusMinus") {
@@ -353,7 +355,7 @@ const applyPositionScoresForGroup = (players: Player[]): void => {
     let total = 0;
 
     for (const field of fields) {
-      const raw = Number((player as unknown as Record<typeof field, number>)[field]);
+      const raw = Number(player[field]);
       const perGame = raw / games;
       let relative = 0;
 
@@ -433,17 +435,16 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   for (const goalie of goalies) {
     let total = 0;
     let count = 0;
-    (goalie as unknown as { scores?: Record<string, number> }).scores = {};
+    goalie.scores = {};
     for (const field of baseFields) {
       const max = maxByBase[field];
       if (max > 0) {
-        const raw = Number((goalie as unknown as Record<string, number>)[field]);
+        const raw = Number(goalie[field]);
         const value = Math.max(0, raw);
         const relative = Math.pow(value / max, GOALIE_SCORING_DAMPENING_EXPONENT) * 100;
         const weight = GOALIE_SCORE_WEIGHTS[field];
 
-        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
-        scores[String(field)] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
+        goalie.scores![field] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
 
         total += relative * weight;
         count += 1;
@@ -469,8 +470,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
-        scores.savePercent = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
+        goalie.scores!.savePercent = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
       }
     }
 
@@ -491,8 +491,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
-        scores.gaa = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
+        goalie.scores!.gaa = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
       }
     }
 
@@ -527,7 +526,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   for (const goalie of eligible) {
     const games = goalie.games;
     for (const field of baseFields) {
-      const raw = Number((goalie as unknown as Record<GoalieScoreField, number>)[field]);
+      const raw = Number(goalie[field]);
       const perGame = raw / games;
       const value = Math.max(0, perGame);
       if (value > maxPerGameByField[field]) {
@@ -548,7 +547,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
     for (const field of baseFields) {
       const max = maxPerGameByField[field];
       if (max > 0) {
-        const raw = Number((goalie as unknown as Record<GoalieScoreField, number>)[field]);
+        const raw = Number(goalie[field]);
         const perGame = raw / games;
         const value = Math.max(0, perGame);
         const relative = (value / max) * 100;
