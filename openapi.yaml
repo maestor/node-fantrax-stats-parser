@@ -1,0 +1,672 @@
+openapi: "3.0.3"
+
+info:
+  title: FFHL Stats API
+  version: "1.0.0"
+  description: |
+    Fantasy hockey league stats API. All data endpoints require an API key
+    passed as the `x-api-key` request header.
+
+servers:
+  - url: https://ffhl-stats-api.vercel.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  parameters:
+    reportType:
+      name: reportType
+      in: path
+      required: true
+      description: |
+        Report dataset. `regular` and `playoffs` return the corresponding
+        dataset. `both` merges regular + playoffs stats then calculates scores.
+      schema:
+        type: string
+        enum: [regular, playoffs, both]
+
+    season:
+      name: season
+      in: path
+      required: true
+      description: Starting year of the season in YYYY format (e.g. `2023` for 2023-2024).
+      schema:
+        type: integer
+        example: 2023
+
+    teamId:
+      name: teamId
+      in: query
+      description: Team identifier. Defaults to `1` (repo maintainer's team). IDs are defined in `constants.ts`.
+      schema:
+        type: string
+        example: "1"
+
+    startFrom:
+      name: startFrom
+      in: query
+      description: |
+        Filter results to start from this season (inclusive). Starting year in YYYY format.
+        Works with `/seasons`, `/players/combined/*`, and `/goalies/combined/*`.
+      schema:
+        type: integer
+        example: 2020
+
+  schemas:
+    Team:
+      type: object
+      required: [id, name, presentName]
+      properties:
+        id:
+          type: string
+          example: "1"
+        name:
+          type: string
+          example: colorado
+        presentName:
+          type: string
+          example: Colorado Avalanche
+        nameAliases:
+          type: array
+          items:
+            type: string
+        firstSeason:
+          type: integer
+          description: First season year (YYYY) for expansion/relocated teams.
+          example: 2017
+
+    Season:
+      type: object
+      required: [season, text]
+      properties:
+        season:
+          type: integer
+          example: 2023
+        text:
+          type: string
+          example: "2023-2024"
+
+    Player:
+      type: object
+      required:
+        - name
+        - games
+        - goals
+        - assists
+        - points
+        - plusMinus
+        - penalties
+        - shots
+        - ppp
+        - shp
+        - hits
+        - blocks
+        - score
+        - scoreAdjustedByGames
+      properties:
+        name:
+          type: string
+        position:
+          type: string
+        games:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        plusMinus:
+          type: number
+        penalties:
+          type: number
+        shots:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+        hits:
+          type: number
+        blocks:
+          type: number
+        score:
+          type: number
+          description: Composite score (0-100 range).
+        scoreAdjustedByGames:
+          type: number
+          description: Score adjusted by games played.
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+          description: Per-stat score breakdown.
+        scoreByPosition:
+          type: number
+        scoreByPositionAdjustedByGames:
+          type: number
+        scoresByPosition:
+          type: object
+          additionalProperties:
+            type: number
+
+    Goalie:
+      type: object
+      required:
+        - name
+        - games
+        - goals
+        - assists
+        - points
+        - penalties
+        - ppp
+        - shp
+        - wins
+        - saves
+        - shutouts
+        - score
+        - scoreAdjustedByGames
+      properties:
+        name:
+          type: string
+        position:
+          type: string
+        games:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        penalties:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+        wins:
+          type: number
+        saves:
+          type: number
+        shutouts:
+          type: number
+        gaa:
+          type: string
+          description: Goals against average. Omitted for `reportType=both`.
+        savePercent:
+          type: string
+          description: Save percentage. Omitted for `reportType=both`.
+        score:
+          type: number
+        scoreAdjustedByGames:
+          type: number
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+        scoreByPosition:
+          type: number
+        scoreByPositionAdjustedByGames:
+          type: number
+        scoresByPosition:
+          type: object
+          additionalProperties:
+            type: number
+
+    PlayerSeasonData:
+      allOf:
+        - $ref: "#/components/schemas/Player"
+        - type: object
+          required: [season]
+          properties:
+            season:
+              type: integer
+
+    GoalieSeasonData:
+      allOf:
+        - $ref: "#/components/schemas/Goalie"
+        - type: object
+          required: [season]
+          properties:
+            season:
+              type: integer
+
+    CombinedPlayer:
+      allOf:
+        - $ref: "#/components/schemas/Player"
+        - type: object
+          required: [seasons]
+          properties:
+            seasons:
+              type: array
+              items:
+                $ref: "#/components/schemas/PlayerSeasonData"
+
+    CombinedGoalie:
+      allOf:
+        - $ref: "#/components/schemas/Goalie"
+        - type: object
+          required: [seasons]
+          properties:
+            seasons:
+              type: array
+              items:
+                $ref: "#/components/schemas/GoalieSeasonData"
+
+    PlayoffLeaderboardEntry:
+      type: object
+      required:
+        - teamId
+        - teamName
+        - championships
+        - finals
+        - conferenceFinals
+        - secondRound
+        - firstRound
+        - tieRank
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        championships:
+          type: integer
+        finals:
+          type: integer
+        conferenceFinals:
+          type: integer
+        secondRound:
+          type: integer
+        firstRound:
+          type: integer
+        tieRank:
+          type: boolean
+          description: True when this entry's record matches the previous entry's record.
+
+    RegularLeaderboardEntry:
+      type: object
+      required:
+        - teamId
+        - teamName
+        - seasons
+        - wins
+        - losses
+        - ties
+        - points
+        - divWins
+        - divLosses
+        - divTies
+        - winPercent
+        - divWinPercent
+        - regularTrophies
+        - tieRank
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        seasons:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        ties:
+          type: integer
+        points:
+          type: integer
+        divWins:
+          type: integer
+        divLosses:
+          type: integer
+        divTies:
+          type: integer
+        winPercent:
+          type: number
+        divWinPercent:
+          type: number
+        regularTrophies:
+          type: integer
+          description: Number of seasons the team finished rank 1 in regular standings.
+        tieRank:
+          type: boolean
+          description: True when this entry's record matches the previous entry's record.
+
+security:
+  - apiKey: []
+
+paths:
+  /:
+    get:
+      summary: Service info
+      description: Returns a plain-text message confirming the service is running.
+      security: []
+      responses:
+        "200":
+          description: Service is running.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Hello there! The FFHL Stats Service is running.
+
+  /health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, uptimeSeconds, timestamp]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  uptimeSeconds:
+                    type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /healthcheck:
+    get:
+      summary: Health check (alias for /health)
+      security: []
+      responses:
+        "200":
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, uptimeSeconds, timestamp]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  uptimeSeconds:
+                    type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /openapi.json:
+    get:
+      summary: OpenAPI spec (JSON)
+      security: []
+      responses:
+        "200":
+          description: OpenAPI 3.0.3 spec as JSON.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api-docs:
+    get:
+      summary: Interactive API documentation (Swagger UI)
+      security: []
+      responses:
+        "200":
+          description: Swagger UI HTML page.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /last-modified:
+    get:
+      summary: Last data import timestamp
+      parameters:
+        - $ref: "#/components/parameters/teamId"
+      responses:
+        "200":
+          description: Timestamp of the most recent data import.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lastModified:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: ISO 8601 timestamp, or null if no import has run.
+        "401":
+          description: Missing or invalid API key.
+
+  /teams:
+    get:
+      summary: Available teams
+      responses:
+        "200":
+          description: List of all teams.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+        "401":
+          description: Missing or invalid API key.
+
+  /seasons:
+    get:
+      summary: Available seasons (defaults to regular)
+      parameters:
+        - $ref: "#/components/parameters/teamId"
+        - $ref: "#/components/parameters/startFrom"
+      responses:
+        "200":
+          description: List of seasons that have data.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Season"
+        "400":
+          description: Invalid report type.
+        "401":
+          description: Missing or invalid API key.
+
+  /seasons/{reportType}:
+    get:
+      summary: Available seasons for a report type
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/teamId"
+        - $ref: "#/components/parameters/startFrom"
+      responses:
+        "200":
+          description: List of seasons that have data for the given report type.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Season"
+        "400":
+          description: Invalid report type.
+        "401":
+          description: Missing or invalid API key.
+
+  /players/season/{reportType}:
+    get:
+      summary: Player stats for the latest available season
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/teamId"
+      responses:
+        "200":
+          description: Player stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+        "400":
+          description: Invalid report type or season not available.
+        "401":
+          description: Missing or invalid API key.
+
+  /players/season/{reportType}/{season}:
+    get:
+      summary: Player stats for a specific season
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/season"
+        - $ref: "#/components/parameters/teamId"
+      responses:
+        "200":
+          description: Player stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+        "400":
+          description: Invalid report type or season not available.
+        "401":
+          description: Missing or invalid API key.
+
+  /players/combined/{reportType}:
+    get:
+      summary: Player stats combined across all seasons
+      description: |
+        Returns each player's stats aggregated across all seasons (from 2012-2013 onwards).
+        Each entry includes a `seasons` array with per-season stats and scores.
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/teamId"
+        - $ref: "#/components/parameters/startFrom"
+      responses:
+        "200":
+          description: Combined player stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CombinedPlayer"
+        "400":
+          description: Invalid report type.
+        "401":
+          description: Missing or invalid API key.
+
+  /goalies/season/{reportType}:
+    get:
+      summary: Goalie stats for the latest available season
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/teamId"
+      responses:
+        "200":
+          description: Goalie stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Goalie"
+        "400":
+          description: Invalid report type or season not available.
+        "401":
+          description: Missing or invalid API key.
+
+  /goalies/season/{reportType}/{season}:
+    get:
+      summary: Goalie stats for a specific season
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/season"
+        - $ref: "#/components/parameters/teamId"
+      responses:
+        "200":
+          description: Goalie stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Goalie"
+        "400":
+          description: Invalid report type or season not available.
+        "401":
+          description: Missing or invalid API key.
+
+  /goalies/combined/{reportType}:
+    get:
+      summary: Goalie stats combined across all seasons
+      description: |
+        Returns each goalie's stats aggregated across all seasons (from 2012-2013 onwards).
+        `gaa` and `savePercent` are omitted when `reportType=both` (cannot be combined reliably).
+        Each entry includes a `seasons` array with per-season stats.
+      parameters:
+        - $ref: "#/components/parameters/reportType"
+        - $ref: "#/components/parameters/teamId"
+        - $ref: "#/components/parameters/startFrom"
+      responses:
+        "200":
+          description: Combined goalie stats array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CombinedGoalie"
+        "400":
+          description: Invalid report type.
+        "401":
+          description: Missing or invalid API key.
+
+  /leaderboard/playoffs:
+    get:
+      summary: All-time playoff leaderboard
+      description: |
+        Returns each team's all-time playoff record sorted by best result.
+        Includes `tieRank: true` when the entry's record matches the previous entry.
+      responses:
+        "200":
+          description: Playoff leaderboard entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlayoffLeaderboardEntry"
+        "401":
+          description: Missing or invalid API key.
+
+  /leaderboard/regular:
+    get:
+      summary: All-time regular season leaderboard
+      description: |
+        Returns each team's all-time regular season record aggregated across all seasons,
+        sorted by total points then total wins.
+        Includes `tieRank: true` when the entry's record matches the previous entry.
+      responses:
+        "200":
+          description: Regular season leaderboard entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegularLeaderboardEntry"
+        "401":
+          description: Missing or invalid API key.
