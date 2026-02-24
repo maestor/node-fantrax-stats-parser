@@ -32,6 +32,23 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 See [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs) for the interactive API reference (Swagger UI).
 The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json).
 
+### Viewing docs locally
+
+Start the dev server (`npm run dev-start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
+
+### Updating the spec
+
+The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code generation. To update it:
+
+1. Edit `openapi.yaml` (copy an existing path/schema block as a template)
+2. Run `npm test` — the YAML smoke test confirms the file is still valid
+3. Restart the dev server and visit `/api-docs` to preview the changes
+
+**Key files:**
+- `openapi.yaml` — the spec source
+- `src/openapi.ts` — route handlers that serve `/openapi.json` and `/api-docs`
+- `src/index.ts` — registers the two public routes
+
 ## Documentation
 
 - [Testing Requirements](docs/TESTING.md)
@@ -549,7 +566,7 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 ## Future roadmap
 
-- Improve API docs/contract (e.g. publish an OpenAPI spec)
 - Standardize request validation + error response shape
+- Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
