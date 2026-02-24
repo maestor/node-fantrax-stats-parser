@@ -10,14 +10,14 @@ import {
 export const START_SEASON = 2012;
 export const CURRENT_SEASON = 2025;
 
-export const REPORT_TYPES: Report[] = ["playoffs", "regular", "both"];
+export const REPORT_TYPES = ["playoffs", "regular", "both"] as const satisfies readonly Report[];
 
 export const HTTP_STATUS = {
   OK: 200,
   BAD_REQUEST: 400,
   UNPROCESSABLE_ENTITY: 422,
   INTERNAL_SERVER_ERROR: 500,
-} as const;
+} as const satisfies Record<string, number>;
 
 export const ERROR_MESSAGES = {
   INVALID_REPORT_TYPE: "Invalid report type",
@@ -112,7 +112,7 @@ export const CSV = {
   GOALIE_POINTS: "field16" as const,
   GOALIE_PPP: "field17" as const,
   GOALIE_SHP: "field18" as const,
-} as const;
+} as const satisfies Record<string, string>;
 
 export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
   "goals",
