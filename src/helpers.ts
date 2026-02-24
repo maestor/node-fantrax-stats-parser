@@ -142,11 +142,8 @@ const applyScoresInternal = <T extends { score?: number }, K extends keyof T>(
         relative = (value / max) * 100;
       }
 
-      const scoresContainer = (item as unknown as { scores?: Record<string, number> }).scores;
-      if (scoresContainer) {
-        const clamped = Math.min(Math.max(relative, 0), 100);
-        scoresContainer[String(field)] = toTwoDecimals(clamped);
-      }
+      const scores = (item as unknown as { scores: Record<string, number> }).scores;
+      scores[String(field)] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
 
       const weight = weights[field];
       total += relative * weight;
@@ -445,11 +442,8 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         const relative = Math.pow(value / max, GOALIE_SCORING_DAMPENING_EXPONENT) * 100;
         const weight = GOALIE_SCORE_WEIGHTS[field];
 
-        const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
-        if (scoresContainer) {
-          const clamped = Math.min(Math.max(relative, 0), 100);
-          scoresContainer[String(field)] = toTwoDecimals(clamped);
-        }
+        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
+        scores[String(field)] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
 
         total += relative * weight;
         count += 1;
@@ -475,11 +469,8 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
-        if (scoresContainer) {
-          const clamped = Math.min(Math.max(relative, 0), 100);
-          scoresContainer.savePercent = toTwoDecimals(clamped);
-        }
+        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
+        scores.savePercent = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
       }
     }
 
@@ -500,11 +491,8 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        const scoresContainer = (goalie as unknown as { scores?: Record<string, number> }).scores;
-        if (scoresContainer) {
-          const clamped = Math.min(Math.max(relative, 0), 100);
-          scoresContainer.gaa = toTwoDecimals(clamped);
-        }
+        const scores = (goalie as unknown as { scores: Record<string, number> }).scores;
+        scores.gaa = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
       }
     }
 

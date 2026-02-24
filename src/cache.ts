@@ -57,7 +57,7 @@ const appendVary = (res: ServerResponse, values: string[]): void => {
   const existing = res.getHeader("Vary");
   const existingValues = typeof existing === "string" ? existing.split(",").map((s) => s.trim()) : [];
   const merged = [...new Set([...existingValues, ...values])].filter(Boolean);
-  if (merged.length) res.setHeader("Vary", merged.join(", "));
+  res.setHeader("Vary", merged.join(", "));
 };
 
 export const setCachedOkHeaders = (res: ServerResponse, etag: string): void => {

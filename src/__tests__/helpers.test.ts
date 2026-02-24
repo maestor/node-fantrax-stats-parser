@@ -1138,6 +1138,32 @@ describe("helpers", () => {
       expect(result).toEqual([]);
     });
 
+    test("sets scoreAdjustedByGames to 0 for eligible goalie with all-zero base stats", () => {
+      // When all eligible goalies have 0 for every base field, maxPerGameByField[field] = 0
+      // so the if (max > 0) branch is never taken and scoreAdjustedByGames stays 0
+      const testGoalies: Goalie[] = [
+        {
+          name: "Zero Stats Goalie",
+          games: MIN_GAMES_FOR_ADJUSTED_SCORE,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [goalie] = applyGoalieScores(testGoalies);
+
+      expect(goalie.scoreAdjustedByGames).toBe(0);
+    });
+
     test("sets scoreAdjustedByGames to 0 for goalies under minimum games", () => {
       const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
       const belowMinGames = Math.max(minGames - 1, 0);
@@ -1406,6 +1432,51 @@ describe("helpers", () => {
 
       expect(above.scores?.savePercent).toBeGreaterThan(0);
       expect(below.scores?.savePercent).toBe(0);
+    });
+
+    test("scores savePercent as 0 when all savePercents are at or below baseline", () => {
+      // When maxSavePercent <= GOALIE_SAVE_PERCENT_BASELINE (0.85), best > baseline is false
+      // so relative stays 0 for all goalies in that branch
+      const testGoalies: Goalie[] = [
+        {
+          name: "Goalie A",
+          games: 0,
+          wins: 5,
+          saves: 100,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.840",
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          name: "Goalie B",
+          games: 0,
+          wins: 3,
+          saves: 80,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          savePercent: "0.830",
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const result = applyGoalieScores(testGoalies);
+
+      // Both goalies have savePercent <= 0.85, so best > baseline is false and scores stay 0
+      expect(result[0].scores?.savePercent).toBe(0);
+      expect(result[1].scores?.savePercent).toBe(0);
     });
 
     test("includes savePercent and gaa contributions when present, including invalid values", () => {
