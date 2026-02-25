@@ -1,5 +1,9 @@
 import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
+import Ajv from "ajv";
+import fs from "fs";
+import path from "path";
+import yaml from "js-yaml";
 import {
   getSeasons,
   getTeams,
@@ -910,6 +914,176 @@ describe("routes", () => {
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         expect.any(Error),
       );
+    });
+  });
+
+  describe("spec schema conformance", () => {
+    function buildArrayValidator(schemaName: string): ReturnType<Ajv["compile"]> {
+      const specPath = path.join(__dirname, "..", "..", "openapi.yaml");
+      const raw = fs.readFileSync(specPath, "utf8");
+      const spec = yaml.load(raw) as { components: { schemas: Record<string, unknown> } };
+      const defsJson = JSON.stringify(spec.components.schemas).replace(
+        /#\/components\/schemas\//g,
+        "#/definitions/"
+      );
+      const definitions = JSON.parse(defsJson) as Record<string, unknown>;
+      const ajv = new Ajv({ allErrors: true, strict: false });
+      return ajv.compile({
+        type: "array",
+        items: { $ref: `#/definitions/${schemaName}` },
+        definitions,
+      });
+    }
+
+    function getCapturedBody(): unknown {
+      return (send as jest.Mock).mock.calls[0][2];
+    }
+
+    const validSeason = { season: 2023, text: "2023-2024" };
+
+    const validTeam = { id: "1", name: "colorado", presentName: "Colorado Avalanche" };
+
+    const validPlayer = {
+      name: "Test Player",
+      games: 82,
+      goals: 30,
+      assists: 40,
+      points: 70,
+      plusMinus: 15,
+      penalties: 20,
+      shots: 150,
+      ppp: 10,
+      shp: 2,
+      hits: 50,
+      blocks: 30,
+      score: 85.5,
+      scoreAdjustedByGames: 80.0,
+    };
+
+    const validGoalie = {
+      name: "Test Goalie",
+      games: 50,
+      goals: 0,
+      assists: 2,
+      points: 2,
+      penalties: 4,
+      ppp: 0,
+      shp: 0,
+      wins: 30,
+      saves: 1200,
+      shutouts: 5,
+      score: 90.0,
+      scoreAdjustedByGames: 85.0,
+    };
+
+    const validPlayoffEntry = {
+      teamId: "1",
+      teamName: "Colorado Avalanche",
+      championships: 3,
+      finals: 2,
+      conferenceFinals: 2,
+      secondRound: 4,
+      firstRound: 2,
+      tieRank: false,
+    };
+
+    const validRegularEntry = {
+      teamId: "1",
+      teamName: "Colorado Avalanche",
+      seasons: 10,
+      wins: 355,
+      losses: 79,
+      ties: 46,
+      points: 756,
+      divWins: 86,
+      divLosses: 24,
+      divTies: 10,
+      winPercent: 0.74,
+      divWinPercent: 0.717,
+      regularTrophies: 2,
+      tieRank: false,
+    };
+
+    test("getTeams response conforms to Team[] schema", async () => {
+      (getTeamsWithData as jest.Mock).mockResolvedValue([validTeam]);
+      const req = createRequest({ url: "/teams" });
+      const res = createResponse();
+      await getTeams(asRouteReq(req), res);
+      const validate = buildArrayValidator("Team");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getSeasons response conforms to Season[] schema", async () => {
+      (getAvailableSeasons as jest.Mock).mockResolvedValue([validSeason]);
+      const req = createRequest();
+      const res = createResponse();
+      await getSeasons(asRouteReq(req), res);
+      const validate = buildArrayValidator("Season");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getPlayersSeason response conforms to Player[] schema", async () => {
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2023);
+      (getPlayersStatsSeason as jest.Mock).mockResolvedValue([validPlayer]);
+      const req = createRequest({ params: { reportType: "regular", season: "2023" } });
+      const res = createResponse();
+      await getPlayersSeason(asRouteReq(req), res);
+      const validate = buildArrayValidator("Player");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getPlayersCombined response conforms to CombinedPlayer[] schema", async () => {
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      const validCombinedPlayer = { ...validPlayer, seasons: [{ ...validPlayer, season: 2023 }] };
+      (getPlayersStatsCombined as jest.Mock).mockResolvedValue([validCombinedPlayer]);
+      const req = createRequest({ params: { reportType: "regular" } });
+      const res = createResponse();
+      await getPlayersCombined(asRouteReq(req), res);
+      const validate = buildArrayValidator("CombinedPlayer");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getGoaliesSeason response conforms to Goalie[] schema", async () => {
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      (seasonAvailable as jest.Mock).mockResolvedValue(true);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2023);
+      (getGoaliesStatsSeason as jest.Mock).mockResolvedValue([validGoalie]);
+      const req = createRequest({ params: { reportType: "regular", season: "2023" } });
+      const res = createResponse();
+      await getGoaliesSeason(asRouteReq(req), res);
+      const validate = buildArrayValidator("Goalie");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getGoaliesCombined response conforms to CombinedGoalie[] schema", async () => {
+      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+      const validCombinedGoalie = { ...validGoalie, seasons: [{ ...validGoalie, season: 2023 }] };
+      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue([validCombinedGoalie]);
+      const req = createRequest({ params: { reportType: "regular" } });
+      const res = createResponse();
+      await getGoaliesCombined(asRouteReq(req), res);
+      const validate = buildArrayValidator("CombinedGoalie");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getPlayoffsLeaderboard response conforms to PlayoffLeaderboardEntry[] schema", async () => {
+      (getPlayoffLeaderboardData as jest.Mock).mockResolvedValue([validPlayoffEntry]);
+      const req = createRequest({ method: "GET", url: "/leaderboard/playoffs" });
+      const res = createResponse();
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+      const validate = buildArrayValidator("PlayoffLeaderboardEntry");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getRegularLeaderboard response conforms to RegularLeaderboardEntry[] schema", async () => {
+      (getRegularLeaderboardData as jest.Mock).mockResolvedValue([validRegularEntry]);
+      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
+      const res = createResponse();
+      await getRegularLeaderboard(asRouteReq(req), res);
+      const validate = buildArrayValidator("RegularLeaderboardEntry");
+      expect(validate(getCapturedBody())).toBe(true);
     });
   });
 });

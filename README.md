@@ -34,14 +34,14 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 
 ### Viewing docs locally
 
-Start the dev server (`npm run dev-start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
+Start the dev server (`npm start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
 
 ### Updating the spec
 
 The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code generation. To update it:
 
 1. Edit `openapi.yaml` (copy an existing path/schema block as a template)
-2. Run `npm test` — the YAML smoke test confirms the file is still valid
+2. Run `npm test` — the YAML smoke test, route coverage test, and schema conformance tests must all pass
 3. Restart the dev server and visit `/api-docs` to preview the changes
 
 **Key files:**
