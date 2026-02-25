@@ -207,7 +207,7 @@ interface RegularLeaderboardRow {
 
 type RegularLeaderboardDbEntry = Omit<
   import("../types").RegularLeaderboardEntry,
-  "teamName" | "tieRank" | "winPercent" | "divWinPercent"
+  "teamName" | "tieRank" | "winPercent" | "divWinPercent" | "pointsPercent"
 >;
 
 const mapRegularLeaderboardRow = (row: RegularLeaderboardRow): RegularLeaderboardDbEntry => ({

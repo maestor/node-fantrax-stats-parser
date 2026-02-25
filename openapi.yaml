@@ -306,6 +306,7 @@ components:
         - divTies
         - winPercent
         - divWinPercent
+        - pointsPercent
         - regularTrophies
         - tieRank
       properties:
@@ -333,6 +334,9 @@ components:
           type: number
         divWinPercent:
           type: number
+        pointsPercent:
+          type: number
+          description: Achieved points as a fraction of the maximum possible points (wins×2 + ties) / (games×2).
         regularTrophies:
           type: integer
           description: Number of seasons the team finished rank 1 in regular standings.

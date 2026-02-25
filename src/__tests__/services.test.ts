@@ -624,5 +624,27 @@ describe("services", () => {
 
       expect(result[0].divWinPercent).toBe(0);
     });
+
+    test("calculates pointsPercent correctly (3 decimal places)", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+
+      const result = await getRegularLeaderboardData();
+
+      // points=756, total=(355+79+46)=480, maxPoints=480*2=960
+      // pointsPercent = 756/960 = 0.7875
+      expect(result[0].pointsPercent).toBe(
+        Math.round((756 / ((355 + 79 + 46) * 2)) * 1000) / 1000,
+      );
+    });
+
+    test("returns pointsPercent 0 when all games are zero", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([
+        { ...baseRow, wins: 0, losses: 0, ties: 0, points: 0 },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].pointsPercent).toBe(0);
+    });
   });
 });

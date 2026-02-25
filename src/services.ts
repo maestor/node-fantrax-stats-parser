@@ -326,7 +326,8 @@ export const getRegularLeaderboardData = async (): Promise<
     const divTotal = row.divWins + row.divLosses + row.divTies;
     const winPercent = total > 0 ? Math.round((row.wins / total) * 1000) / 1000 : 0;
     const divWinPercent = divTotal > 0 ? Math.round((row.divWins / divTotal) * 1000) / 1000 : 0;
+    const pointsPercent = total > 0 ? Math.round((row.points / (total * 2)) * 1000) / 1000 : 0;
 
-    return { ...row, teamName, tieRank, winPercent, divWinPercent };
+    return { ...row, teamName, tieRank, winPercent, divWinPercent, pointsPercent };
   });
 };
