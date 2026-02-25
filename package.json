@@ -60,6 +60,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/microrouter": "^3.1.6",
     "@types/node": "^24.10.13",
+    "ajv": "^8.18.0",
     "concurrently": "^9.2.1",
     "csvtojson": "^2.0.14",
     "dotenv": "^17.3.1",
