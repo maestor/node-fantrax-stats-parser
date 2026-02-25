@@ -21,6 +21,7 @@ import {
 } from "../mappings";
 import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard, getRegularLeaderboard } from "../db/queries";
 import { mockPlayer, mockGoalie, mockPlayerWithSeason, mockGoalieWithSeason } from "./fixtures";
+import { TEAMS } from "../constants";
 
 jest.mock("../helpers");
 jest.mock("../mappings");
@@ -457,10 +458,35 @@ describe("services", () => {
       expect(result[0].tieRank).toBe(false);
     });
 
-    test("returns empty array when no data", async () => {
+    test("returns all TEAMS with zero values when no data", async () => {
       mockGetPlayoffLeaderboard.mockResolvedValue([]);
       const result = await getPlayoffLeaderboardData();
-      expect(result).toEqual([]);
+      expect(result).toHaveLength(TEAMS.length);
+      for (const entry of result) {
+        expect(entry.championships).toBe(0);
+        expect(entry.finals).toBe(0);
+        expect(entry.conferenceFinals).toBe(0);
+        expect(entry.secondRound).toBe(0);
+        expect(entry.firstRound).toBe(0);
+      }
+    });
+
+    test("teams absent from DB rows appear at end with all zeros", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 2, finals: 1, conferenceFinals: 1, secondRound: 2, firstRound: 3 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+
+      expect(result).toHaveLength(TEAMS.length);
+      const missing = result.filter((r) => r.teamId !== "1");
+      for (const entry of missing) {
+        expect(entry.championships).toBe(0);
+        expect(entry.finals).toBe(0);
+        expect(entry.conferenceFinals).toBe(0);
+        expect(entry.secondRound).toBe(0);
+        expect(entry.firstRound).toBe(0);
+      }
     });
 
     test("uses teamId as teamName when team not found in TEAMS", async () => {
