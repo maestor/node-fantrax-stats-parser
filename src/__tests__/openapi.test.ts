@@ -67,4 +67,42 @@ describe("openapi", () => {
       expect(spec).toHaveProperty("paths");
     });
   });
+
+  describe("route coverage", () => {
+    function getRegisteredPaths(): string[] {
+      const realFs = jest.requireActual<typeof import("fs")>("fs");
+      const realPath = jest.requireActual<typeof import("path")>("path");
+      const indexPath = realPath.join(__dirname, "..", "index.ts");
+      const source = realFs.readFileSync(indexPath, "utf8") as string;
+      return [...source.matchAll(/get\("([^"]+)"/g)]
+        .map((m) => m[1].replace(/:(\w+)/g, "{$1}"))
+        .filter((p) => !p.includes("*"));
+    }
+
+    function getSpecPaths(): string[] {
+      const realFs = jest.requireActual<typeof import("fs")>("fs");
+      const realYaml = jest.requireActual<typeof import("js-yaml")>("js-yaml");
+      const realPath = jest.requireActual<typeof import("path")>("path");
+      const specPath = realPath.join(__dirname, "..", "..", "openapi.yaml");
+      const raw = realFs.readFileSync(specPath, "utf8") as string;
+      const spec = realYaml.load(raw) as { paths: Record<string, unknown> };
+      return Object.keys(spec.paths);
+    }
+
+    test("every registered route in index.ts is documented in openapi.yaml", () => {
+      const registeredPaths = getRegisteredPaths();
+      const specPaths = getSpecPaths();
+      for (const routePath of registeredPaths) {
+        expect(specPaths).toContain(routePath);
+      }
+    });
+
+    test("every path in openapi.yaml has a matching registered route in index.ts", () => {
+      const registeredPaths = getRegisteredPaths();
+      const specPaths = getSpecPaths();
+      for (const specPath of specPaths) {
+        expect(registeredPaths).toContain(specPath);
+      }
+    });
+  });
 });
