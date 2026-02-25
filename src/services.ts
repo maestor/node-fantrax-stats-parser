@@ -277,11 +277,25 @@ export const getPlayoffLeaderboardData = async (): Promise<
   PlayoffLeaderboardEntry[]
 > => {
   const rows = await getPlayoffLeaderboard();
-  return rows.map((row, i) => {
+
+  const missingTeams = TEAMS.filter((t) => !rows.some((r) => r.teamId === t.id));
+  const allRows = [
+    ...rows,
+    ...missingTeams.map((t) => ({
+      teamId: t.id,
+      championships: 0,
+      finals: 0,
+      conferenceFinals: 0,
+      secondRound: 0,
+      firstRound: 0,
+    })),
+  ];
+
+  return allRows.map((row, i) => {
     const team = TEAMS.find((t) => t.id === row.teamId);
     const teamName = team?.presentName ?? row.teamId;
 
-    const prev = i > 0 ? rows[i - 1] : null;
+    const prev = i > 0 ? allRows[i - 1] : null;
     const tieRank =
       prev !== null &&
       prev.championships === row.championships &&
