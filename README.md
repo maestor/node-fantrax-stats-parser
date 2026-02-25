@@ -34,7 +34,7 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 
 ### Viewing docs locally
 
-Start the dev server (`npm run dev-start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
+Start the dev server (`npm start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
 
 ### Updating the spec
 
