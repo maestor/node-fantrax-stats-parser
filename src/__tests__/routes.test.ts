@@ -874,6 +874,7 @@ describe("routes", () => {
           divTies: 10,
           winPercent: 0.74,
           divWinPercent: 0.717,
+          pointsPercent: 0.788,
           regularTrophies: 2,
           tieRank: false,
         },
@@ -1000,6 +1001,7 @@ describe("routes", () => {
       divTies: 10,
       winPercent: 0.74,
       divWinPercent: 0.717,
+      pointsPercent: 0.788,
       regularTrophies: 2,
       tieRank: false,
     };
