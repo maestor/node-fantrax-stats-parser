@@ -118,6 +118,38 @@ npm run verify
 
 ---
 
+## OpenAPI Spec Maintenance
+
+**`openapi.yaml` must be updated in the same commit as the code change — always. No exceptions.**
+
+The frontend generates TypeScript types from this file using `openapi-typescript`. A stale spec means stale frontend types with no compile error — the only safeguard is keeping the spec accurate at commit time.
+
+### When to update the spec
+
+| Change | Required spec update |
+|--------|----------------------|
+| New endpoint | Add path block with all parameters and response schemas |
+| Changed response shape | Update the matching `components/schemas` entry |
+| Deleted endpoint | Remove the path block |
+| Changed parameter | Update `components/parameters` or the path-level param definition |
+
+### How to verify locally
+
+1. `npm start` — builds and starts the server
+2. Open [http://localhost:3000/api-docs](http://localhost:3000/api-docs) to preview the spec in Swagger UI
+3. `npm test` — the YAML smoke test + route coverage test + schema conformance tests must all pass
+
+### Automated enforcement
+
+Two test suites in `src/__tests__/` enforce spec accuracy:
+
+- **Route coverage test** (`openapi.test.ts`): Compares registered routes in `src/index.ts` against `paths` in `openapi.yaml`. Fails if any route is undocumented or if the spec has a stale path with no matching route.
+- **Schema conformance tests** (`routes.test.ts`): Validates that route handler responses match the response schemas declared in `openapi.yaml` using ajv. Fails if a response shape diverges from the spec.
+
+When a test fails after your change, update `openapi.yaml` to match the new route/shape before committing.
+
+---
+
 ## Environment Variables
 
 ### Local Development (.env file)

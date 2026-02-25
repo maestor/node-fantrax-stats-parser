@@ -41,7 +41,7 @@ Start the dev server (`npm start`), then open [http://localhost:3000/api-docs](h
 The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code generation. To update it:
 
 1. Edit `openapi.yaml` (copy an existing path/schema block as a template)
-2. Run `npm test` — the YAML smoke test confirms the file is still valid
+2. Run `npm test` — the YAML smoke test, route coverage test, and schema conformance tests must all pass
 3. Restart the dev server and visit `/api-docs` to preview the changes
 
 **Key files:**
