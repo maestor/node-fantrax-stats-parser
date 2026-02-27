@@ -200,7 +200,7 @@ Notes:
 - Output directory defaults to `./csv/temp/`.
 - The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-leagues.json`.
-- After downloading, the script runs `./scripts/import-temp-csv.sh` automatically when output dir is `./csv/temp/`.
+- After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
@@ -226,7 +226,7 @@ Notes:
 - Requires the playoffs mapping file from step 2b (`fantrax-playoffs.json`).
 - Output directory defaults to `./csv/temp/`.
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
-- After downloading, the script runs `./scripts/import-temp-csv.sh` automatically when output dir is `./csv/temp/`.
+- After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
@@ -396,7 +396,7 @@ npm run r2:download -- --force        # Force overwrite existing files
 When `USE_R2_STORAGE=true`, the import pipeline automatically uploads to R2 and imports into the database:
 
 ```bash
-./scripts/import-temp-csv.sh  # Cleans CSVs, uploads to R2, imports to DB
+npm run parseAndUploadCsv  # Loads .env, cleans CSVs, uploads to R2, imports to DB
 ```
 
 ## Database (Turso/SQLite)

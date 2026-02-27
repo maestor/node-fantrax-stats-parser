@@ -201,7 +201,7 @@ export const countOccurrences = (haystack: string, needle: string): number => {
   if (!needle) return 0;
   let count = 0;
   let idx = 0;
-  for (;;) {
+  for (; ;) {
     const next = haystack.indexOf(needle, idx);
     if (next < 0) break;
     count++;
@@ -616,7 +616,7 @@ const readLeagueIdsFile = (): LeagueIdsFile => {
   if (file.schemaVersion !== 1 && file.schemaVersion !== 2) {
     throw new Error(
       `Invalid league IDs file schemaVersion in ${LEAGUE_IDS_PATH}. ` +
-        `Re-run npm run playwright:sync:leagues to regenerate it.`,
+      `Re-run npm run playwright:sync:leagues to regenerate it.`,
     );
   }
 
@@ -651,7 +651,7 @@ const resolveSeasonInfoForYear = (
     if (leagueId) {
       throw new Error(
         `Your ${LEAGUE_IDS_PATH} is schemaVersion 1 (league IDs only). ` +
-          `Re-run npm run playwright:sync:leagues to also save season period dates.`,
+        `Re-run npm run playwright:sync:leagues to also save season period dates.`,
       );
     }
   }
@@ -659,7 +659,7 @@ const resolveSeasonInfoForYear = (
   const validYears = resolveAvailableYears(file).join(", ");
   throw new Error(
     `Missing league info for year ${year} in ${LEAGUE_IDS_PATH}. Valid years: ${validYears || "(none)"}. ` +
-      `Run npm run playwright:sync:leagues to refresh the mapping.`,
+    `Run npm run playwright:sync:leagues to refresh the mapping.`,
   );
 };
 
@@ -720,19 +720,32 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
 
   if (resolvedOutDir !== expectedTempDir) {
     console.info(
-      `Skipping ./scripts/import-temp-csv.sh because --out is ${resolvedOutDir} (expected ${expectedTempDir}). ` +
-        `Run ./scripts/import-temp-csv.sh manually if you want to import from csv/temp.`,
+      `Skipping post-import parse/upload because --out is ${resolvedOutDir} (expected ${expectedTempDir}). ` +
+      `Run npm run parseAndUploadCsv manually if you want to import from csv/temp.`,
     );
     return;
   }
 
-  const scriptPath = path.resolve(repoRoot, "scripts", "import-temp-csv.sh");
-  if (!existsSync(scriptPath)) {
-    throw new Error(`Missing post-import script: ${scriptPath}`);
+  const packageJsonPath = path.resolve(repoRoot, "package.json");
+  if (!existsSync(packageJsonPath)) {
+    throw new Error(`Missing package.json at ${packageJsonPath}`);
   }
 
-  console.info("Running ./scripts/import-temp-csv.sh ...");
-  const result = spawnSync("bash", [scriptPath], {
+  const packageJsonRaw = readFileSync(packageJsonPath, "utf8");
+  const packageJsonParsed: unknown = JSON.parse(packageJsonRaw);
+  const packageJsonScripts =
+    typeof packageJsonParsed === "object" && packageJsonParsed
+      ? (packageJsonParsed as { scripts?: Record<string, string> }).scripts
+      : undefined;
+
+  if (!packageJsonScripts?.parseAndUploadCsv) {
+    throw new Error(
+      "Missing npm script parseAndUploadCsv in package.json.",
+    );
+  }
+
+  console.info("Running npm run parseAndUploadCsv ...");
+  const result = spawnSync("npm", ["run", "parseAndUploadCsv"], {
     cwd: repoRoot,
     stdio: "inherit",
     env: process.env,
@@ -743,7 +756,7 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
   }
   if (typeof result.status === "number" && result.status !== 0) {
     throw new Error(
-      `./scripts/import-temp-csv.sh failed with exit code ${result.status}`,
+      `npm run parseAndUploadCsv failed with exit code ${result.status}`,
     );
   }
 };

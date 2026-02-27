@@ -36,7 +36,7 @@
     "db:import:stats:current": "tsx scripts/import-stats-to-db.ts --current-only",
     "db:import:playoff-results": "tsx scripts/db-import-playoff-results.ts",
     "db:import:regular-results": "tsx scripts/db-import-regular-results.ts",
-    "parseAndUploadCsv": "set -a && source .env && set +a && ./scripts/import-temp-csv.sh",
+    "parseAndUploadCsv": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; USE_R2_STORAGE=${USE_R2_STORAGE:-false} USE_REMOTE_DB=${USE_REMOTE_DB:-false} ./scripts/import-temp-csv.sh",
     "start": "npm run build && node lib/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
