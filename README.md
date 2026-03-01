@@ -413,6 +413,16 @@ npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
 ```
 
+If you already have production data in Turso and want to replace local SQLite with it:
+
+```bash
+# .env must contain remote TURSO_DATABASE_URL + TURSO_AUTH_TOKEN
+npm run db:pull:remote
+npm run db:backups:clean # optional: remove local DB backups when no longer needed
+```
+
+This command creates a timestamped backup of an existing `local.db` in `.backups/` first, then copies remote schema + data into `local.db`.
+
 ### Production (Turso hosted)
 
 Set these environment variables in `.env`:

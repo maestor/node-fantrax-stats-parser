@@ -27,3 +27,6 @@ docs/plans/
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Local database backups
+.backups/
