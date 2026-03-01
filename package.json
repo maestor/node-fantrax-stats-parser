@@ -32,6 +32,8 @@
     "r2:download:dry": "tsx scripts/download-from-r2.ts --dry-run",
     "r2:download:force": "tsx scripts/download-from-r2.ts --force",
     "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:pull:remote": "tsx scripts/db-pull-remote.ts",
+    "db:backups:clean": "tsx scripts/db-clean-backups.ts",
     "db:import:stats": "tsx scripts/import-stats-to-db.ts",
     "db:import:stats:current": "tsx scripts/import-stats-to-db.ts --current-only",
     "db:import:playoff-results": "tsx scripts/db-import-playoff-results.ts",
