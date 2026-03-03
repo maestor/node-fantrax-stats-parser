@@ -381,6 +381,7 @@ components:
       type: object
       required:
         - season
+        - regularTrophy
         - wins
         - losses
         - ties
@@ -394,6 +395,8 @@ components:
       properties:
         season:
           type: integer
+        regularTrophy:
+          type: boolean
         wins:
           type: integer
         losses:

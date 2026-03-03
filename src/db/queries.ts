@@ -279,6 +279,7 @@ export const getRegularLeaderboard = async (): Promise<
 interface RegularSeasonRow {
   team_id: string;
   season: number;
+  is_regular_champion: number;
   wins: number;
   losses: number;
   ties: number;
@@ -291,6 +292,7 @@ interface RegularSeasonRow {
 export type RegularSeasonDbEntry = {
   teamId: string;
   season: number;
+  regularTrophy: boolean;
   wins: number;
   losses: number;
   ties: number;
@@ -306,6 +308,7 @@ export const getRegularSeasons = async (): Promise<RegularSeasonDbEntry[]> => {
     `SELECT
        team_id,
        season,
+       is_regular_champion,
        wins,
        losses,
        ties,
@@ -319,6 +322,7 @@ export const getRegularSeasons = async (): Promise<RegularSeasonDbEntry[]> => {
   return castRows<RegularSeasonRow>(result.rows).map((row) => ({
     teamId: row.team_id,
     season: row.season,
+    regularTrophy: row.is_regular_champion === 1,
     wins: row.wins,
     losses: row.losses,
     ties: row.ties,

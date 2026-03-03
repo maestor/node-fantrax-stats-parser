@@ -880,6 +880,7 @@ describe("routes", () => {
           seasons: [
             {
               season: 2024,
+              regularTrophy: true,
               wins: 35,
               losses: 7,
               ties: 6,
@@ -1023,6 +1024,7 @@ describe("routes", () => {
       seasons: [
         {
           season: 2024,
+          regularTrophy: true,
           wins: 35,
           losses: 7,
           ties: 6,

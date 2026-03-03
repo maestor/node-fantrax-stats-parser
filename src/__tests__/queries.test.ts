@@ -422,6 +422,7 @@ describe("db/queries", () => {
           {
             team_id: "1",
             season: 2024,
+            is_regular_champion: 1,
             wins: 35,
             losses: 7,
             ties: 6,
@@ -442,6 +443,7 @@ describe("db/queries", () => {
         {
           teamId: "1",
           season: 2024,
+          regularTrophy: true,
           wins: 35,
           losses: 7,
           ties: 6,

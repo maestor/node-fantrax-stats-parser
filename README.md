@@ -365,7 +365,7 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
 ### Leaderboard response notes
 
 - `GET /leaderboard/regular` returns all-time aggregate stats plus:
-  - `seasons`: per-season regular results (includes `season`, W/L/T, points, division record, and per-season percentages)
+  - `seasons`: per-season regular results (includes `season`, `regularTrophy`, W/L/T, points, division record, and per-season percentages)
 - `GET /leaderboard/playoffs` returns all-time aggregate playoff rounds plus:
   - `seasons`: one item per season year
   - each item has `season`, `round`, and `key`

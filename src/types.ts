@@ -162,6 +162,7 @@ export type PlayoffLeaderboardEntry = {
 
 export type RegularLeaderboardSeason = {
   season: number;
+  regularTrophy: boolean;
   wins: number;
   losses: number;
   ties: number;

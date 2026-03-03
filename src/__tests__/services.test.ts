@@ -734,6 +734,7 @@ describe("services", () => {
         {
           teamId: "1",
           season: 2024,
+          regularTrophy: true,
           wins: 35,
           losses: 7,
           ties: 6,
@@ -749,6 +750,7 @@ describe("services", () => {
       expect(result[0].seasons).toEqual([
         {
           season: 2024,
+          regularTrophy: true,
           wins: 35,
           losses: 7,
           ties: 6,
@@ -769,6 +771,7 @@ describe("services", () => {
         {
           teamId: "1",
           season: 2023,
+          regularTrophy: false,
           wins: 30,
           losses: 10,
           ties: 8,
@@ -780,6 +783,7 @@ describe("services", () => {
         {
           teamId: "1",
           season: 2024,
+          regularTrophy: true,
           wins: 35,
           losses: 7,
           ties: 6,
@@ -794,7 +798,9 @@ describe("services", () => {
 
       expect(result[0].seasons).toHaveLength(2);
       expect(result[0].seasons[0].season).toBe(2023);
+      expect(result[0].seasons[0].regularTrophy).toBe(false);
       expect(result[0].seasons[1].season).toBe(2024);
+      expect(result[0].seasons[1].regularTrophy).toBe(true);
     });
   });
 });

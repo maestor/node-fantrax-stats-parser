@@ -415,6 +415,7 @@ export const getRegularLeaderboardData = async (): Promise<
     const teamRows = seasonsByTeamId.get(teamId) ?? [];
     return teamRows.map((row) => ({
       season: row.season,
+      regularTrophy: row.regularTrophy,
       wins: row.wins,
       losses: row.losses,
       ties: row.ties,
