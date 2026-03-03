@@ -150,6 +150,7 @@ export type Team = {
 export type PlayoffLeaderboardEntry = {
   teamId: string;
   teamName: string;
+  appearances: number;
   championships: number;
   finals: number;
   conferenceFinals: number;

@@ -348,6 +348,10 @@ curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/teams
 # Deep route example
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/playoffs?teamId=1"
 
+# Leaderboards
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/playoffs
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/regular
+
 # Filter by season (startFrom parameter)
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?startFrom=2020"
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/regular?startFrom=2020"

@@ -427,11 +427,13 @@ describe("services", () => {
       expect(result[0]).toMatchObject({
         teamId: "1",
         teamName: "Colorado Avalanche",
+        appearances: 13,
         tieRank: false,
       });
       expect(result[1]).toMatchObject({
         teamId: "4",
         teamName: "Vancouver Canucks",
+        appearances: 13,
         tieRank: false,
       });
     });
@@ -444,6 +446,8 @@ describe("services", () => {
 
       const result = await getPlayoffLeaderboardData();
 
+      expect(result[0].appearances).toBe(4);
+      expect(result[1].appearances).toBe(4);
       expect(result[0].tieRank).toBe(false);
       expect(result[1].tieRank).toBe(true);
     });
@@ -455,6 +459,7 @@ describe("services", () => {
 
       const result = await getPlayoffLeaderboardData();
 
+      expect(result[0].appearances).toBe(5);
       expect(result[0].tieRank).toBe(false);
     });
 
@@ -463,6 +468,7 @@ describe("services", () => {
       const result = await getPlayoffLeaderboardData();
       expect(result).toHaveLength(TEAMS.length);
       for (const entry of result) {
+        expect(entry.appearances).toBe(0);
         expect(entry.championships).toBe(0);
         expect(entry.finals).toBe(0);
         expect(entry.conferenceFinals).toBe(0);
@@ -481,6 +487,7 @@ describe("services", () => {
       expect(result).toHaveLength(TEAMS.length);
       const missing = result.filter((r) => r.teamId !== "1");
       for (const entry of missing) {
+        expect(entry.appearances).toBe(0);
         expect(entry.championships).toBe(0);
         expect(entry.finals).toBe(0);
         expect(entry.conferenceFinals).toBe(0);
