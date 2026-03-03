@@ -349,8 +349,8 @@ curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/teams
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combined/playoffs?teamId=1"
 
 # Leaderboards
-curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/playoffs
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/regular
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/playoffs
 
 # Filter by season (startFrom parameter)
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?startFrom=2020"
@@ -361,6 +361,15 @@ curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/goalies/combi
 curl https://ffhl-stats-api.vercel.app/api/health
 curl https://ffhl-stats-api.vercel.app/api/seasons
 ```
+
+### Leaderboard response notes
+
+- `GET /leaderboard/regular` returns all-time aggregate stats plus:
+  - `seasons`: per-season regular results (includes `season`, W/L/T, points, division record, and per-season percentages)
+- `GET /leaderboard/playoffs` returns all-time aggregate playoff rounds plus:
+  - `seasons`: one item per season year
+  - each item has `season`, `round`, and `key`
+  - if a season has no DB row for that team, it is returned as `round: 0` and `key: "notQualified"`
 
 ## Cloud Storage (Cloudflare R2)
 

@@ -156,7 +156,7 @@ interface PlayoffLeaderboardRow {
 
 type PlayoffLeaderboardDbEntry = Omit<
   import("../types").PlayoffLeaderboardEntry,
-  "teamName" | "appearances" | "tieRank"
+  "teamName" | "appearances" | "tieRank" | "seasons"
 >;
 
 const mapLeaderboardRow = (row: PlayoffLeaderboardRow): PlayoffLeaderboardDbEntry => ({
@@ -192,9 +192,34 @@ export const getPlayoffLeaderboard = async (): Promise<
   return castRows<PlayoffLeaderboardRow>(result.rows).map(mapLeaderboardRow);
 };
 
+interface PlayoffSeasonRow {
+  team_id: string;
+  season: number;
+  round: number;
+}
+
+export type PlayoffSeasonDbEntry = {
+  teamId: string;
+  season: number;
+  round: number;
+};
+
+export const getPlayoffSeasons = async (): Promise<PlayoffSeasonDbEntry[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT team_id, season, round
+     FROM playoff_results
+     ORDER BY team_id, season`,
+  );
+  return castRows<PlayoffSeasonRow>(result.rows).map((row) => ({
+    teamId: row.team_id,
+    season: row.season,
+    round: row.round,
+  }));
+};
+
 interface RegularLeaderboardRow {
   team_id: string;
-  seasons: number;
   wins: number;
   losses: number;
   ties: number;
@@ -207,12 +232,16 @@ interface RegularLeaderboardRow {
 
 type RegularLeaderboardDbEntry = Omit<
   import("../types").RegularLeaderboardEntry,
-  "teamName" | "tieRank" | "winPercent" | "divWinPercent" | "pointsPercent"
+  | "teamName"
+  | "tieRank"
+  | "winPercent"
+  | "divWinPercent"
+  | "pointsPercent"
+  | "seasons"
 >;
 
 const mapRegularLeaderboardRow = (row: RegularLeaderboardRow): RegularLeaderboardDbEntry => ({
   teamId: row.team_id,
-  seasons: row.seasons,
   wins: row.wins,
   losses: row.losses,
   ties: row.ties,
@@ -230,7 +259,6 @@ export const getRegularLeaderboard = async (): Promise<
   const result = await db.execute(
     `SELECT
        team_id,
-       COUNT(*) AS seasons,
        SUM(wins) AS wins,
        SUM(losses) AS losses,
        SUM(ties) AS ties,
@@ -246,4 +274,57 @@ export const getRegularLeaderboard = async (): Promise<
        SUM(wins) DESC`,
   );
   return castRows<RegularLeaderboardRow>(result.rows).map(mapRegularLeaderboardRow);
+};
+
+interface RegularSeasonRow {
+  team_id: string;
+  season: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  div_wins: number;
+  div_losses: number;
+  div_ties: number;
+}
+
+export type RegularSeasonDbEntry = {
+  teamId: string;
+  season: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  divWins: number;
+  divLosses: number;
+  divTies: number;
+};
+
+export const getRegularSeasons = async (): Promise<RegularSeasonDbEntry[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       team_id,
+       season,
+       wins,
+       losses,
+       ties,
+       points,
+       div_wins,
+       div_losses,
+       div_ties
+     FROM regular_results
+     ORDER BY team_id, season`,
+  );
+  return castRows<RegularSeasonRow>(result.rows).map((row) => ({
+    teamId: row.team_id,
+    season: row.season,
+    wins: row.wins,
+    losses: row.losses,
+    ties: row.ties,
+    points: row.points,
+    divWins: row.div_wins,
+    divLosses: row.div_losses,
+    divTies: row.div_ties,
+  }));
 };

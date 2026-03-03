@@ -817,6 +817,7 @@ describe("routes", () => {
           conferenceFinals: 2,
           secondRound: 4,
           firstRound: 2,
+          seasons: [{ season: 2024, round: 5, key: "championship" }],
           tieRank: false,
         },
       ];
@@ -865,7 +866,6 @@ describe("routes", () => {
         {
           teamId: "1",
           teamName: "Colorado Avalanche",
-          seasons: 10,
           wins: 355,
           losses: 79,
           ties: 46,
@@ -877,6 +877,21 @@ describe("routes", () => {
           divWinPercent: 0.717,
           pointsPercent: 0.788,
           regularTrophies: 2,
+          seasons: [
+            {
+              season: 2024,
+              wins: 35,
+              losses: 7,
+              ties: 6,
+              points: 76,
+              divWins: 8,
+              divLosses: 2,
+              divTies: 2,
+              winPercent: 0.729,
+              divWinPercent: 0.667,
+              pointsPercent: 0.792,
+            },
+          ],
           tieRank: false,
         },
       ];
@@ -987,13 +1002,13 @@ describe("routes", () => {
       conferenceFinals: 2,
       secondRound: 4,
       firstRound: 2,
+      seasons: [{ season: 2024, round: 5, key: "championship" }],
       tieRank: false,
     };
 
     const validRegularEntry = {
       teamId: "1",
       teamName: "Colorado Avalanche",
-      seasons: 10,
       wins: 355,
       losses: 79,
       ties: 46,
@@ -1005,6 +1020,21 @@ describe("routes", () => {
       divWinPercent: 0.717,
       pointsPercent: 0.788,
       regularTrophies: 2,
+      seasons: [
+        {
+          season: 2024,
+          wins: 35,
+          losses: 7,
+          ties: 6,
+          points: 76,
+          divWins: 8,
+          divLosses: 2,
+          divTies: 2,
+          winPercent: 0.729,
+          divWinPercent: 0.667,
+          pointsPercent: 0.792,
+        },
+      ],
       tieRank: false,
     };
 

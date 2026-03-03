@@ -13,7 +13,9 @@ import {
   getTeamIdsWithData,
   getLastModifiedFromDb,
   getPlayoffLeaderboard,
+  getPlayoffSeasons,
   getRegularLeaderboard,
+  getRegularSeasons,
 } from "../db/queries";
 import type { PlayerWithSeason, GoalieWithSeason } from "../types";
 
@@ -314,6 +316,33 @@ describe("db/queries", () => {
     });
   });
 
+  describe("getPlayoffSeasons", () => {
+    test("returns per-team playoff seasons", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          { team_id: "1", season: 2023, round: 2 },
+          { team_id: "1", season: 2024, round: 5 },
+        ],
+      });
+
+      const result = await getPlayoffSeasons();
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.stringContaining("FROM playoff_results"),
+      );
+      expect(result).toEqual([
+        { teamId: "1", season: 2023, round: 2 },
+        { teamId: "1", season: 2024, round: 5 },
+      ]);
+    });
+
+    test("returns empty array when no playoff season rows exist", async () => {
+      mockExecute.mockResolvedValue({ rows: [] });
+      const result = await getPlayoffSeasons();
+      expect(result).toEqual([]);
+    });
+  });
+
   describe("getRegularLeaderboard", () => {
     test("returns mapped leaderboard rows sorted by SQL order", async () => {
       mockExecute.mockResolvedValue({
@@ -356,7 +385,6 @@ describe("db/queries", () => {
       expect(result).toEqual([
         {
           teamId: "1",
-          seasons: 10,
           wins: 355,
           losses: 79,
           ties: 46,
@@ -368,7 +396,6 @@ describe("db/queries", () => {
         },
         {
           teamId: "4",
-          seasons: 10,
           wins: 319,
           losses: 105,
           ties: 56,
@@ -384,6 +411,51 @@ describe("db/queries", () => {
     test("returns empty array when no regular results exist", async () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getRegularLeaderboard();
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("getRegularSeasons", () => {
+    test("returns mapped regular season rows", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            team_id: "1",
+            season: 2024,
+            wins: 35,
+            losses: 7,
+            ties: 6,
+            points: 76,
+            div_wins: 8,
+            div_losses: 2,
+            div_ties: 2,
+          },
+        ],
+      });
+
+      const result = await getRegularSeasons();
+
+      expect(mockExecute).toHaveBeenCalledWith(
+        expect.stringContaining("FROM regular_results"),
+      );
+      expect(result).toEqual([
+        {
+          teamId: "1",
+          season: 2024,
+          wins: 35,
+          losses: 7,
+          ties: 6,
+          points: 76,
+          divWins: 8,
+          divLosses: 2,
+          divTies: 2,
+        },
+      ]);
+    });
+
+    test("returns empty array when no regular season rows exist", async () => {
+      mockExecute.mockResolvedValue({ rows: [] });
+      const result = await getRegularSeasons();
       expect(result).toEqual([]);
     });
   });

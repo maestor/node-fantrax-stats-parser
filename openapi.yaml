@@ -272,6 +272,7 @@ components:
         - conferenceFinals
         - secondRound
         - firstRound
+        - seasons
         - tieRank
       properties:
         teamId:
@@ -291,9 +292,35 @@ components:
           type: integer
         firstRound:
           type: integer
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayoffLeaderboardSeason"
         tieRank:
           type: boolean
           description: True when this entry's record matches the previous entry's record.
+
+    PlayoffLeaderboardSeason:
+      type: object
+      required:
+        - season
+        - round
+        - key
+      properties:
+        season:
+          type: integer
+        round:
+          type: integer
+          description: "Playoff round reached: 0=not qualified, 1-4=round reached, 5=championship."
+        key:
+          type: string
+          enum:
+            - championship
+            - final
+            - conferenceFinal
+            - secondRound
+            - firstRound
+            - notQualified
 
     RegularLeaderboardEntry:
       type: object
@@ -319,7 +346,9 @@ components:
         teamName:
           type: string
         seasons:
-          type: integer
+          type: array
+          items:
+            $ref: "#/components/schemas/RegularLeaderboardSeason"
         wins:
           type: integer
         losses:
@@ -347,6 +376,44 @@ components:
         tieRank:
           type: boolean
           description: True when this entry's record matches the previous entry's record.
+
+    RegularLeaderboardSeason:
+      type: object
+      required:
+        - season
+        - wins
+        - losses
+        - ties
+        - points
+        - divWins
+        - divLosses
+        - divTies
+        - winPercent
+        - divWinPercent
+        - pointsPercent
+      properties:
+        season:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        ties:
+          type: integer
+        points:
+          type: integer
+        divWins:
+          type: integer
+        divLosses:
+          type: integer
+        divTies:
+          type: integer
+        winPercent:
+          type: number
+        divWinPercent:
+          type: number
+        pointsPercent:
+          type: number
 
 security:
   - apiKey: []
