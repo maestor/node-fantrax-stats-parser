@@ -156,13 +156,41 @@ export type PlayoffLeaderboardEntry = {
   conferenceFinals: number;
   secondRound: number;
   firstRound: number;
+  seasons: PlayoffLeaderboardSeason[];
   tieRank: boolean;
+};
+
+export type RegularLeaderboardSeason = {
+  season: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  divWins: number;
+  divLosses: number;
+  divTies: number;
+  winPercent: number;
+  divWinPercent: number;
+  pointsPercent: number;
+};
+
+export type PlayoffRoundKey =
+  | "championship"
+  | "final"
+  | "conferenceFinal"
+  | "secondRound"
+  | "firstRound"
+  | "notQualified";
+
+export type PlayoffLeaderboardSeason = {
+  season: number;
+  round: number;
+  key: PlayoffRoundKey;
 };
 
 export type RegularLeaderboardEntry = {
   teamId: string;
   teamName: string;
-  seasons: number;
   wins: number;
   losses: number;
   ties: number;
@@ -174,5 +202,6 @@ export type RegularLeaderboardEntry = {
   divWinPercent: number;
   pointsPercent: number;
   regularTrophies: number;
+  seasons: RegularLeaderboardSeason[];
   tieRank: boolean;
 };

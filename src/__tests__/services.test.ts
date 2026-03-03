@@ -19,7 +19,14 @@ import {
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "../mappings";
-import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard, getRegularLeaderboard } from "../db/queries";
+import {
+  getPlayersFromDb,
+  getGoaliesFromDb,
+  getPlayoffLeaderboard,
+  getPlayoffSeasons,
+  getRegularLeaderboard,
+  getRegularSeasons,
+} from "../db/queries";
 import { mockPlayer, mockGoalie, mockPlayerWithSeason, mockGoalieWithSeason } from "./fixtures";
 import { TEAMS } from "../constants";
 
@@ -415,6 +422,13 @@ describe("services", () => {
     const mockGetPlayoffLeaderboard = getPlayoffLeaderboard as jest.MockedFunction<
       typeof getPlayoffLeaderboard
     >;
+    const mockGetPlayoffSeasons = getPlayoffSeasons as jest.MockedFunction<
+      typeof getPlayoffSeasons
+    >;
+
+    beforeEach(() => {
+      mockGetPlayoffSeasons.mockResolvedValue([]);
+    });
 
     test("resolves teamName from TEAMS and sets tieRank false for non-tied entries", async () => {
       mockGetPlayoffLeaderboard.mockResolvedValue([
@@ -428,6 +442,7 @@ describe("services", () => {
         teamId: "1",
         teamName: "Colorado Avalanche",
         appearances: 13,
+        seasons: expect.any(Array),
         tieRank: false,
       });
       expect(result[1]).toMatchObject({
@@ -504,16 +519,70 @@ describe("services", () => {
       const result = await getPlayoffLeaderboardData();
       expect(result[0].teamName).toBe("999");
     });
+
+    test("adds season breakdown with notQualified defaults within latest playoff season", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 1, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 0 },
+      ]);
+      mockGetPlayoffSeasons.mockResolvedValue([
+        { teamId: "1", season: 2012, round: 1 },
+        { teamId: "1", season: 2013, round: 5 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+      const colorado = result.find((entry) => entry.teamId === "1");
+
+      expect(colorado).toBeDefined();
+      expect(colorado?.seasons[0]).toEqual({ season: 2012, round: 1, key: "firstRound" });
+      expect(colorado?.seasons[1]).toEqual({ season: 2013, round: 5, key: "championship" });
+      expect(colorado?.seasons).toHaveLength(2);
+    });
+
+    test("uses team firstSeason for playoff season breakdown", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "32", championships: 0, finals: 0, conferenceFinals: 0, secondRound: 0, firstRound: 1 },
+      ]);
+      mockGetPlayoffSeasons.mockResolvedValue([{ teamId: "32", season: 2018, round: 1 }]);
+
+      const result = await getPlayoffLeaderboardData();
+      const vegas = result.find((entry) => entry.teamId === "32");
+
+      expect(vegas).toBeDefined();
+      expect(vegas?.seasons[0].season).toBe(2017);
+      expect(vegas?.seasons[0].key).toBe("notQualified");
+      expect(vegas?.seasons[1]).toEqual({ season: 2018, round: 1, key: "firstRound" });
+    });
+
+    test("maps playoff round keys for final, conferenceFinal and secondRound", async () => {
+      mockGetPlayoffLeaderboard.mockResolvedValue([
+        { teamId: "1", championships: 0, finals: 1, conferenceFinals: 1, secondRound: 1, firstRound: 0 },
+      ]);
+      mockGetPlayoffSeasons.mockResolvedValue([
+        { teamId: "1", season: 2012, round: 4 },
+        { teamId: "1", season: 2013, round: 3 },
+        { teamId: "1", season: 2014, round: 2 },
+      ]);
+
+      const result = await getPlayoffLeaderboardData();
+      const colorado = result.find((entry) => entry.teamId === "1");
+
+      expect(colorado).toBeDefined();
+      expect(colorado?.seasons[0]).toEqual({ season: 2012, round: 4, key: "final" });
+      expect(colorado?.seasons[1]).toEqual({ season: 2013, round: 3, key: "conferenceFinal" });
+      expect(colorado?.seasons[2]).toEqual({ season: 2014, round: 2, key: "secondRound" });
+    });
   });
 
   describe("getRegularLeaderboardData", () => {
     const mockGetRegularLeaderboard = getRegularLeaderboard as jest.MockedFunction<
       typeof getRegularLeaderboard
     >;
+    const mockGetRegularSeasons = getRegularSeasons as jest.MockedFunction<
+      typeof getRegularSeasons
+    >;
 
     const baseRow = {
       teamId: "1",
-      seasons: 10,
       wins: 355,
       losses: 79,
       ties: 46,
@@ -524,6 +593,10 @@ describe("services", () => {
       regularTrophies: 2,
     };
 
+    beforeEach(() => {
+      mockGetRegularSeasons.mockResolvedValue([]);
+    });
+
     test("resolves teamName from TEAMS and sets tieRank false for first entry", async () => {
       mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
 
@@ -532,6 +605,7 @@ describe("services", () => {
       expect(result[0]).toMatchObject({
         teamId: "1",
         teamName: "Colorado Avalanche",
+        seasons: [],
         tieRank: false,
       });
     });
@@ -652,6 +726,75 @@ describe("services", () => {
       const result = await getRegularLeaderboardData();
 
       expect(result[0].pointsPercent).toBe(0);
+    });
+
+    test("adds per-season breakdown with computed percents", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+      mockGetRegularSeasons.mockResolvedValue([
+        {
+          teamId: "1",
+          season: 2024,
+          wins: 35,
+          losses: 7,
+          ties: 6,
+          points: 76,
+          divWins: 8,
+          divLosses: 2,
+          divTies: 2,
+        },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].seasons).toEqual([
+        {
+          season: 2024,
+          wins: 35,
+          losses: 7,
+          ties: 6,
+          points: 76,
+          divWins: 8,
+          divLosses: 2,
+          divTies: 2,
+          winPercent: Math.round((35 / (35 + 7 + 6)) * 1000) / 1000,
+          divWinPercent: Math.round((8 / (8 + 2 + 2)) * 1000) / 1000,
+          pointsPercent: Math.round((76 / ((35 + 7 + 6) * 2)) * 1000) / 1000,
+        },
+      ]);
+    });
+
+    test("includes multiple per-season rows for same team", async () => {
+      mockGetRegularLeaderboard.mockResolvedValue([baseRow]);
+      mockGetRegularSeasons.mockResolvedValue([
+        {
+          teamId: "1",
+          season: 2023,
+          wins: 30,
+          losses: 10,
+          ties: 8,
+          points: 68,
+          divWins: 7,
+          divLosses: 3,
+          divTies: 2,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          wins: 35,
+          losses: 7,
+          ties: 6,
+          points: 76,
+          divWins: 8,
+          divLosses: 2,
+          divTies: 2,
+        },
+      ]);
+
+      const result = await getRegularLeaderboardData();
+
+      expect(result[0].seasons).toHaveLength(2);
+      expect(result[0].seasons[0].season).toBe(2023);
+      expect(result[0].seasons[1].season).toBe(2024);
     });
   });
 });

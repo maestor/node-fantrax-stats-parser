@@ -11,9 +11,24 @@ import {
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "./mappings";
 import { Report, CsvReport, PlayerWithSeason, GoalieWithSeason } from "./types";
-import { DEFAULT_TEAM_ID, TEAMS } from "./constants";
-import { getPlayersFromDb, getGoaliesFromDb, getPlayoffLeaderboard, getRegularLeaderboard } from "./db/queries";
-import type { PlayoffLeaderboardEntry, RegularLeaderboardEntry } from "./types";
+import { CURRENT_SEASON, DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "./constants";
+import {
+  getPlayersFromDb,
+  getGoaliesFromDb,
+  getPlayoffLeaderboard,
+  getPlayoffSeasons,
+  getRegularLeaderboard,
+  getRegularSeasons,
+  type PlayoffSeasonDbEntry,
+  type RegularSeasonDbEntry,
+} from "./db/queries";
+import type {
+  PlayoffLeaderboardEntry,
+  PlayoffLeaderboardSeason,
+  PlayoffRoundKey,
+  RegularLeaderboardEntry,
+  RegularLeaderboardSeason,
+} from "./types";
 
 // Parser wants seasons as an array even in one-season cases
 const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
@@ -277,6 +292,11 @@ export const getPlayoffLeaderboardData = async (): Promise<
   PlayoffLeaderboardEntry[]
 > => {
   const rows = await getPlayoffLeaderboard();
+  const seasonsByTeam = await getPlayoffSeasons();
+  const latestPlayoffSeason =
+    seasonsByTeam.length > 0
+      ? Math.max(...seasonsByTeam.map((entry) => entry.season))
+      : CURRENT_SEASON;
 
   const missingTeams = TEAMS.filter((t) => !rows.some((r) => r.teamId === t.id));
   const allRows = [
@@ -290,6 +310,46 @@ export const getPlayoffLeaderboardData = async (): Promise<
       firstRound: 0,
     })),
   ];
+
+  const seasonsByTeamId = new Map<string, PlayoffSeasonDbEntry[]>();
+  for (const seasonEntry of seasonsByTeam) {
+    const list = seasonsByTeamId.get(seasonEntry.teamId);
+    if (list) {
+      list.push(seasonEntry);
+    } else {
+      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
+    }
+  }
+
+  const getFirstSeasonForTeam = (teamId: string): number => {
+    const team = TEAMS.find((entry) => entry.id === teamId);
+    return team?.firstSeason ?? START_SEASON;
+  };
+
+  const toRoundKey = (round: number): PlayoffRoundKey => {
+    if (round === 5) return "championship";
+    if (round === 4) return "final";
+    if (round === 3) return "conferenceFinal";
+    if (round === 2) return "secondRound";
+    if (round === 1) return "firstRound";
+    return "notQualified";
+  };
+
+  const buildPlayoffSeasons = (teamId: string): PlayoffLeaderboardSeason[] => {
+    const bySeason = new Map<number, number>();
+    const rowsForTeam = seasonsByTeamId.get(teamId) ?? [];
+    for (const row of rowsForTeam) {
+      bySeason.set(row.season, row.round);
+    }
+
+    const firstSeason = getFirstSeasonForTeam(teamId);
+    const seasons: PlayoffLeaderboardSeason[] = [];
+    for (let season = firstSeason; season <= latestPlayoffSeason; season++) {
+      const round = bySeason.get(season) ?? 0;
+      seasons.push({ season, round, key: toRoundKey(round) });
+    }
+    return seasons;
+  };
 
   return allRows.map((row, i) => {
     const team = TEAMS.find((t) => t.id === row.teamId);
@@ -311,14 +371,61 @@ export const getPlayoffLeaderboardData = async (): Promise<
       prev.secondRound === row.secondRound &&
       prev.firstRound === row.firstRound;
 
-    return { ...row, teamName, appearances, tieRank };
+    return {
+      ...row,
+      teamName,
+      appearances,
+      seasons: buildPlayoffSeasons(row.teamId),
+      tieRank,
+    };
   });
+};
+
+const computeRegularSeasonPercents = (
+  row: Pick<
+    RegularSeasonDbEntry,
+    "wins" | "losses" | "ties" | "points" | "divWins" | "divLosses" | "divTies"
+  >,
+): Pick<RegularLeaderboardSeason, "winPercent" | "divWinPercent" | "pointsPercent"> => {
+  const total = row.wins + row.losses + row.ties;
+  const divTotal = row.divWins + row.divLosses + row.divTies;
+  const winPercent = total > 0 ? Math.round((row.wins / total) * 1000) / 1000 : 0;
+  const divWinPercent = divTotal > 0 ? Math.round((row.divWins / divTotal) * 1000) / 1000 : 0;
+  const pointsPercent = total > 0 ? Math.round((row.points / (total * 2)) * 1000) / 1000 : 0;
+  return { winPercent, divWinPercent, pointsPercent };
 };
 
 export const getRegularLeaderboardData = async (): Promise<
   RegularLeaderboardEntry[]
 > => {
   const rows = await getRegularLeaderboard();
+  const seasonsByTeam = await getRegularSeasons();
+
+  const seasonsByTeamId = new Map<string, RegularSeasonDbEntry[]>();
+  for (const seasonEntry of seasonsByTeam) {
+    const list = seasonsByTeamId.get(seasonEntry.teamId);
+    if (list) {
+      list.push(seasonEntry);
+    } else {
+      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
+    }
+  }
+
+  const buildRegularSeasons = (teamId: string): RegularLeaderboardSeason[] => {
+    const teamRows = seasonsByTeamId.get(teamId) ?? [];
+    return teamRows.map((row) => ({
+      season: row.season,
+      wins: row.wins,
+      losses: row.losses,
+      ties: row.ties,
+      points: row.points,
+      divWins: row.divWins,
+      divLosses: row.divLosses,
+      divTies: row.divTies,
+      ...computeRegularSeasonPercents(row),
+    }));
+  };
+
   return rows.map((row, i) => {
     const team = TEAMS.find((t) => t.id === row.teamId);
     const teamName = team?.presentName ?? row.teamId;
@@ -329,12 +436,16 @@ export const getRegularLeaderboardData = async (): Promise<
       prev.points === row.points &&
       prev.wins === row.wins;
 
-    const total = row.wins + row.losses + row.ties;
-    const divTotal = row.divWins + row.divLosses + row.divTies;
-    const winPercent = total > 0 ? Math.round((row.wins / total) * 1000) / 1000 : 0;
-    const divWinPercent = divTotal > 0 ? Math.round((row.divWins / divTotal) * 1000) / 1000 : 0;
-    const pointsPercent = total > 0 ? Math.round((row.points / (total * 2)) * 1000) / 1000 : 0;
+    const { winPercent, divWinPercent, pointsPercent } = computeRegularSeasonPercents(row);
 
-    return { ...row, teamName, tieRank, winPercent, divWinPercent, pointsPercent };
+    return {
+      ...row,
+      teamName,
+      tieRank,
+      winPercent,
+      divWinPercent,
+      pointsPercent,
+      seasons: buildRegularSeasons(row.teamId),
+    };
   });
 };
