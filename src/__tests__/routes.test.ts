@@ -811,6 +811,7 @@ describe("routes", () => {
         {
           teamId: "1",
           teamName: "Colorado Avalanche",
+          appearances: 13,
           championships: 3,
           finals: 2,
           conferenceFinals: 2,
@@ -980,6 +981,7 @@ describe("routes", () => {
     const validPlayoffEntry = {
       teamId: "1",
       teamName: "Colorado Avalanche",
+      appearances: 13,
       championships: 3,
       finals: 2,
       conferenceFinals: 2,

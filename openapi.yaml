@@ -266,6 +266,7 @@ components:
       required:
         - teamId
         - teamName
+        - appearances
         - championships
         - finals
         - conferenceFinals
@@ -277,6 +278,9 @@ components:
           type: string
         teamName:
           type: string
+        appearances:
+          type: integer
+          description: Total playoff appearances (sum of championships, finals, conferenceFinals, secondRound, and firstRound).
         championships:
           type: integer
         finals:

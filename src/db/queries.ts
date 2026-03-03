@@ -156,7 +156,7 @@ interface PlayoffLeaderboardRow {
 
 type PlayoffLeaderboardDbEntry = Omit<
   import("../types").PlayoffLeaderboardEntry,
-  "teamName" | "tieRank"
+  "teamName" | "appearances" | "tieRank"
 >;
 
 const mapLeaderboardRow = (row: PlayoffLeaderboardRow): PlayoffLeaderboardDbEntry => ({

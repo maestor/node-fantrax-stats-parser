@@ -295,6 +295,13 @@ export const getPlayoffLeaderboardData = async (): Promise<
     const team = TEAMS.find((t) => t.id === row.teamId);
     const teamName = team?.presentName ?? row.teamId;
 
+    const appearances =
+      row.championships +
+      row.finals +
+      row.conferenceFinals +
+      row.secondRound +
+      row.firstRound;
+
     const prev = i > 0 ? allRows[i - 1] : null;
     const tieRank =
       prev !== null &&
@@ -304,7 +311,7 @@ export const getPlayoffLeaderboardData = async (): Promise<
       prev.secondRound === row.secondRound &&
       prev.firstRound === row.firstRound;
 
-    return { ...row, teamName, tieRank };
+    return { ...row, teamName, appearances, tieRank };
   });
 };
 
