@@ -22,13 +22,27 @@ import type { InStatement } from "@libsql/client";
 const main = async () => {
   const args = process.argv.slice(2);
   const onlyCurrentSeason = args.includes("--current-only");
+  const seasonArg = args.find((arg) => arg.startsWith("--season="));
+  const seasonFilter =
+    seasonArg !== undefined ? Number(seasonArg.split("=")[1]) : null;
+  if (seasonArg !== undefined && !Number.isFinite(seasonFilter)) {
+    throw new Error(`Invalid --season value: ${seasonArg.split("=")[1]}`);
+  }
   const dryRun = args.includes("--dry-run");
 
   const csvDir = path.resolve(process.cwd(), "csv");
   const db = getDbClient();
 
   console.log("📥 Starting database import...");
-  console.log(`   Mode: ${onlyCurrentSeason ? "Current season only" : "All seasons"}`);
+  console.log(
+    `   Mode: ${
+      seasonFilter !== null
+        ? `Season ${seasonFilter}-${seasonFilter + 1}`
+        : onlyCurrentSeason
+          ? "Current season only"
+          : "All seasons"
+    }`
+  );
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
 
@@ -54,7 +68,8 @@ const main = async () => {
       const [, reportType, startYear] = match;
       const season = parseInt(startYear, 10);
 
-      if (onlyCurrentSeason && season < CURRENT_SEASON) continue;
+      if (seasonFilter !== null && season !== seasonFilter) continue;
+      if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON) continue;
 
       const filePath = path.join(teamDir, file);
 

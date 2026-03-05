@@ -212,7 +212,7 @@ const main = async (): Promise<void> => {
     await browser.close();
   }
 
-  runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
+  runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir, options.year);
 };
 
 void main();

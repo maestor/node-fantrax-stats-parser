@@ -201,6 +201,7 @@ Notes:
 - The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-leagues.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
+- If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
@@ -227,6 +228,7 @@ Notes:
 - Output directory defaults to `./csv/temp/`.
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
+- If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
@@ -275,7 +277,7 @@ It will:
   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
 - Create `csv/<teamId>/` if it doesn't exist
 - Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
-- Import into database (`npm run db:import:stats:current`)
+- Import into database (`npm run db:import:stats`)
 - Clean up temp files after successful DB import
 
 Preview without writing:
@@ -288,6 +290,12 @@ Import (write cleaned files):
 
 ```
 ./scripts/import-temp-csv.sh
+```
+
+Import a single season only:
+
+```
+./scripts/import-temp-csv.sh --season=2018
 ```
 
 ## Deployment (Vercel)
@@ -391,6 +399,7 @@ R2_BUCKET_NAME=ffhl-stats-csv
 ```bash
 npm run r2:upload          # Upload all files
 npm run r2:upload:current  # Upload only current season
+npm run r2:upload -- --season=2018 # Upload only 2018-2019 files
 npm run r2:upload:dry      # Preview without uploading
 ```
 
@@ -424,6 +433,7 @@ No Turso account needed. The database scripts default to a local SQLite file (`l
 npm run db:migrate        # Create database schema
 npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
+npm run db:import:stats -- --season=2018 # Import only 2018-2019 into local DB
 ```
 
 If you already have production data in Turso and want to replace local SQLite with it:
@@ -451,6 +461,7 @@ Then import to remote:
 ```bash
 npm run db:import:stats         # Import all CSV files into remote Turso
 npm run db:import:stats:current # Import only current season into remote Turso
+npm run db:import:stats -- --season=2018 # Import only 2018-2019 into remote Turso
 ```
 
 Get credentials from the [Turso dashboard](https://turso.tech).

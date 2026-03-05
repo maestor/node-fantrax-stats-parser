@@ -98,20 +98,22 @@ npm run verify
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
 - `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
-- `npm run playwright:import:regular` - Import regular season data via Playwright
-- `npm run playwright:import:playoffs` - Import playoffs data via Playwright
+- `npm run playwright:import:regular` - Import regular season data via Playwright. If `--year=YYYY` is provided and output is `csv/temp`, the post-import parse/upload/import pipeline is restricted to that season.
+- `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If `--year=YYYY` is provided and output is `csv/temp`, the post-import parse/upload/import pipeline is restricted to that season.
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema
 - `npm run db:pull:remote` - Replace `local.db` by pulling full schema + data from remote Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`); creates timestamped backup in `.backups/`
 - `npm run db:backups:clean` - Remove all files under `.backups/`
 - `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
+- `npm run db:import:stats -- --season=YYYY` - Import only one season into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
 - `npm run db:import:stats:current` - Import only current season into database
 - `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso)
 - `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso.
 
 ### R2 Storage (CSV backup)
 - `npm run r2:upload` - Upload all CSV files to R2
+- `npm run r2:upload -- --season=YYYY` - Upload only one season to R2
 - `npm run r2:upload:current` - Upload only current season to R2
 - `npm run r2:download` - Download CSV files from R2
 

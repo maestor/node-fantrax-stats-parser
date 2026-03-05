@@ -27,6 +27,16 @@ interface ManifestEntry {
   playoffs: number[];
 }
 
+const parseSeasonArg = (args: string[]): number | null => {
+  const seasonArg = args.find((arg) => arg.startsWith("--season="));
+  if (!seasonArg) return null;
+  const value = Number(seasonArg.split("=")[1]);
+  if (!Number.isFinite(value)) {
+    throw new Error(`Invalid --season value: ${seasonArg.split("=")[1]}`);
+  }
+  return value;
+};
+
 const getEnvOrThrow = (key: string): string => {
   const value = process.env[key];
   if (!value) {
@@ -137,7 +147,10 @@ const mergeManifests = (
   return merged;
 };
 
-const buildManifest = (csvDir: string): Record<string, ManifestEntry> => {
+const buildManifest = (
+  csvDir: string,
+  onlySeasonStartYear?: number,
+): Record<string, ManifestEntry> => {
   const manifest: Record<string, ManifestEntry> = {};
 
   for (const team of TEAMS) {
@@ -154,6 +167,12 @@ const buildManifest = (csvDir: string): Record<string, ManifestEntry> => {
 
       const [, reportType, startYear] = match;
       const season = parseInt(startYear, 10);
+      if (
+        Number.isFinite(onlySeasonStartYear) &&
+        season !== onlySeasonStartYear
+      ) {
+        continue;
+      }
 
       if (reportType === "regular") {
         regular.push(season);
@@ -174,6 +193,7 @@ const buildManifest = (csvDir: string): Record<string, ManifestEntry> => {
 const main = async () => {
   const args = process.argv.slice(2);
   const onlyCurrentSeason = args.includes("--current-only");
+  const seasonFilter = parseSeasonArg(args);
   const forceAll = args.includes("--force");
   const dryRun = args.includes("--dry-run");
 
@@ -182,7 +202,15 @@ const main = async () => {
   const client = createR2Client();
 
   console.log("🚀 Starting R2 upload...");
-  console.log(`   Mode: ${onlyCurrentSeason ? "Current season only" : "All seasons"}`);
+  console.log(
+    `   Mode: ${
+      seasonFilter !== null
+        ? `Season ${seasonFilter}-${seasonFilter + 1}`
+        : onlyCurrentSeason
+          ? "Current season only"
+          : "All seasons"
+    }`
+  );
   console.log(`   Force upload: ${forceAll}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
@@ -218,8 +246,12 @@ const main = async () => {
       const [, , startYear] = match;
       const season = parseInt(startYear, 10);
 
+      if (seasonFilter !== null && season !== seasonFilter) {
+        continue;
+      }
+
       // Skip historical data if only-current-season mode
-      if (onlyCurrentSeason && season < CURRENT_SEASON) {
+      if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON) {
         continue;
       }
 
@@ -256,12 +288,15 @@ const main = async () => {
   console.log("📋 Generating manifest...");
 
   let manifest: Record<string, ManifestEntry>;
-  if (onlyCurrentSeason) {
+  if (onlyCurrentSeason || seasonFilter !== null) {
     // In current-only mode, merge local seasons into existing R2 manifest
     // to preserve historical season entries not present on local disk
     console.log("  📥 Fetching existing manifest from R2 for merge...");
     const existingManifest = await fetchExistingManifest(client, bucketName);
-    const localManifest = buildManifest(csvDir);
+    const localManifest =
+      seasonFilter !== null
+        ? buildManifest(csvDir, seasonFilter)
+        : buildManifest(csvDir);
     manifest = mergeManifests(existingManifest, localManifest);
     if (existingManifest) {
       console.log("  🔀 Merged local seasons into existing manifest");

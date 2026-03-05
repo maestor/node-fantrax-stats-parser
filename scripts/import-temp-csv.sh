@@ -7,10 +7,11 @@ TEMP_DIR="${ROOT_DIR}/csv/temp"
 HANDLER_SCRIPT="${ROOT_DIR}/scripts/handle-csv.sh"
 
 DRY_RUN=false
+SEASON_START_YEAR="${IMPORT_SEASON_START_YEAR:-}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/import-temp-csv.sh [--dry-run|-n]
+Usage: ./scripts/import-temp-csv.sh [--dry-run|-n] [--season=YYYY]
 
 Scans csv/temp/*.csv for files matching:
   {teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv
@@ -20,6 +21,8 @@ Then cleans each CSV using scripts/handle-csv.sh and writes it to:
 
 Options:
   --dry-run, -n   Print what would be imported, but do not write files
+  --season=YYYY   Import only files for this season start year (also
+                  used for R2 upload/DB import filtering)
   --help, -h      Show this help
 USAGE
 }
@@ -28,6 +31,10 @@ while (( "$#" )); do
   case "$1" in
     --dry-run|-n)
       DRY_RUN=true
+      shift
+      ;;
+    --season=*)
+      SEASON_START_YEAR="${1#*=}"
       shift
       ;;
     --help|-h)
@@ -41,6 +48,11 @@ while (( "$#" )); do
       ;;
   esac
 done
+
+if [[ -n "$SEASON_START_YEAR" ]] && [[ ! "$SEASON_START_YEAR" =~ ^[0-9]{4}$ ]]; then
+  echo "Invalid --season value: $SEASON_START_YEAR (expected YYYY)" >&2
+  exit 2
+fi
 
 if [[ ! -d "$TEMP_DIR" ]]; then
   echo "Temp directory not found: $TEMP_DIR" >&2
@@ -85,6 +97,12 @@ for filepath in "${csv_files[@]}"; do
       continue
     fi
 
+    if [[ -n "$SEASON_START_YEAR" ]] && [[ "$start_year" != "$SEASON_START_YEAR" ]]; then
+      echo "Skip: $filename (season filter: expected ${SEASON_START_YEAR})"
+      skipped=$((skipped + 1))
+      continue
+    fi
+
     dest_dir="${ROOT_DIR}/csv/${team_id}"
 
     # API expects: csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv
@@ -106,11 +124,20 @@ done
 
 # Upload to R2 and import to database if files were imported
 if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
+  season_args=()
+  if [[ -n "$SEASON_START_YEAR" ]]; then
+    season_args=(--season="${SEASON_START_YEAR}")
+  fi
+
   # Upload to R2 if enabled (CSV backup/download store)
   if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then
     echo ""
     echo "📤 Uploading to R2..."
-    if ! npm run r2:upload:current; then
+    if [[ ${#season_args[@]} -gt 0 ]]; then
+      if ! npm run r2:upload -- "${season_args[@]}"; then
+        echo "⚠️  R2 upload failed" >&2
+      fi
+    elif ! npm run r2:upload:current; then
       echo "⚠️  R2 upload failed" >&2
     fi
   fi
@@ -118,7 +145,16 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
   # Import to database (USE_REMOTE_DB controls local vs remote)
   echo ""
   echo "📥 Importing to database..."
-  if npm run db:import:stats:current; then
+  if [[ ${#season_args[@]} -gt 0 ]]; then
+    if npm run db:import:stats -- "${season_args[@]}"; then
+      echo ""
+      echo "🧹 Cleaning up temp files..."
+      rm -f "$TEMP_DIR"/*.csv
+      echo "Removed CSV files from csv/temp/"
+    else
+      echo "⚠️  Database import failed, keeping temp files" >&2
+    fi
+  elif npm run db:import:stats:current; then
     echo ""
     echo "🧹 Cleaning up temp files..."
     rm -f "$TEMP_DIR"/*.csv
