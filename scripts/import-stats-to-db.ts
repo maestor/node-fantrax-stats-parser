@@ -112,8 +112,8 @@ const main = async () => {
 
         const players = mapPlayerData(dataWithSeason);
         const goalies = mapGoalieData(dataWithSeason);
-        const playersMissingId = players.filter((p) => !p.playerId).length;
-        const goaliesMissingId = goalies.filter((g) => !g.goalieId).length;
+        const playersMissingId = players.filter((p) => !p.id).length;
+        const goaliesMissingId = goalies.filter((g) => !g.id).length;
         if (playersMissingId > 0 || goaliesMissingId > 0) {
           throw new Error(
             `Missing Fantrax IDs in ${file}: players=${playersMissingId}, goalies=${goaliesMissingId}. ` +
@@ -146,7 +146,7 @@ const main = async () => {
                 team.id,
                 season,
                 reportType,
-                player.playerId!,
+                player.id,
                 player.name,
                 player.position ?? null,
                 player.games,
@@ -172,7 +172,7 @@ const main = async () => {
                 team.id,
                 season,
                 reportType,
-                goalie.goalieId!,
+                goalie.id,
                 goalie.name,
                 goalie.games,
                 goalie.wins,

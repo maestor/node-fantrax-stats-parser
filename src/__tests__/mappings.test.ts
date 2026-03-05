@@ -59,6 +59,7 @@ describe("mappings", () => {
     test("maps RawData to PlayerWithSeason with correct fields", () => {
       const result = mapPlayerData([mockRawDataFirstRow, mockRawDataPlayer]);
       expect(result[0]).toEqual({
+        id: "p001",
         name: "Connor McDavid",
         position: "F",
         games: 82,
@@ -78,7 +79,7 @@ describe("mappings", () => {
       });
     });
 
-    test("extracts playerId from *id* in name and strips token from display name", () => {
+    test("extracts id from *id* in name and strips token from display name", () => {
       const withIdInName = {
         ...mockRawDataPlayer,
         field2: "Sebastian Aho *00qs7*",
@@ -86,10 +87,10 @@ describe("mappings", () => {
       const result = mapPlayerData([mockRawDataFirstRow, withIdInName]);
 
       expect(result[0].name).toBe("Sebastian Aho");
-      expect(result[0].playerId).toBe("00qs7");
+      expect(result[0].id).toBe("00qs7");
     });
 
-    test("parses playerId from first CSV column when export keeps ID field", () => {
+    test("parses id from first CSV column when export keeps ID field", () => {
       const withLeadingIdColumn = {
         ...mockRawDataPlayer,
         Skaters: "*00qs7*",
@@ -113,7 +114,7 @@ describe("mappings", () => {
       const result = mapPlayerData([mockRawDataFirstRow, withLeadingIdColumn]);
 
       expect(result[0].name).toBe("Sebastian Aho");
-      expect(result[0].playerId).toBe("00qs7");
+      expect(result[0].id).toBe("00qs7");
       expect(result[0].position).toBe("F");
       expect(result[0].games).toBe(82);
     });
@@ -204,8 +205,8 @@ describe("mappings", () => {
     });
 
     test("handles multiple different players", () => {
-      const player1 = { ...mockRawDataPlayer, field2: "Player A" };
-      const player2 = { ...mockRawDataPlayer, field2: "Player B" };
+      const player1 = { ...mockRawDataPlayer, field2: "Player A *id001*" };
+      const player2 = { ...mockRawDataPlayer, field2: "Player B *id002*" };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
 
@@ -213,7 +214,7 @@ describe("mappings", () => {
       expect(result.map((p) => p.name).sort()).toEqual(["Player A", "Player B"]);
     });
 
-    test("keeps same-name players separate when playerId differs", () => {
+    test("keeps same-name players separate when id differs", () => {
       const player1 = { ...mockRawDataPlayer, field2: "Alex Smith *id001*" };
       const player2 = {
         ...mockRawDataPlayer,
@@ -224,7 +225,7 @@ describe("mappings", () => {
       const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
 
       expect(result.length).toBe(2);
-      expect(result.map((p) => p.playerId).sort()).toEqual(["id001", "id002"]);
+      expect(result.map((p) => p.id).sort()).toEqual(["id001", "id002"]);
     });
 
     test("applies per-season scores to seasons entries", () => {
@@ -271,13 +272,13 @@ describe("mappings", () => {
 
       // Force a lookup miss by replacing objects inside the per-season scoring step.
       // This keeps `playersWithSeason` (used later in reduce) unchanged while the
-      // lookup keys are created from different name values.
+      // lookup keys are created from different id values.
       (applyPlayerScores as jest.Mock).mockImplementation((players) => {
-        for (let i = 0; i < (players as Array<{ name: string }>).length; i++) {
-          const player = (players as Array<{ name: string }>)[i];
-          (players as Array<{ name: string }>)[i] = {
+        for (let i = 0; i < (players as Array<{ id: string }>).length; i++) {
+          const player = (players as Array<{ id: string }>)[i];
+          (players as Array<{ id: string }>)[i] = {
             ...(player as unknown as object),
-            name: `${player.name}-scored`,
+            id: `${player.id}-scored`,
           } as unknown as never;
         }
         return players;
@@ -351,6 +352,7 @@ describe("mappings", () => {
       const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalie2014]);
 
       expect(result[0]).toEqual({
+        id: "g002",
         name: "Carey Price",
         games: 70,
         wins: 40,
@@ -370,7 +372,7 @@ describe("mappings", () => {
       });
     });
 
-    test("extracts goalieId from *id* in name and strips token from display name", () => {
+    test("extracts id from *id* in name and strips token from display name", () => {
       const withIdInName = {
         ...mockRawDataGoalie2014,
         field2: "Juuse Saros *g007*",
@@ -378,10 +380,10 @@ describe("mappings", () => {
       const result = mapGoalieData([mockRawDataFirstRow, withIdInName]);
 
       expect(result[0].name).toBe("Juuse Saros");
-      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].id).toBe("g007");
     });
 
-    test("parses goalieId from first CSV column when export keeps ID field", () => {
+    test("parses id from first CSV column when export keeps ID field", () => {
       const withLeadingIdColumn = {
         ...mockRawDataGoalie2014,
         Skaters: "*g007*",
@@ -405,7 +407,7 @@ describe("mappings", () => {
       const result = mapGoalieData([mockRawDataFirstRow, withLeadingIdColumn]);
 
       expect(result[0].name).toBe("Juuse Saros");
-      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].id).toBe("g007");
       expect(result[0].games).toBe(60);
       expect(result[0].wins).toBe(30);
     });
@@ -436,7 +438,7 @@ describe("mappings", () => {
         withLeadingIdColumnNoField19 as unknown as typeof mockRawDataGoalie2014,
       ]);
 
-      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].id).toBe("g007");
       expect(result[0].shp).toBe(0);
     });
 
@@ -621,8 +623,8 @@ describe("mappings", () => {
     });
 
     test("handles multiple different goalies", () => {
-      const goalie1 = { ...mockRawDataGoalie2014, field2: "Goalie A" };
-      const goalie2 = { ...mockRawDataGoalie2014, field2: "Goalie B" };
+      const goalie1 = { ...mockRawDataGoalie2014, field2: "Goalie A *g101*" };
+      const goalie2 = { ...mockRawDataGoalie2014, field2: "Goalie B *g102*" };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
 
@@ -630,7 +632,7 @@ describe("mappings", () => {
       expect(result.map((g) => g.name).sort()).toEqual(["Goalie A", "Goalie B"]);
     });
 
-    test("keeps same-name goalies separate when goalieId differs", () => {
+    test("keeps same-name goalies separate when id differs", () => {
       const goalie1 = { ...mockRawDataGoalie2014, field2: "John Doe *g001*" };
       const goalie2 = {
         ...mockRawDataGoalie2014,
@@ -641,7 +643,7 @@ describe("mappings", () => {
       const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
 
       expect(result.length).toBe(2);
-      expect(result.map((g) => g.goalieId).sort()).toEqual(["g001", "g002"]);
+      expect(result.map((g) => g.id).sort()).toEqual(["g001", "g002"]);
     });
 
     test("handles mixed season data with year boundary", () => {
@@ -702,11 +704,11 @@ describe("mappings", () => {
       jest.clearAllMocks();
 
       (applyGoalieScores as jest.Mock).mockImplementation((goalies) => {
-        for (let i = 0; i < (goalies as Array<{ name: string }>).length; i++) {
-          const goalie = (goalies as Array<{ name: string }>)[i];
-          (goalies as Array<{ name: string }>)[i] = {
+        for (let i = 0; i < (goalies as Array<{ id: string }>).length; i++) {
+          const goalie = (goalies as Array<{ id: string }>)[i];
+          (goalies as Array<{ id: string }>)[i] = {
             ...(goalie as unknown as object),
-            name: `${goalie.name}-scored`,
+            id: `${goalie.id}-scored`,
           } as unknown as never;
         }
         return goalies;

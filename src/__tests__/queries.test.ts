@@ -31,6 +31,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            player_id: "p001",
             name: "Connor McDavid",
             position: "F",
             games: 82,
@@ -58,6 +59,7 @@ describe("db/queries", () => {
 
       expect(result).toEqual<PlayerWithSeason[]>([
         {
+          id: "p001",
           name: "Connor McDavid",
           position: "F",
           games: 82,
@@ -82,6 +84,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            player_id: "p002",
             name: "Test Player",
             position: null,
             games: 10,
@@ -104,7 +107,7 @@ describe("db/queries", () => {
       expect(result[0].position).toBeUndefined();
     });
 
-    test("maps player_id to playerId", async () => {
+    test("maps player_id to id", async () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
@@ -128,7 +131,7 @@ describe("db/queries", () => {
       });
 
       const result = await getPlayersFromDb("1", 2024, "regular");
-      expect(result[0].playerId).toBe("00qs7");
+      expect(result[0].id).toBe("00qs7");
     });
 
     test("returns empty array when no rows", async () => {
@@ -143,6 +146,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            goalie_id: "g001",
             name: "Carey Price",
             games: 70,
             wins: 40,
@@ -170,6 +174,7 @@ describe("db/queries", () => {
 
       expect(result).toEqual<GoalieWithSeason[]>([
         {
+          id: "g001",
           name: "Carey Price",
           games: 70,
           wins: 40,
@@ -194,6 +199,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            goalie_id: "g002",
             name: "Test Goalie",
             games: 5,
             wins: 2,
@@ -218,7 +224,7 @@ describe("db/queries", () => {
       expect(result[0].savePercent).toBeUndefined();
     });
 
-    test("maps goalie_id to goalieId", async () => {
+    test("maps goalie_id to id", async () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
@@ -242,7 +248,7 @@ describe("db/queries", () => {
       });
 
       const result = await getGoaliesFromDb("1", 2024, "regular");
-      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].id).toBe("g007");
     });
 
     test("returns empty array when no rows", async () => {

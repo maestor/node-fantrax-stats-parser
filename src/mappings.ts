@@ -51,12 +51,12 @@ const getShiftedField = (item: RawData, key: string, offset: 0 | 1): string => {
   return typeof value === "string" ? value : "";
 };
 
-const parseNameAndFantraxId = (rawName: string, rawId: string): { name: string; id?: string } => {
+const parseNameAndFantraxId = (rawName: string, rawId: string): { name: string; id: string } => {
   const name = rawName.replace(/\*[A-Za-z0-9]+\*/g, "").replace(/\s+/g, " ").trim();
-  const id = parseFantraxId(rawId) ?? parseFantraxId(rawName);
+  const id = parseFantraxId(rawId) ?? parseFantraxId(rawName) ?? "";
   return {
     name,
-    ...(id ? { id } : {}),
+    id,
   };
 };
 
@@ -81,8 +81,8 @@ export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
         item[CSV.SKATER_TYPE]
       );
       return {
+        id,
         name,
-        ...(id ? { playerId: id } : {}),
         position: skaterType,
         games: parseNumber(getShiftedField(item, CSV.PLAYER_GAMES, offset)),
         goals: parseNumber(getShiftedField(item, CSV.PLAYER_GOALS, offset)),
@@ -134,7 +134,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
     applyPlayerScores(players);
     applyPlayerScoresByPosition(players);
     for (const player of players) {
-      seasonScoreLookup.set(`${player.playerId ?? player.name}-${season}`, {
+      seasonScoreLookup.set(`${player.id}-${season}`, {
         score: player.score,
         scoreAdjustedByGames: player.scoreAdjustedByGames,
         scores: player.scores,
@@ -152,19 +152,19 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
         const itemKeys = Object.keys(currentItem).filter(
           (key) =>
             key !== "name" &&
-            key !== "playerId" &&
+            key !== "id" &&
             key !== "position" &&
             key !== "season" &&
             key !== "score"
         ) as (keyof Player)[];
 
-        const entityKey = currentItem.playerId ?? currentItem.name;
+        const entityKey = currentItem.id;
         let item = r.get(entityKey);
 
         if (!item) {
           item = {
+            id: currentItem.id,
             name: currentItem.name,
-            ...(currentItem.playerId ? { playerId: currentItem.playerId } : {}),
             position: currentItem.position,
             games: 0,
             goals: 0,
@@ -191,7 +191,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
           }
         });
 
-        const seasonKey = `${currentItem.playerId ?? currentItem.name}-${currentItem.season}`;
+        const seasonKey = `${currentItem.id}-${currentItem.season}`;
         const seasonScores = seasonScoreLookup.get(seasonKey);
 
         // Add season data with per-season score information
@@ -248,8 +248,8 @@ export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
         item[CSV.SKATER_TYPE]
       );
       return {
+        id,
         name,
-        ...(id ? { goalieId: id } : {}),
         // We normalize CSVs so goalies always use: field7 = GP, field8 = W-G.
         games: parseNumber(getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD, offset)),
         wins: parseWinsFromWG(getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD, offset)),
@@ -294,7 +294,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
   for (const [season, goalies] of goaliesBySeason) {
     applyGoalieScores(goalies);
     for (const goalie of goalies) {
-      seasonScoreLookup.set(`${goalie.goalieId ?? goalie.name}-${season}`, {
+      seasonScoreLookup.set(`${goalie.id}-${season}`, {
         score: goalie.score,
         scoreAdjustedByGames: goalie.scoreAdjustedByGames,
         scores: goalie.scores,
@@ -309,20 +309,20 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
         const itemKeys = Object.keys(currentItem).filter(
           (key) =>
             key !== "name" &&
-            key !== "goalieId" &&
+            key !== "id" &&
             key !== "season" &&
             key !== "gaa" &&
             key !== "savePercent" &&
             key !== "score"
         ) as (keyof Goalie)[];
 
-        const entityKey = currentItem.goalieId ?? currentItem.name;
+        const entityKey = currentItem.id;
         let item = r.get(entityKey);
 
         if (!item) {
           item = {
+            id: currentItem.id,
             name: currentItem.name,
-            ...(currentItem.goalieId ? { goalieId: currentItem.goalieId } : {}),
             games: 0,
             wins: 0,
             saves: 0,
@@ -347,7 +347,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
           }
         });
 
-        const seasonKey = `${currentItem.goalieId ?? currentItem.name}-${currentItem.season}`;
+        const seasonKey = `${currentItem.id}-${currentItem.season}`;
         const seasonScores = seasonScoreLookup.get(seasonKey);
 
         // Add season data with per-season score information and advanced stats

@@ -962,6 +962,7 @@ describe("routes", () => {
     const validTeam = { id: "1", name: "colorado", presentName: "Colorado Avalanche" };
 
     const validPlayer = {
+      id: "p900",
       name: "Test Player",
       games: 82,
       goals: 30,
@@ -979,6 +980,7 @@ describe("routes", () => {
     };
 
     const validGoalie = {
+      id: "g900",
       name: "Test Goalie",
       games: 50,
       goals: 0,

@@ -107,8 +107,8 @@ npm run verify
 
 - Fantrax roster CSVs may include an `ID` column with values like `*00qs7*`.
 - Import parses these IDs and stores them as:
-  - `playerId` for skaters
-  - `goalieId` for goalies
+  - `id` for skaters
+  - `id` for goalies
 - Parser remains backward-compatible with older cleaned CSV files that do not include the first `ID` column.
 
 ### Database (Turso/SQLite)

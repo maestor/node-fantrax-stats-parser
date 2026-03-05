@@ -1,4 +1,5 @@
 interface Common {
+  id: string;
   name: string;
   position?: string;
   games: number;
@@ -17,7 +18,6 @@ interface Common {
 }
 
 export interface Player extends Common {
-  playerId?: string;
   plusMinus: number;
   shots: number;
   hits: number;
@@ -25,7 +25,6 @@ export interface Player extends Common {
 }
 
 export interface Goalie extends Common {
-  goalieId?: string;
   wins: number;
   saves: number;
   shutouts: number;

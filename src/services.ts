@@ -88,7 +88,7 @@ const mergePlayersSameSeason = (players: PlayerWithSeason[]): PlayerWithSeason[]
   const merged = new Map<string, PlayerWithSeason>();
 
   for (const player of players) {
-    const key = `${player.playerId ?? player.name}-${player.season}`;
+    const key = `${player.id}-${player.season}`;
     const existing = merged.get(key);
 
     if (!existing) {
@@ -121,7 +121,7 @@ const mergeGoaliesSameSeason = (goalies: GoalieWithSeason[]): GoalieWithSeason[]
   const merged = new Map<string, GoalieWithSeason>();
 
   for (const goalie of goalies) {
-    const key = `${goalie.goalieId ?? goalie.name}-${goalie.season}`;
+    const key = `${goalie.id}-${goalie.season}`;
     const existing = merged.get(key);
 
     if (!existing) {

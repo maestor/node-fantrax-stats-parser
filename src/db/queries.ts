@@ -7,7 +7,7 @@ function castRows<T>(rows: unknown[]): T[] {
 }
 
 interface PlayerRow {
-  player_id: string | null;
+  player_id: string;
   name: string;
   position: string | null;
   games: number;
@@ -25,7 +25,7 @@ interface PlayerRow {
 }
 
 interface GoalieRow {
-  goalie_id: string | null;
+  goalie_id: string;
   name: string;
   games: number;
   wins: number;
@@ -43,8 +43,8 @@ interface GoalieRow {
 }
 
 const mapPlayerRow = (row: PlayerRow): PlayerWithSeason => ({
+  id: row.player_id,
   name: row.name,
-  ...(row.player_id ? { playerId: row.player_id } : {}),
   position: row.position ?? undefined,
   games: row.games,
   goals: row.goals,
@@ -63,8 +63,8 @@ const mapPlayerRow = (row: PlayerRow): PlayerWithSeason => ({
 });
 
 const mapGoalieRow = (row: GoalieRow): GoalieWithSeason => ({
+  id: row.goalie_id,
   name: row.name,
-  ...(row.goalie_id ? { goalieId: row.goalie_id } : {}),
   games: row.games,
   wins: row.wins,
   saves: row.saves,

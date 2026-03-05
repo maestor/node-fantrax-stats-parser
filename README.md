@@ -270,8 +270,8 @@ What it does:
 ID behavior:
 
 - When an `ID` column is present, import parses it and stores it in DB/API as:
-  - `playerId` for skaters
-  - `goalieId` for goalies
+  - `id` for skaters
+  - `id` for goalies
 - The parser still supports older cleaned CSVs where the first `ID` column was removed.
 
 ### Import files from `csv/temp`
