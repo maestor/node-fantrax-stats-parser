@@ -1,4 +1,5 @@
 interface Common {
+  id: string;
   name: string;
   position?: string;
   games: number;
@@ -105,6 +106,7 @@ export interface RawData {
   field17: string;
   field18: string;
   field19?: string;
+  field20?: string;
 }
 
 export type PlayerScoreField =

@@ -22,14 +22,32 @@ awk -F',' '
   /^"","Goalies"/ {print "\"Goalies\""; section="goalies"; age_col=0; delete skip; next}
   /^""$/ {print ""; next}
   {
-    # Remove first column
+    # Remove the first column only when it is an empty placeholder.
+    # Fantrax exports use an empty first cell for section marker rows, but
+    # actual data rows can have "ID" in first column and must be preserved.
+    start_col=1
+    if (strip_quotes($1)=="") {
+      start_col=2
+    }
+
     n=0
-    for (i=2; i<=NF; i++) {
+    for (i=start_col; i<=NF; i++) {
       n++; col[n]=$i
     }
 
-    # On header row, detect columns to skip (Age + Fantrax draft info)
-    if (strip_quotes(col[1])=="Pos") {
+    # On header row, detect columns to skip (Age + Fantrax draft info).
+    # Header can be either:
+    # - Pos,Player,...            (already-normalized files)
+    # - ID,Pos,Player,...         (raw/ID-preserving files)
+    is_header=0
+    for (i=1; i<=n; i++) {
+      if (strip_quotes(col[i])=="Pos") {
+        is_header=1
+        break
+      }
+    }
+
+    if (is_header==1) {
       age_col=0
       delete skip
 

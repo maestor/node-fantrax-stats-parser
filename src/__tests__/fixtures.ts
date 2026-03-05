@@ -4,7 +4,7 @@ import { RawData, Player, Goalie, PlayerWithSeason, GoalieWithSeason } from "../
 export const mockRawDataPlayer: RawData = {
   Skaters: "F",
   season: 2024,
-  field2: "Connor McDavid",
+  field2: "Connor McDavid *p001*",
   field3: "EDM",
   field4: "F",
   field5: "Act",
@@ -26,7 +26,7 @@ export const mockRawDataPlayer: RawData = {
 export const mockRawDataPlayerWithCommas: RawData = {
   Skaters: "F",
   season: 2024,
-  field2: "Test Player",
+  field2: "Test Player *p002*",
   field3: "TOR",
   field4: "F",
   field5: "Act",
@@ -48,7 +48,7 @@ export const mockRawDataPlayerWithCommas: RawData = {
 export const mockRawDataGoalie: RawData = {
   Skaters: "G",
   season: 2024,
-  field2: "Test Goalie",
+  field2: "Test Goalie *g001*",
   field3: "TOR",
   field4: "G",
   field5: "Act",
@@ -71,7 +71,7 @@ export const mockRawDataGoalie: RawData = {
 export const mockRawDataGoalie2012: RawData = {
   Skaters: "G",
   season: 2012,
-  field2: "Carey Price",
+  field2: "Carey Price *g002*",
   field3: "MTL",
   field4: "G",
   field5: "Act",
@@ -94,7 +94,7 @@ export const mockRawDataGoalie2012: RawData = {
 export const mockRawDataGoalie2014: RawData = {
   Skaters: "G",
   season: 2014,
-  field2: "Carey Price",
+  field2: "Carey Price *g002*",
   field3: "MTL",
   field4: "G",
   field5: "Act",
@@ -118,7 +118,7 @@ export const mockRawDataGoalie2014: RawData = {
 export const mockRawDataGoalie2025: RawData = {
   Skaters: "G",
   season: 2025,
-  field2: "Jake Oettinger",
+  field2: "Jake Oettinger *g003*",
   field3: "DAL",
   field4: "G",
   field5: "Act",
@@ -141,7 +141,7 @@ export const mockRawDataGoalie2025: RawData = {
 export const mockRawDataGoalieNoField18: RawData = {
   Skaters: "G",
   season: 2014,
-  field2: "Test Goalie No SHP",
+  field2: "Test Goalie No SHP *g004*",
   field3: "TOR",
   field4: "G",
   field5: "Act",
@@ -208,7 +208,7 @@ export const mockRawDataEmptyName: RawData = {
 export const mockRawDataZeroGames: RawData = {
   Skaters: "F",
   season: 2024,
-  field2: "Zero Games Player",
+  field2: "Zero Games Player *p003*",
   field3: "TOR",
   field4: "F",
   field5: "Act",
@@ -229,6 +229,7 @@ export const mockRawDataZeroGames: RawData = {
 
 // Typed player and goalie fixtures
 export const mockPlayer: Player = {
+  id: "p100",
   name: "Test Player",
   games: 82,
   goals: 50,
@@ -251,6 +252,7 @@ export const mockPlayerWithSeason: PlayerWithSeason = {
 };
 
 export const mockGoalie: Goalie = {
+  id: "g100",
   name: "Test Goalie",
   games: 70,
   wins: 40,
@@ -277,7 +279,7 @@ export const mockGoalieWithSeason: GoalieWithSeason = {
 export const mockRawDataGoalieNonNumericWins: RawData = {
   Skaters: "G",
   season: 2014,
-  field2: "Test Goalie Non-Numeric",
+  field2: "Test Goalie Non-Numeric *g005*",
   field3: "TOR",
   field4: "G",
   field5: "Act",

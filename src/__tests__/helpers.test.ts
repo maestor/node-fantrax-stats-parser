@@ -32,8 +32,7 @@ describe("helpers", () => {
 
   describe("sortItemsByStatField", () => {
     const players: Player[] = [
-      {
-        name: "Player A",
+      { id: "id", name: "Player A",
         games: 82,
         goals: 30,
         assists: 40,
@@ -48,8 +47,7 @@ describe("helpers", () => {
         score: 0,
         scoreAdjustedByGames: 0,
       },
-      {
-        name: "Player B",
+      { id: "id", name: "Player B",
         games: 75,
         goals: 50,
         assists: 60,
@@ -64,8 +62,7 @@ describe("helpers", () => {
         score: 0,
         scoreAdjustedByGames: 0,
       },
-      {
-        name: "Player C",
+      { id: "id", name: "Player C",
         games: 80,
         goals: 40,
         assists: 40,
@@ -83,8 +80,7 @@ describe("helpers", () => {
     ];
 
     const goalies: Goalie[] = [
-      {
-        name: "Goalie A",
+      { id: "id", name: "Goalie A",
         games: 60,
         wins: 30,
         saves: 1500,
@@ -98,8 +94,7 @@ describe("helpers", () => {
         score: 0,
         scoreAdjustedByGames: 0,
       },
-      {
-        name: "Goalie B",
+      { id: "id", name: "Goalie B",
         games: 70,
         wins: 45,
         saves: 2000,
@@ -113,8 +108,7 @@ describe("helpers", () => {
         score: 0,
         scoreAdjustedByGames: 0,
       },
-      {
-        name: "Goalie C",
+      { id: "id", name: "Goalie C",
         games: 65,
         wins: 35,
         saves: 1800,
@@ -166,8 +160,7 @@ describe("helpers", () => {
   describe("applyPlayerScores", () => {
     test("calculates relative scores between 0 and 100 for players", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Player High",
+        { id: "id", name: "Player High",
           games: 0,
           goals: 50,
           assists: 0,
@@ -182,8 +175,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Player Half",
+        { id: "id", name: "Player Half",
           games: 0,
           goals: 25,
           assists: 0,
@@ -234,8 +226,7 @@ describe("helpers", () => {
       const belowMinGames = Math.max(minGames - 1, 0);
 
       const testPlayers: Player[] = [
-        {
-          name: "Few Games High Stats",
+        { id: "id", name: "Few Games High Stats",
           games: belowMinGames,
           goals: 5,
           assists: 0,
@@ -250,8 +241,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Eligible Player",
+        { id: "id", name: "Eligible Player",
           games: minGames,
           goals: 5,
           assists: 0,
@@ -280,8 +270,7 @@ describe("helpers", () => {
       const belowMinGamesB = Math.max(minGames - 2, 0);
 
       const testPlayers: Player[] = [
-        {
-          name: "Under Min A",
+        { id: "id", name: "Under Min A",
           games: belowMinGamesA,
           goals: 5,
           assists: 3,
@@ -296,8 +285,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Under Min B",
+        { id: "id", name: "Under Min B",
           games: belowMinGamesB,
           goals: 4,
           assists: 2,
@@ -321,8 +309,7 @@ describe("helpers", () => {
 
     test("uses 0 baseline for always-positive stats", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Top Scorer",
+        { id: "id", name: "Top Scorer",
           games: 0,
           goals: 40,
           assists: 0,
@@ -337,8 +324,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Zero Goals",
+        { id: "id", name: "Zero Goals",
           games: 0,
           goals: 0,
           assists: 0,
@@ -353,8 +339,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Lowest With Goals",
+        { id: "id", name: "Lowest With Goals",
           games: 0,
           goals: 3,
           assists: 0,
@@ -380,8 +365,7 @@ describe("helpers", () => {
 
     test("handles equal positive values for always-positive stats", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Player One",
+        { id: "id", name: "Player One",
           games: 0,
           goals: 10,
           assists: 0,
@@ -396,8 +380,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Player Two",
+        { id: "id", name: "Player Two",
           games: 0,
           goals: 10,
           assists: 0,
@@ -426,8 +409,7 @@ describe("helpers", () => {
   describe("applyPlayerScores plusMinus handling", () => {
     test("maps plusMinus linearly between min and max", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Best",
+        { id: "id", name: "Best",
           games: 0,
           goals: 0,
           assists: 0,
@@ -442,8 +424,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Worst",
+        { id: "id", name: "Worst",
           games: 0,
           goals: 0,
           assists: 0,
@@ -458,8 +439,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Middle",
+        { id: "id", name: "Middle",
           games: 0,
           goals: 0,
           assists: 0,
@@ -498,8 +478,7 @@ describe("helpers", () => {
 
     test("handles equal plusMinus values without contributing", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Equal A",
+        { id: "id", name: "Equal A",
           games: 0,
           goals: 0,
           assists: 0,
@@ -514,8 +493,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Equal B",
+        { id: "id", name: "Equal B",
           games: 0,
           goals: 0,
           assists: 0,
@@ -542,8 +520,7 @@ describe("helpers", () => {
       const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
 
       const testPlayers: Player[] = [
-        {
-          name: "Best PlusMinus",
+        { id: "id", name: "Best PlusMinus",
           games: minGames,
           goals: 0,
           assists: 0,
@@ -558,8 +535,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Middle PlusMinus",
+        { id: "id", name: "Middle PlusMinus",
           games: minGames,
           goals: 0,
           assists: 0,
@@ -574,8 +550,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Worst PlusMinus",
+        { id: "id", name: "Worst PlusMinus",
           games: minGames,
           goals: 0,
           assists: 0,
@@ -616,8 +591,7 @@ describe("helpers", () => {
       const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
 
       const testPlayers: Player[] = [
-        {
-          name: "Zero Stats Eligible A",
+        { id: "id", name: "Zero Stats Eligible A",
           games: minGames,
           goals: 0,
           assists: 0,
@@ -632,8 +606,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Zero Stats Eligible B",
+        { id: "id", name: "Zero Stats Eligible B",
           games: minGames + 1,
           goals: 0,
           assists: 0,
@@ -659,8 +632,7 @@ describe("helpers", () => {
   describe("applyPlayerScores with invalid numbers", () => {
     test("treats NaN stat values as 0", () => {
       const testPlayers: Player[] = [
-        {
-          name: "NaN Player",
+        { id: "id", name: "NaN Player",
           games: 0,
           goals: Number.NaN,
           assists: 0,
@@ -675,8 +647,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Valid Player",
+        { id: "id", name: "Valid Player",
           games: 0,
           goals: 10,
           assists: 0,
@@ -710,8 +681,7 @@ describe("helpers", () => {
 
     test("scores forwards against forwards only", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Forward High",
+        { id: "id", name: "Forward High",
           position: "F",
           games: 10,
           goals: 20,
@@ -727,8 +697,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Forward Low",
+        { id: "id", name: "Forward Low",
           position: "F",
           games: 10,
           goals: 10,
@@ -744,8 +713,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Defenseman",
+        { id: "id", name: "Defenseman",
           position: "D",
           games: 10,
           goals: 5,
@@ -780,8 +748,7 @@ describe("helpers", () => {
 
     test("handles players with no position", () => {
       const testPlayers: Player[] = [
-        {
-          name: "No Position Player",
+        { id: "id", name: "No Position Player",
           games: 10,
           goals: 10,
           assists: 10,
@@ -809,8 +776,7 @@ describe("helpers", () => {
       const belowMinGames = Math.max(minGames - 1, 0);
 
       const testPlayers: Player[] = [
-        {
-          name: "Few Games Forward",
+        { id: "id", name: "Few Games Forward",
           position: "F",
           games: belowMinGames,
           goals: 10,
@@ -826,8 +792,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Eligible Forward",
+        { id: "id", name: "Eligible Forward",
           position: "F",
           games: minGames,
           goals: 10,
@@ -855,8 +820,7 @@ describe("helpers", () => {
       const belowMinGames = Math.max(MIN_GAMES_FOR_ADJUSTED_SCORE - 1, 0);
 
       const testPlayers: Player[] = [
-        {
-          name: "Few Games Forward 1",
+        { id: "id", name: "Few Games Forward 1",
           position: "F",
           games: belowMinGames,
           goals: 10,
@@ -872,8 +836,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Few Games Forward 2",
+        { id: "id", name: "Few Games Forward 2",
           position: "F",
           games: belowMinGames,
           goals: 5,
@@ -899,8 +862,7 @@ describe("helpers", () => {
 
     test("handles plusMinus with equal values in position group", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Forward 1",
+        { id: "id", name: "Forward 1",
           position: "F",
           games: 10,
           goals: 10,
@@ -916,8 +878,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Forward 2",
+        { id: "id", name: "Forward 2",
           position: "F",
           games: 10,
           goals: 10,
@@ -943,8 +904,7 @@ describe("helpers", () => {
 
     test("treats NaN stat values as 0 in position scoring", () => {
       const testPlayers: Player[] = [
-        {
-          name: "NaN Forward",
+        { id: "id", name: "NaN Forward",
           position: "F",
           games: 10,
           goals: NaN,
@@ -960,8 +920,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Valid Forward",
+        { id: "id", name: "Valid Forward",
           position: "F",
           games: 10,
           goals: 10,
@@ -988,8 +947,7 @@ describe("helpers", () => {
 
     test("handles negative plusMinus per game in position scoring", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Positive Forward",
+        { id: "id", name: "Positive Forward",
           position: "F",
           games: 10,
           goals: 10,
@@ -1005,8 +963,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Negative Forward",
+        { id: "id", name: "Negative Forward",
           position: "F",
           games: 10,
           goals: 5,
@@ -1032,8 +989,7 @@ describe("helpers", () => {
 
     test("handles all stats at zero in position group", () => {
       const testPlayers: Player[] = [
-        {
-          name: "Zero Forward 1",
+        { id: "id", name: "Zero Forward 1",
           position: "F",
           games: 1,
           goals: 0,
@@ -1049,8 +1005,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Zero Forward 2",
+        { id: "id", name: "Zero Forward 2",
           position: "F",
           games: 1,
           goals: 0,
@@ -1078,8 +1033,7 @@ describe("helpers", () => {
   describe("applyGoalieScores", () => {
     test("calculates relative scores between 0 and 100 for goalies", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie High",
+        { id: "id", name: "Goalie High",
           games: 0,
           wins: 40,
           saves: 0,
@@ -1093,8 +1047,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Half",
+        { id: "id", name: "Goalie Half",
           games: 0,
           wins: 20,
           saves: 0,
@@ -1142,8 +1095,7 @@ describe("helpers", () => {
       // When all eligible goalies have 0 for every base field, maxPerGameByField[field] = 0
       // so the if (max > 0) branch is never taken and scoreAdjustedByGames stays 0
       const testGoalies: Goalie[] = [
-        {
-          name: "Zero Stats Goalie",
+        { id: "id", name: "Zero Stats Goalie",
           games: MIN_GAMES_FOR_ADJUSTED_SCORE,
           wins: 0,
           saves: 0,
@@ -1169,8 +1121,7 @@ describe("helpers", () => {
       const belowMinGames = Math.max(minGames - 1, 0);
 
       const testGoalies: Goalie[] = [
-        {
-          name: "Few Games Goalie",
+        { id: "id", name: "Few Games Goalie",
           games: belowMinGames,
           wins: 5,
           saves: 200,
@@ -1184,8 +1135,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Eligible Goalie",
+        { id: "id", name: "Eligible Goalie",
           games: minGames,
           wins: 5,
           saves: 200,
@@ -1213,8 +1163,7 @@ describe("helpers", () => {
       const belowMinGamesB = Math.max(minGames - 2, 0);
 
       const testGoalies: Goalie[] = [
-        {
-          name: "Under Min Goalie A",
+        { id: "id", name: "Under Min Goalie A",
           games: belowMinGamesA,
           wins: 2,
           saves: 50,
@@ -1228,8 +1177,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Under Min Goalie B",
+        { id: "id", name: "Under Min Goalie B",
           games: belowMinGamesB,
           wins: 3,
           saves: 60,
@@ -1252,8 +1200,7 @@ describe("helpers", () => {
 
     test("uses 0 baseline for goalie always-positive stats", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Top Goalie",
+        { id: "id", name: "Top Goalie",
           games: 0,
           wins: 40,
           saves: 0,
@@ -1267,8 +1214,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Zero Wins",
+        { id: "id", name: "Zero Wins",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1282,8 +1228,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Lowest With Wins",
+        { id: "id", name: "Lowest With Wins",
           games: 0,
           wins: 3,
           saves: 0,
@@ -1308,8 +1253,7 @@ describe("helpers", () => {
 
     test("handles equal positive values for goalie always-positive stats", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie One",
+        { id: "id", name: "Goalie One",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1323,8 +1267,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Two",
+        { id: "id", name: "Goalie Two",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1350,8 +1293,7 @@ describe("helpers", () => {
 
     test("handles equal savePercent values using full contribution", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Equal A",
+        { id: "id", name: "Equal A",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1366,8 +1308,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Equal B",
+        { id: "id", name: "Equal B",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1394,8 +1335,7 @@ describe("helpers", () => {
 
     test("sets savePercent contribution to 0 when below baseline", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Above Baseline",
+        { id: "id", name: "Above Baseline",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1410,8 +1350,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Below Baseline",
+        { id: "id", name: "Below Baseline",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1438,8 +1377,7 @@ describe("helpers", () => {
       // When maxSavePercent <= GOALIE_SAVE_PERCENT_BASELINE (0.85), best > baseline is false
       // so relative stays 0 for all goalies in that branch
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie A",
+        { id: "id", name: "Goalie A",
           games: 0,
           wins: 5,
           saves: 100,
@@ -1454,8 +1392,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie B",
+        { id: "id", name: "Goalie B",
           games: 0,
           wins: 3,
           saves: 80,
@@ -1481,8 +1418,7 @@ describe("helpers", () => {
 
     test("includes savePercent and gaa contributions when present, including invalid values", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie Best",
+        { id: "id", name: "Goalie Best",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1498,8 +1434,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Slightly Worse GAA",
+        { id: "id", name: "Goalie Slightly Worse GAA",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1515,8 +1450,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Worse Advanced",
+        { id: "id", name: "Goalie Worse Advanced",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1532,8 +1466,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Invalid Advanced",
+        { id: "id", name: "Goalie Invalid Advanced",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1549,8 +1482,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie No Advanced",
+        { id: "id", name: "Goalie No Advanced",
           games: 0,
           wins: 10,
           saves: 0,
@@ -1594,8 +1526,7 @@ describe("helpers", () => {
 
     test("sets score to 0 when no contributing metrics", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie No Metrics",
+        { id: "id", name: "Goalie No Metrics",
           games: 0,
           wins: 0,
           saves: 0,
@@ -1617,8 +1548,7 @@ describe("helpers", () => {
 
     test("sets GAA score to 0 when GAA is 75% or more worse than best (ratio >= GOALIE_GAA_MAX_DIFF_RATIO)", () => {
       const testGoalies: Goalie[] = [
-        {
-          name: "Goalie Best GAA",
+        { id: "id", name: "Goalie Best GAA",
           games: 30,
           wins: 20,
           saves: 800,
@@ -1634,8 +1564,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-        {
-          name: "Goalie Extreme GAA",
+        { id: "id", name: "Goalie Extreme GAA",
           games: 30,
           wins: 10,
           saves: 600,

@@ -18,6 +18,7 @@ export type TeamRunWithRound = TeamRun & {
   roundReached: number;
   isChampion: boolean;
 };
+export type CsvReportType = "regular" | "playoffs";
 
 export const FANTRAX_ARTIFACT_DIR = path.resolve(
   "src",
@@ -713,6 +714,8 @@ export const sleep = async (ms: number): Promise<void> => {
 
 export const runImportTempCsvScriptIfUsingDefaultOutDir = (
   outDir: string,
+  year?: number,
+  reportType?: CsvReportType,
 ): void => {
   const repoRoot = process.cwd();
   const expectedTempDir = path.resolve(repoRoot, "csv", "temp");
@@ -744,11 +747,25 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
     );
   }
 
-  console.info("Running npm run parseAndUploadCsv ...");
+  const env = {
+    ...process.env,
+    ...(Number.isFinite(year)
+      ? { IMPORT_SEASON_START_YEAR: String(year) }
+      : {}),
+    ...(reportType ? { IMPORT_REPORT_TYPE: reportType } : {}),
+  };
+
+  const seasonNote = Number.isFinite(year)
+    ? ` for season ${year}-${Number(year) + 1}`
+    : "";
+  const reportTypeNote = reportType ? ` (${reportType})` : "";
+  console.info(
+    `Running npm run parseAndUploadCsv${seasonNote}${reportTypeNote} ...`,
+  );
   const result = spawnSync("npm", ["run", "parseAndUploadCsv"], {
     cwd: repoRoot,
     stdio: "inherit",
-    env: process.env,
+    env,
   });
 
   if (result.error) {

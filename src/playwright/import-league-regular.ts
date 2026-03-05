@@ -67,7 +67,11 @@ const main = async (): Promise<void> => {
     console.info(
       `Done. All regular-season CSV files already exist in ${options.outDir}.`,
     );
-    runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
+    runImportTempCsvScriptIfUsingDefaultOutDir(
+      options.outDir,
+      options.year,
+      "regular",
+    );
     return;
   }
 
@@ -201,7 +205,11 @@ const main = async (): Promise<void> => {
     await browser.close();
   }
 
-  runImportTempCsvScriptIfUsingDefaultOutDir(options.outDir);
+  runImportTempCsvScriptIfUsingDefaultOutDir(
+    options.outDir,
+    options.year,
+    "regular",
+  );
 };
 
 void main();

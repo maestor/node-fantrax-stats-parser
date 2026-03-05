@@ -7,6 +7,7 @@ function castRows<T>(rows: unknown[]): T[] {
 }
 
 interface PlayerRow {
+  player_id: string;
   name: string;
   position: string | null;
   games: number;
@@ -24,6 +25,7 @@ interface PlayerRow {
 }
 
 interface GoalieRow {
+  goalie_id: string;
   name: string;
   games: number;
   wins: number;
@@ -41,6 +43,7 @@ interface GoalieRow {
 }
 
 const mapPlayerRow = (row: PlayerRow): PlayerWithSeason => ({
+  id: row.player_id,
   name: row.name,
   position: row.position ?? undefined,
   games: row.games,
@@ -60,6 +63,7 @@ const mapPlayerRow = (row: PlayerRow): PlayerWithSeason => ({
 });
 
 const mapGoalieRow = (row: GoalieRow): GoalieWithSeason => ({
+  id: row.goalie_id,
   name: row.name,
   games: row.games,
   wins: row.wins,
@@ -85,7 +89,7 @@ export const getPlayersFromDb = async (
 ): Promise<PlayerWithSeason[]> => {
   const db = getDbClient();
   const result = await db.execute({
-    sql: `SELECT name, position, games, goals, assists, points, plus_minus,
+    sql: `SELECT player_id, name, position, games, goals, assists, points, plus_minus,
                  penalties, shots, ppp, shp, hits, blocks, season
           FROM players
           WHERE team_id = ? AND season = ? AND report_type = ?`,
@@ -101,7 +105,7 @@ export const getGoaliesFromDb = async (
 ): Promise<GoalieWithSeason[]> => {
   const db = getDbClient();
   const result = await db.execute({
-    sql: `SELECT name, games, wins, saves, shutouts, goals, assists, points,
+    sql: `SELECT goalie_id, name, games, wins, saves, shutouts, goals, assists, points,
                  penalties, ppp, shp, gaa, save_percent, season
           FROM goalies
           WHERE team_id = ? AND season = ? AND report_type = ?`,

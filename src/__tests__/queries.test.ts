@@ -31,6 +31,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            player_id: "p001",
             name: "Connor McDavid",
             position: "F",
             games: 82,
@@ -58,6 +59,7 @@ describe("db/queries", () => {
 
       expect(result).toEqual<PlayerWithSeason[]>([
         {
+          id: "p001",
           name: "Connor McDavid",
           position: "F",
           games: 82,
@@ -82,6 +84,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            player_id: "p002",
             name: "Test Player",
             position: null,
             games: 10,
@@ -104,6 +107,33 @@ describe("db/queries", () => {
       expect(result[0].position).toBeUndefined();
     });
 
+    test("maps player_id to id", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            player_id: "00qs7",
+            name: "Sebastian Aho",
+            position: "F",
+            games: 82,
+            goals: 1,
+            assists: 1,
+            points: 2,
+            plus_minus: 0,
+            penalties: 0,
+            shots: 0,
+            ppp: 0,
+            shp: 0,
+            hits: 0,
+            blocks: 0,
+            season: 2024,
+          },
+        ],
+      });
+
+      const result = await getPlayersFromDb("1", 2024, "regular");
+      expect(result[0].id).toBe("00qs7");
+    });
+
     test("returns empty array when no rows", async () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getPlayersFromDb("1", 2024, "regular");
@@ -116,6 +146,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            goalie_id: "g001",
             name: "Carey Price",
             games: 70,
             wins: 40,
@@ -143,6 +174,7 @@ describe("db/queries", () => {
 
       expect(result).toEqual<GoalieWithSeason[]>([
         {
+          id: "g001",
           name: "Carey Price",
           games: 70,
           wins: 40,
@@ -167,6 +199,7 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({
         rows: [
           {
+            goalie_id: "g002",
             name: "Test Goalie",
             games: 5,
             wins: 2,
@@ -189,6 +222,33 @@ describe("db/queries", () => {
 
       expect(result[0].gaa).toBeUndefined();
       expect(result[0].savePercent).toBeUndefined();
+    });
+
+    test("maps goalie_id to id", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            goalie_id: "g007",
+            name: "Juuse Saros",
+            games: 60,
+            wins: 30,
+            saves: 1500,
+            shutouts: 3,
+            goals: 0,
+            assists: 1,
+            points: 1,
+            penalties: 0,
+            ppp: 0,
+            shp: 0,
+            gaa: 2.5,
+            save_percent: 0.91,
+            season: 2024,
+          },
+        ],
+      });
+
+      const result = await getGoaliesFromDb("1", 2024, "regular");
+      expect(result[0].id).toBe("g007");
     });
 
     test("returns empty array when no rows", async () => {

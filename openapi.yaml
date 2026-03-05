@@ -96,6 +96,7 @@ components:
     Player:
       type: object
       required:
+        - id
         - name
         - games
         - goals
@@ -113,6 +114,9 @@ components:
       properties:
         name:
           type: string
+        id:
+          type: string
+          description: Fantrax player identifier extracted from `*id*` in CSV name field.
         position:
           type: string
         games:
@@ -160,6 +164,7 @@ components:
     Goalie:
       type: object
       required:
+        - id
         - name
         - games
         - goals
@@ -176,6 +181,9 @@ components:
       properties:
         name:
           type: string
+        id:
+          type: string
+          description: Fantrax goalie identifier extracted from `*id*` in CSV name field.
         position:
           type: string
         games:
