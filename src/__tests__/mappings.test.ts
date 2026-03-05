@@ -78,6 +78,57 @@ describe("mappings", () => {
       });
     });
 
+    test("extracts playerId from *id* in name and strips token from display name", () => {
+      const withIdInName = {
+        ...mockRawDataPlayer,
+        field2: "Sebastian Aho *00qs7*",
+      };
+      const result = mapPlayerData([mockRawDataFirstRow, withIdInName]);
+
+      expect(result[0].name).toBe("Sebastian Aho");
+      expect(result[0].playerId).toBe("00qs7");
+    });
+
+    test("parses playerId from first CSV column when export keeps ID field", () => {
+      const withLeadingIdColumn = {
+        ...mockRawDataPlayer,
+        Skaters: "*00qs7*",
+        field2: "F",
+        field3: "Sebastian Aho",
+        field4: "CAR",
+        field8: "82",
+        field9: "30",
+        field10: "50",
+        field11: "80",
+        field12: "10",
+        field13: "20",
+        field14: "200",
+        field15: "25",
+        field16: "2",
+        field17: "80",
+        field18: "30",
+        field19: "40",
+      };
+
+      const result = mapPlayerData([mockRawDataFirstRow, withLeadingIdColumn]);
+
+      expect(result[0].name).toBe("Sebastian Aho");
+      expect(result[0].playerId).toBe("00qs7");
+      expect(result[0].position).toBe("F");
+      expect(result[0].games).toBe(82);
+    });
+
+    test("filters out malformed row where name is undefined", () => {
+      const malformed = {
+        ...mockRawDataPlayer,
+        field2: undefined,
+      } as unknown as typeof mockRawDataPlayer;
+
+      const result = mapPlayerData([mockRawDataFirstRow, malformed]);
+
+      expect(result.length).toBe(0);
+    });
+
     test("defaults to 0 when Number() fails", () => {
       const invalidData = {
         ...mockRawDataPlayer,
@@ -160,6 +211,20 @@ describe("mappings", () => {
 
       expect(result.length).toBe(2);
       expect(result.map((p) => p.name).sort()).toEqual(["Player A", "Player B"]);
+    });
+
+    test("keeps same-name players separate when playerId differs", () => {
+      const player1 = { ...mockRawDataPlayer, field2: "Alex Smith *id001*" };
+      const player2 = {
+        ...mockRawDataPlayer,
+        field2: "Alex Smith *id002*",
+        field8: "10",
+      };
+
+      const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
+
+      expect(result.length).toBe(2);
+      expect(result.map((p) => p.playerId).sort()).toEqual(["id001", "id002"]);
     });
 
     test("applies per-season scores to seasons entries", () => {
@@ -303,6 +368,76 @@ describe("mappings", () => {
         gaa: "2.30",
         savePercent: "0.920",
       });
+    });
+
+    test("extracts goalieId from *id* in name and strips token from display name", () => {
+      const withIdInName = {
+        ...mockRawDataGoalie2014,
+        field2: "Juuse Saros *g007*",
+      };
+      const result = mapGoalieData([mockRawDataFirstRow, withIdInName]);
+
+      expect(result[0].name).toBe("Juuse Saros");
+      expect(result[0].goalieId).toBe("g007");
+    });
+
+    test("parses goalieId from first CSV column when export keeps ID field", () => {
+      const withLeadingIdColumn = {
+        ...mockRawDataGoalie2014,
+        Skaters: "*g007*",
+        field2: "G",
+        field3: "Juuse Saros",
+        field4: "NSH",
+        field8: "60", // GP
+        field9: "30", // W-G
+        field10: "2.50", // GAA
+        field11: "1500", // Saves
+        field12: "0.915", // Save%
+        field13: "3", // SO
+        field14: "10", // PIM
+        field15: "0", // Goals
+        field16: "1", // Assists
+        field17: "1", // Points
+        field18: "0", // PPP
+        field19: "0", // SHP
+      };
+
+      const result = mapGoalieData([mockRawDataFirstRow, withLeadingIdColumn]);
+
+      expect(result[0].name).toBe("Juuse Saros");
+      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].games).toBe(60);
+      expect(result[0].wins).toBe(30);
+    });
+
+    test("defaults shifted goalie SHP to 0 when id-first row is missing field19", () => {
+      const withLeadingIdColumnNoField19 = {
+        ...mockRawDataGoalie2014,
+        Skaters: "*g007*",
+        field2: "G",
+        field3: "Juuse Saros",
+        field4: "NSH",
+        field8: "60", // GP
+        field9: "30", // W-G
+        field10: "2.50", // GAA
+        field11: "1500", // Saves
+        field12: "0.915", // Save%
+        field13: "3", // SO
+        field14: "10", // PIM
+        field15: "0", // Goals
+        field16: "1", // Assists
+        field17: "1", // Points
+        field18: "0", // PPP
+        field19: undefined,
+      };
+
+      const result = mapGoalieData([
+        mockRawDataFirstRow,
+        withLeadingIdColumnNoField19 as unknown as typeof mockRawDataGoalie2014,
+      ]);
+
+      expect(result[0].goalieId).toBe("g007");
+      expect(result[0].shp).toBe(0);
     });
 
     test("excludes goalies with both games and wins as 0", () => {
@@ -493,6 +628,20 @@ describe("mappings", () => {
 
       expect(result.length).toBe(2);
       expect(result.map((g) => g.name).sort()).toEqual(["Goalie A", "Goalie B"]);
+    });
+
+    test("keeps same-name goalies separate when goalieId differs", () => {
+      const goalie1 = { ...mockRawDataGoalie2014, field2: "John Doe *g001*" };
+      const goalie2 = {
+        ...mockRawDataGoalie2014,
+        field2: "John Doe *g002*",
+        field8: "10",
+      };
+
+      const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
+
+      expect(result.length).toBe(2);
+      expect(result.map((g) => g.goalieId).sort()).toEqual(["g001", "g002"]);
     });
 
     test("handles mixed season data with year boundary", () => {

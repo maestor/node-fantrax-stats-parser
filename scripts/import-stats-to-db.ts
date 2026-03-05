@@ -13,6 +13,8 @@ console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
 
 import fs from "fs";
 import path from "path";
+import os from "os";
+import { spawnSync } from "child_process";
 import csv from "csvtojson";
 import { TEAMS, CURRENT_SEASON } from "../src/constants";
 import { mapPlayerData, mapGoalieData } from "../src/mappings";
@@ -31,6 +33,7 @@ const main = async () => {
   const dryRun = args.includes("--dry-run");
 
   const csvDir = path.resolve(process.cwd(), "csv");
+  const csvHandlerScript = path.resolve(process.cwd(), "scripts", "handle-csv.sh");
   const db = getDbClient();
 
   console.log("📥 Starting database import...");
@@ -72,10 +75,24 @@ const main = async () => {
       if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON) continue;
 
       const filePath = path.join(teamDir, file);
+      const normalizedPath = path.join(
+        os.tmpdir(),
+        `ffhl-import-${process.pid}-${team.id}-${Date.now()}-${file}`
+      );
 
       try {
+        // Always normalize via handle-csv so DB import works even if csv/<teamId>/ contains raw Fantrax exports.
+        const normalize = spawnSync("bash", [csvHandlerScript, filePath, normalizedPath], {
+          encoding: "utf8",
+        });
+        if (normalize.status !== 0) {
+          throw new Error(
+            `CSV normalization failed for ${file}: ${normalize.stderr || normalize.stdout || "unknown error"}`
+          );
+        }
+
         // csvtojson returns untyped rows; same pattern as services.ts getRawDataFromFiles
-        const rawData = await csv().fromFile(filePath);
+        const rawData = await csv().fromFile(normalizedPath);
         const dataWithSeason = rawData.map((item) => ({ ...item, season }));
 
         const players = mapPlayerData(dataWithSeason);
@@ -100,12 +117,13 @@ const main = async () => {
 
           for (const player of players) {
             statements.push({
-              sql: `INSERT INTO players (team_id, season, report_type, name, position, games, goals, assists, points, plus_minus, penalties, shots, ppp, shp, hits, blocks)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              sql: `INSERT INTO players (team_id, season, report_type, player_id, name, position, games, goals, assists, points, plus_minus, penalties, shots, ppp, shp, hits, blocks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               args: [
                 team.id,
                 season,
                 reportType,
+                player.playerId ?? null,
                 player.name,
                 player.position ?? null,
                 player.games,
@@ -125,12 +143,13 @@ const main = async () => {
 
           for (const goalie of goalies) {
             statements.push({
-              sql: `INSERT INTO goalies (team_id, season, report_type, name, games, wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, gaa, save_percent)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              sql: `INSERT INTO goalies (team_id, season, report_type, goalie_id, name, games, wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, gaa, save_percent)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               args: [
                 team.id,
                 season,
                 reportType,
+                goalie.goalieId ?? null,
                 goalie.name,
                 goalie.games,
                 goalie.wins,
@@ -161,6 +180,10 @@ const main = async () => {
       } catch (error) {
         console.error(`  ❌ Error importing ${file}:`, error);
         errors++;
+      } finally {
+        if (fs.existsSync(normalizedPath)) {
+          fs.unlinkSync(normalizedPath);
+        }
       }
     }
   }

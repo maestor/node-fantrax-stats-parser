@@ -104,6 +104,33 @@ describe("db/queries", () => {
       expect(result[0].position).toBeUndefined();
     });
 
+    test("maps player_id to playerId", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            player_id: "00qs7",
+            name: "Sebastian Aho",
+            position: "F",
+            games: 82,
+            goals: 1,
+            assists: 1,
+            points: 2,
+            plus_minus: 0,
+            penalties: 0,
+            shots: 0,
+            ppp: 0,
+            shp: 0,
+            hits: 0,
+            blocks: 0,
+            season: 2024,
+          },
+        ],
+      });
+
+      const result = await getPlayersFromDb("1", 2024, "regular");
+      expect(result[0].playerId).toBe("00qs7");
+    });
+
     test("returns empty array when no rows", async () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getPlayersFromDb("1", 2024, "regular");
@@ -189,6 +216,33 @@ describe("db/queries", () => {
 
       expect(result[0].gaa).toBeUndefined();
       expect(result[0].savePercent).toBeUndefined();
+    });
+
+    test("maps goalie_id to goalieId", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            goalie_id: "g007",
+            name: "Juuse Saros",
+            games: 60,
+            wins: 30,
+            saves: 1500,
+            shutouts: 3,
+            goals: 0,
+            assists: 1,
+            points: 1,
+            penalties: 0,
+            ppp: 0,
+            shp: 0,
+            gaa: 2.5,
+            save_percent: 0.91,
+            season: 2024,
+          },
+        ],
+      });
+
+      const result = await getGoaliesFromDb("1", 2024, "regular");
+      expect(result[0].goalieId).toBe("g007");
     });
 
     test("returns empty array when no rows", async () => {

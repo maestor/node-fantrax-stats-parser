@@ -17,6 +17,7 @@ interface Common {
 }
 
 export interface Player extends Common {
+  playerId?: string;
   plusMinus: number;
   shots: number;
   hits: number;
@@ -24,6 +25,7 @@ export interface Player extends Common {
 }
 
 export interface Goalie extends Common {
+  goalieId?: string;
   wins: number;
   saves: number;
   shutouts: number;
@@ -105,6 +107,7 @@ export interface RawData {
   field17: string;
   field18: string;
   field19?: string;
+  field20?: string;
 }
 
 export type PlayerScoreField =

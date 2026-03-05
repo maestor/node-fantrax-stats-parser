@@ -100,6 +100,16 @@ npm run verify
 - `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
 - `npm run playwright:import:regular` - Import regular season data via Playwright. If `--year=YYYY` is provided and output is `csv/temp`, the post-import parse/upload/import pipeline is restricted to that season.
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If `--year=YYYY` is provided and output is `csv/temp`, the post-import parse/upload/import pipeline is restricted to that season.
+- `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present and removes only empty placeholder first columns + `Age`.
+- `./scripts/import-temp-csv.sh [--dry-run] [--season=YYYY]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB.
+
+### Fantrax IDs in imports
+
+- Fantrax roster CSVs may include an `ID` column with values like `*00qs7*`.
+- Import parses these IDs and stores them as:
+  - `playerId` for skaters
+  - `goalieId` for goalies
+- Parser remains backward-compatible with older cleaned CSV files that do not include the first `ID` column.
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema

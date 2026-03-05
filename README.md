@@ -250,7 +250,7 @@ The Playwright importer downloads raw Fantrax CSVs. To convert them into the for
 
 ## Fantrax CSV handling
 
-Fantrax exports often include an extra first column and an `Age` column that this API doesn’t use. The scripts below normalize the CSVs into the format this API expects.
+Fantrax exports often include an `Age` column and may include an `ID` column as the first data column. The scripts below normalize the CSVs into the format this API expects.
 
 ### Clean a single CSV
 
@@ -259,9 +259,16 @@ Fantrax exports often include an extra first column and an `Age` column that thi
 
 What it does:
 
-- Removes the first column (often an internal Fantrax `ID` column)
+- Keeps first-column `ID` values when present (e.g. `*00qs7*`) and removes only empty placeholder first columns used in section marker rows
 - Removes the `Age` column
 - Converts section headers into the format the parser expects (`"Skaters"`, `"Goalies"`)
+
+ID behavior:
+
+- When an `ID` column is present, import parses it and stores it in DB/API as:
+  - `playerId` for skaters
+  - `goalieId` for goalies
+- The parser still supports older cleaned CSVs where the first `ID` column was removed.
 
 ### Import files from `csv/temp`
 
