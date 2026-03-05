@@ -802,7 +802,7 @@ export const gotoStandings = async (
   page: Page,
   leagueId: string,
 ): Promise<void> => {
-  const standingsUrl = `${FANTRAX_URLS.league}/${encodeURIComponent(leagueId)}/standings`;
+  const standingsUrl = `${FANTRAX_URLS.league}/${encodeURIComponent(leagueId)}/standings;view=COMBINED`;
   await page.goto(standingsUrl, { waitUntil: "domcontentloaded" });
   await page
     .locator("div.league-standings-table")

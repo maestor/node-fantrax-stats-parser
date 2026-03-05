@@ -3,6 +3,7 @@ import { rmSync, writeFileSync } from "fs";
 import path from "path";
 
 import { FANTRAX_URLS } from "../constants";
+import { applyManualLeaguePeriodsOverrides } from "./compute-manual-data";
 import {
   AUTH_STATE_PATH,
   debugDump,
@@ -431,7 +432,8 @@ async function main(): Promise<void> {
       console.info(`Scraping rules for ${year} (leagueId=${leagueId})`);
       try {
         const periods = await readRulesPeriodInfo(page, leagueId, timeoutMs);
-        seasons.push({ year, leagueId, periods });
+        const finalPeriods = applyManualLeaguePeriodsOverrides(year, periods);
+        seasons.push({ year, leagueId, periods: finalPeriods });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         failures.push({ year, leagueId, error: msg });

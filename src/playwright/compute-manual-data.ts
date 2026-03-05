@@ -2,12 +2,39 @@ import type { Team } from "../types";
 
 import type { TeamRunWithRound } from "./helpers";
 
+type LeaguePeriods = {
+  regularStartDate: string;
+  regularEndDate: string;
+  playoffsStartDate: string;
+  playoffsEndDate: string;
+};
+
+export const MANUAL_2018_PLAYOFFS_START_DATE = "2019-03-04";
+
+const addDaysIso = (iso: string, days: number): string => {
+  const d = new Date(`${iso}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+export const applyManualLeaguePeriodsOverrides = (
+  year: number,
+  periods: LeaguePeriods,
+): LeaguePeriods => {
+  if (year !== 2018) return periods;
+  return {
+    ...periods,
+    playoffsStartDate: MANUAL_2018_PLAYOFFS_START_DATE,
+    regularEndDate: addDaysIso(MANUAL_2018_PLAYOFFS_START_DATE, -1),
+  };
+};
+
 export const computeManual2018PlayoffsTeamRuns = (
   teams: readonly Team[],
 ): TeamRunWithRound[] => {
   // Fantrax playoffs data is corrupted for this league/season.
   // This is a one-off manual mapping based on known results.
-  const startDate = "2019-03-04";
+  const startDate = MANUAL_2018_PLAYOFFS_START_DATE;
 
   const CHAMPION = "Colorado Avalanche";
 
