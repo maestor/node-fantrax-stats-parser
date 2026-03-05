@@ -26,6 +26,7 @@ interface ManifestEntry {
   regular: number[];
   playoffs: number[];
 }
+type ReportType = "regular" | "playoffs";
 
 const parseSeasonArg = (args: string[]): number | null => {
   const seasonArg = args.find((arg) => arg.startsWith("--season="));
@@ -33,6 +34,16 @@ const parseSeasonArg = (args: string[]): number | null => {
   const value = Number(seasonArg.split("=")[1]);
   if (!Number.isFinite(value)) {
     throw new Error(`Invalid --season value: ${seasonArg.split("=")[1]}`);
+  }
+  return value;
+};
+
+const parseReportTypeArg = (args: string[]): ReportType | null => {
+  const reportTypeArg = args.find((arg) => arg.startsWith("--report-type="));
+  if (!reportTypeArg) return null;
+  const value = reportTypeArg.split("=")[1];
+  if (value !== "regular" && value !== "playoffs") {
+    throw new Error(`Invalid --report-type value: ${value}`);
   }
   return value;
 };
@@ -150,6 +161,7 @@ const mergeManifests = (
 const buildManifest = (
   csvDir: string,
   onlySeasonStartYear?: number,
+  onlyReportType?: ReportType | null,
 ): Record<string, ManifestEntry> => {
   const manifest: Record<string, ManifestEntry> = {};
 
@@ -173,6 +185,9 @@ const buildManifest = (
       ) {
         continue;
       }
+      if (onlyReportType !== null && onlyReportType !== undefined && reportType !== onlyReportType) {
+        continue;
+      }
 
       if (reportType === "regular") {
         regular.push(season);
@@ -194,6 +209,7 @@ const main = async () => {
   const args = process.argv.slice(2);
   const onlyCurrentSeason = args.includes("--current-only");
   const seasonFilter = parseSeasonArg(args);
+  const reportTypeFilter = parseReportTypeArg(args);
   const forceAll = args.includes("--force");
   const dryRun = args.includes("--dry-run");
 
@@ -211,6 +227,7 @@ const main = async () => {
           : "All seasons"
     }`
   );
+  console.log(`   Report type: ${reportTypeFilter ?? "all"}`);
   console.log(`   Force upload: ${forceAll}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
@@ -243,10 +260,13 @@ const main = async () => {
         continue;
       }
 
-      const [, , startYear] = match;
+      const [, reportType, startYear] = match;
       const season = parseInt(startYear, 10);
 
       if (seasonFilter !== null && season !== seasonFilter) {
+        continue;
+      }
+      if (reportTypeFilter !== null && reportType !== reportTypeFilter) {
         continue;
       }
 
@@ -288,15 +308,15 @@ const main = async () => {
   console.log("📋 Generating manifest...");
 
   let manifest: Record<string, ManifestEntry>;
-  if (onlyCurrentSeason || seasonFilter !== null) {
+  if (onlyCurrentSeason || seasonFilter !== null || reportTypeFilter !== null) {
     // In current-only mode, merge local seasons into existing R2 manifest
     // to preserve historical season entries not present on local disk
     console.log("  📥 Fetching existing manifest from R2 for merge...");
     const existingManifest = await fetchExistingManifest(client, bucketName);
     const localManifest =
       seasonFilter !== null
-        ? buildManifest(csvDir, seasonFilter)
-        : buildManifest(csvDir);
+        ? buildManifest(csvDir, seasonFilter, reportTypeFilter)
+        : buildManifest(csvDir, undefined, reportTypeFilter);
     manifest = mergeManifests(existingManifest, localManifest);
     if (existingManifest) {
       console.log("  🔀 Merged local seasons into existing manifest");
@@ -304,7 +324,7 @@ const main = async () => {
       console.log("  ⚠️  No existing manifest found, using local manifest");
     }
   } else {
-    manifest = buildManifest(csvDir);
+    manifest = buildManifest(csvDir, undefined, reportTypeFilter);
   }
 
   const manifestJson = JSON.stringify(manifest, null, 2);

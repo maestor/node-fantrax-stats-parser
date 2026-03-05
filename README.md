@@ -202,6 +202,7 @@ Notes:
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-leagues.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
 - If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
+- The post-import parse/upload/import pipeline is restricted to `regular` files only.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` based on the synced season period dates, to ensure the correct timeframe is selected.
@@ -229,6 +230,7 @@ Notes:
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
 - If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
+- The post-import parse/upload/import pipeline is restricted to `playoffs` files only.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
@@ -246,6 +248,8 @@ The Playwright importer downloads raw Fantrax CSVs. To convert them into the for
 ```
 ./scripts/import-temp-csv.sh --dry-run
 ./scripts/import-temp-csv.sh
+./scripts/import-temp-csv.sh --report-type=regular
+./scripts/import-temp-csv.sh --report-type=playoffs
 ```
 
 ## Fantrax CSV handling
@@ -273,6 +277,7 @@ ID behavior:
 ### Import files from `csv/temp`
 
 - Script: `scripts/import-temp-csv.sh`
+- Supports `--season=YYYY` and `--report-type=regular|playoffs` filters
 - Assumes input files in `csv/temp/` are named:
   - `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
 
@@ -303,6 +308,14 @@ Import a single season only:
 
 ```
 ./scripts/import-temp-csv.sh --season=2018
+```
+
+Import only one report type:
+
+```
+./scripts/import-temp-csv.sh --report-type=regular
+./scripts/import-temp-csv.sh --report-type=playoffs
+./scripts/import-temp-csv.sh --season=2018 --report-type=playoffs
 ```
 
 ## Deployment (Vercel)
@@ -407,6 +420,7 @@ R2_BUCKET_NAME=ffhl-stats-csv
 npm run r2:upload          # Upload all files
 npm run r2:upload:current  # Upload only current season
 npm run r2:upload -- --season=2018 # Upload only 2018-2019 files
+npm run r2:upload -- --report-type=regular # Upload only regular files
 npm run r2:upload:dry      # Preview without uploading
 ```
 
@@ -441,6 +455,7 @@ npm run db:migrate        # Create database schema
 npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into local DB
+npm run db:import:stats -- --report-type=playoffs # Import only playoffs
 ```
 
 If you already have production data in Turso and want to replace local SQLite with it:
@@ -469,6 +484,7 @@ Then import to remote:
 npm run db:import:stats         # Import all CSV files into remote Turso
 npm run db:import:stats:current # Import only current season into remote Turso
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into remote Turso
+npm run db:import:stats -- --season=2018 --report-type=regular # Import only regular from one season
 ```
 
 Get credentials from the [Turso dashboard](https://turso.tech).

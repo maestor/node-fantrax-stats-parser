@@ -12,7 +12,7 @@ const SCHEMA_SQL = [
     team_id TEXT NOT NULL,
     season INTEGER NOT NULL,
     report_type TEXT NOT NULL,
-    player_id TEXT,
+    player_id TEXT NOT NULL,
     name TEXT NOT NULL,
     position TEXT,
     games INTEGER NOT NULL DEFAULT 0,
@@ -32,7 +32,7 @@ const SCHEMA_SQL = [
     team_id TEXT NOT NULL,
     season INTEGER NOT NULL,
     report_type TEXT NOT NULL,
-    goalie_id TEXT,
+    goalie_id TEXT NOT NULL,
     name TEXT NOT NULL,
     games INTEGER NOT NULL DEFAULT 0,
     wins INTEGER NOT NULL DEFAULT 0,
@@ -90,33 +90,9 @@ const main = async () => {
     await db.execute(sql);
   }
 
-  // Add is_regular_champion column to existing regular_results tables.
-  // SQLite has no ADD COLUMN IF NOT EXISTS — silently skip if already present.
-  try {
-    await db.execute(
-      "ALTER TABLE regular_results ADD COLUMN is_regular_champion INTEGER NOT NULL DEFAULT 0",
-    );
-  } catch {
-    // Column already exists — nothing to do.
-  }
-
-  // Add Fantrax entity IDs to existing stats tables.
-  // SQLite has no ADD COLUMN IF NOT EXISTS — silently skip if already present.
-  try {
-    await db.execute("ALTER TABLE players ADD COLUMN player_id TEXT");
-  } catch {
-    // Column already exists — nothing to do.
-  }
-
-  try {
-    await db.execute("ALTER TABLE goalies ADD COLUMN goalie_id TEXT");
-  } catch {
-    // Column already exists — nothing to do.
-  }
-
   await db.execute({
     sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
-    args: ["schema_version", "2"],
+    args: ["schema_version", "3"],
   });
 
   console.log("✅ Migration complete!");

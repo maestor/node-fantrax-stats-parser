@@ -21,6 +21,18 @@ import { mapPlayerData, mapGoalieData } from "../src/mappings";
 import { getDbClient } from "../src/db/client";
 import type { InStatement } from "@libsql/client";
 
+type ReportType = "regular" | "playoffs";
+
+const parseReportTypeArg = (args: string[]): ReportType | null => {
+  const reportTypeArg = args.find((arg) => arg.startsWith("--report-type="));
+  if (!reportTypeArg) return null;
+  const value = reportTypeArg.split("=")[1];
+  if (value !== "regular" && value !== "playoffs") {
+    throw new Error(`Invalid --report-type value: ${value}`);
+  }
+  return value;
+};
+
 const main = async () => {
   const args = process.argv.slice(2);
   const onlyCurrentSeason = args.includes("--current-only");
@@ -30,6 +42,7 @@ const main = async () => {
   if (seasonArg !== undefined && !Number.isFinite(seasonFilter)) {
     throw new Error(`Invalid --season value: ${seasonArg.split("=")[1]}`);
   }
+  const reportTypeFilter = parseReportTypeArg(args);
   const dryRun = args.includes("--dry-run");
 
   const csvDir = path.resolve(process.cwd(), "csv");
@@ -46,6 +59,7 @@ const main = async () => {
           : "All seasons"
     }`
   );
+  console.log(`   Report type: ${reportTypeFilter ?? "all"}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
 
@@ -73,6 +87,7 @@ const main = async () => {
 
       if (seasonFilter !== null && season !== seasonFilter) continue;
       if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON) continue;
+      if (reportTypeFilter !== null && reportType !== reportTypeFilter) continue;
 
       const filePath = path.join(teamDir, file);
       const normalizedPath = path.join(
@@ -97,6 +112,14 @@ const main = async () => {
 
         const players = mapPlayerData(dataWithSeason);
         const goalies = mapGoalieData(dataWithSeason);
+        const playersMissingId = players.filter((p) => !p.playerId).length;
+        const goaliesMissingId = goalies.filter((g) => !g.goalieId).length;
+        if (playersMissingId > 0 || goaliesMissingId > 0) {
+          throw new Error(
+            `Missing Fantrax IDs in ${file}: players=${playersMissingId}, goalies=${goaliesMissingId}. ` +
+              "All rows must have IDs before DB import.",
+          );
+        }
 
         if (dryRun) {
           console.log(
@@ -123,7 +146,7 @@ const main = async () => {
                 team.id,
                 season,
                 reportType,
-                player.playerId ?? null,
+                player.playerId!,
                 player.name,
                 player.position ?? null,
                 player.games,
@@ -149,7 +172,7 @@ const main = async () => {
                 team.id,
                 season,
                 reportType,
-                goalie.goalieId ?? null,
+                goalie.goalieId!,
                 goalie.name,
                 goalie.games,
                 goalie.wins,
