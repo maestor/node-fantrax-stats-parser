@@ -740,10 +740,14 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
     typeof packageJsonParsed === "object" && packageJsonParsed
       ? (packageJsonParsed as { scripts?: Record<string, string> }).scripts
       : undefined;
+  const rawUploadEnabled = process.env.RAW_UPLOAD?.trim().toLowerCase() === "true";
+  const postImportScript = rawUploadEnabled
+    ? "parseAndUploadRawCsv"
+    : "parseAndUploadCsv";
 
-  if (!packageJsonScripts?.parseAndUploadCsv) {
+  if (!packageJsonScripts?.[postImportScript]) {
     throw new Error(
-      "Missing npm script parseAndUploadCsv in package.json.",
+      `Missing npm script ${postImportScript} in package.json.`,
     );
   }
 
@@ -760,9 +764,9 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
     : "";
   const reportTypeNote = reportType ? ` (${reportType})` : "";
   console.info(
-    `Running npm run parseAndUploadCsv${seasonNote}${reportTypeNote} ...`,
+    `Running npm run ${postImportScript}${seasonNote}${reportTypeNote} ...`,
   );
-  const result = spawnSync("npm", ["run", "parseAndUploadCsv"], {
+  const result = spawnSync("npm", ["run", postImportScript], {
     cwd: repoRoot,
     stdio: "inherit",
     env,
@@ -773,7 +777,7 @@ export const runImportTempCsvScriptIfUsingDefaultOutDir = (
   }
   if (typeof result.status === "number" && result.status !== 0) {
     throw new Error(
-      `npm run parseAndUploadCsv failed with exit code ${result.status}`,
+      `npm run ${postImportScript} failed with exit code ${result.status}`,
     );
   }
 };

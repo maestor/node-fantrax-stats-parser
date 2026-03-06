@@ -201,6 +201,7 @@ Notes:
 - The season year must exist in your local synced mapping file (`fantrax-leagues.json`).
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-leagues.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
+- Set `RAW_UPLOAD=true` to make Playwright import run `parseAndUploadRawCsv` instead (uploads raw `csv/temp` files to `rawFiles/` in R2 and cleans temp files).
 - If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
 - The post-import parse/upload/import pipeline is restricted to `regular` files only.
 - Filenames follow: `{teamSlug}-{teamId}-regular-YYYY-YYYY.csv`.
@@ -229,6 +230,7 @@ Notes:
 - Output directory defaults to `./csv/temp/`.
 - If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
+- Set `RAW_UPLOAD=true` to make Playwright import run `parseAndUploadRawCsv` instead (uploads raw `csv/temp` files to `rawFiles/` in R2 and cleans temp files).
 - If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
 - The post-import parse/upload/import pipeline is restricted to `playoffs` files only.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
@@ -424,6 +426,16 @@ npm run r2:upload -- --report-type=regular # Upload only regular files
 npm run r2:upload:dry      # Preview without uploading
 ```
 
+**Upload raw temp CSV files to `rawFiles/` in R2 (force overwrite + cleanup):**
+
+```bash
+npm run r2:upload:raw                  # Upload csv/temp -> rawFiles/<teamId>/..., remove uploaded temp files
+npm run r2:upload:raw -- --season=2025 # Upload only one season's raw files
+npm run r2:upload:raw -- --report-type=playoffs
+npm run r2:upload:raw -- --keep-temp   # Upload raw files but keep csv/temp files
+npm run r2:upload:raw:dry              # Preview without uploading/removing
+```
+
 **Download CSV files from R2 (for local development):**
 
 ```bash
@@ -434,12 +446,21 @@ npm run r2:download -- --team=1       # Download only team 1
 npm run r2:download -- --force        # Force overwrite existing files
 ```
 
+**Download raw temp CSV files from `rawFiles/` in R2 to `csv/temp/`:**
+
+```bash
+npm run r2:download:raw      # Download all rawFiles into csv/temp (force overwrite)
+npm run r2:download:raw:dry  # Preview rawFiles download
+npm run r2:download:raw -- --dry-run --force
+```
+
 **Automatic upload during import:**
 
 When `USE_R2_STORAGE=true`, the import pipeline automatically uploads to R2 and imports into the database:
 
 ```bash
 npm run parseAndUploadCsv  # Loads .env, cleans CSVs, uploads to R2, imports to DB
+npm run parseAndUploadRawCsv # Loads .env, uploads raw csv/temp files to rawFiles/, removes uploaded temp files
 ```
 
 ## Database (Turso/SQLite)
