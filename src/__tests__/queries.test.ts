@@ -11,6 +11,8 @@ import {
   getGoaliesFromDb,
   getPlayerCareerRowsFromDb,
   getGoalieCareerRowsFromDb,
+  getAllPlayerCareerRowsFromDb,
+  getAllGoalieCareerRowsFromDb,
   getAvailableSeasonsFromDb,
   getTeamIdsWithData,
   getLastModifiedFromDb,
@@ -418,6 +420,86 @@ describe("db/queries", () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getGoalieCareerRowsFromDb("missing");
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("getAllPlayerCareerRowsFromDb", () => {
+    test("returns all player career rows without filtering zero-game records", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            player_id: "p001",
+            name: "Connor McDavid",
+            position: "F",
+            team_id: "1",
+            season: 2024,
+            report_type: "regular",
+            games: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            plus_minus: 0,
+            penalties: 0,
+            shots: 0,
+            ppp: 0,
+            shp: 0,
+            hits: 0,
+            blocks: 0,
+          },
+        ],
+      });
+
+      const result = await getAllPlayerCareerRowsFromDb();
+
+      expect(mockExecute).toHaveBeenCalledWith(expect.not.stringContaining("games > 0"));
+      expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining("ORDER BY name ASC"));
+      expect(result).toEqual([
+        expect.objectContaining({
+          player_id: "p001",
+          report_type: "regular",
+          games: 0,
+        }),
+      ]);
+    });
+  });
+
+  describe("getAllGoalieCareerRowsFromDb", () => {
+    test("returns all goalie career rows without filtering zero-game records", async () => {
+      mockExecute.mockResolvedValue({
+        rows: [
+          {
+            goalie_id: "g001",
+            name: "Carey Price",
+            team_id: "2",
+            season: 2024,
+            report_type: "playoffs",
+            games: 0,
+            wins: 0,
+            saves: 0,
+            shutouts: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            penalties: 0,
+            ppp: 0,
+            shp: 0,
+            gaa: null,
+            save_percent: null,
+          },
+        ],
+      });
+
+      const result = await getAllGoalieCareerRowsFromDb();
+
+      expect(mockExecute).toHaveBeenCalledWith(expect.not.stringContaining("games > 0"));
+      expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining("ORDER BY name ASC"));
+      expect(result).toEqual([
+        expect.objectContaining({
+          goalie_id: "g001",
+          report_type: "playoffs",
+          games: 0,
+        }),
+      ]);
     });
   });
 

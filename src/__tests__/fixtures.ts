@@ -241,6 +241,7 @@ export const mockRawDataZeroGames: RawData = {
 export const mockPlayer: Player = {
   id: "p100",
   name: "Test Player",
+  position: "F",
   games: 82,
   goals: 50,
   assists: 75,

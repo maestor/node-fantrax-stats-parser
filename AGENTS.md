@@ -15,6 +15,10 @@
 - Default workflow is a user-created branch (not `main`).
 - If currently on `main`, ask user to create a branch before implementing task changes.
 - If considering `git worktree`, always ask explicitly first and explain why worktree would help.
+- Commit message prefixes should use capitalized conventional labels.
+- New features must use the prefix `Feature: `.
+- Non-feature commits should use a capitalized prefix such as `Fix:`, `Docs:`, `Chore:`, etc.
+- Use sentence-style capitalization after the colon: capitalize the first word, but do not title-case the whole message unless normal capitalization requires it. Example: `Feature: Add career player and goalie listings`.
 
 ## Task Completion and Handoff
 - You may commit independently on the working branch.

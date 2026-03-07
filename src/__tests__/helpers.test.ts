@@ -747,7 +747,7 @@ describe("helpers", () => {
     });
 
     test("handles players with no position", () => {
-      const testPlayers: Player[] = [
+      const testPlayers = [
         { id: "id", name: "No Position Player",
           games: 10,
           goals: 10,
@@ -763,7 +763,7 @@ describe("helpers", () => {
           score: 0,
           scoreAdjustedByGames: 0,
         },
-      ];
+      ] as unknown as Player[];
 
       const result = applyPlayerScoresByPosition(testPlayers);
 

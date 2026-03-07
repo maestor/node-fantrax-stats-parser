@@ -18,6 +18,8 @@ import {
   CountSplit,
   CareerPlayerResponse,
   CareerGoalieResponse,
+  CareerPlayerListItem,
+  CareerGoalieListItem,
   CareerPlayerSeasonRow,
   CareerGoalieSeasonRow,
 } from "./types";
@@ -27,6 +29,8 @@ import {
   getGoaliesFromDb,
   getPlayerCareerRowsFromDb,
   getGoalieCareerRowsFromDb,
+  getAllPlayerCareerRowsFromDb,
+  getAllGoalieCareerRowsFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
@@ -256,6 +260,13 @@ const createNotFoundError = (message: string): CareerNotFoundError =>
 const mapOptionalGoalieRate = (value: number | null): string | undefined =>
   value != null && value !== 0 ? String(value) : undefined;
 
+const requirePlayerPosition = (value: string | null | undefined): string => {
+  if (value === null || value === undefined || value === "") {
+    throw new Error("Player position missing");
+  }
+  return value;
+};
+
 const mapPlayerCareerSeasonRows = (rows: readonly PlayerCareerRow[]): CareerPlayerSeasonRow[] =>
   sortCareerRows(
     rows.map((row) => ({
@@ -263,7 +274,7 @@ const mapPlayerCareerSeasonRows = (rows: readonly PlayerCareerRow[]): CareerPlay
       reportType: row.report_type,
       teamId: row.team_id,
       teamName: getTeamName(row.team_id),
-      position: row.position ?? undefined,
+      position: requirePlayerPosition(row.position),
       games: row.games,
       goals: row.goals,
       assists: row.assists,
@@ -424,6 +435,88 @@ const buildGoalieTotalsForScope = (rows: readonly CareerGoalieSeasonRow[], scope
   };
 };
 
+const groupCareerRowsById = <
+  T extends
+    | (PlayerCareerRow & { id: string })
+    | (GoalieCareerRow & { id: string }),
+>(
+  rows: readonly T[],
+): Map<string, T[]> => {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.id);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.id, [row]);
+    }
+  }
+  return grouped;
+};
+
+const countDistinctSeasons = <T extends { season: number }>(rows: readonly T[]): number =>
+  new Set(rows.map((row) => row.season)).size;
+
+const countDistinctTeams = <T extends { team_id: string }>(rows: readonly T[]): number =>
+  new Set(rows.map((row) => row.team_id)).size;
+
+const filterPlayedRowsByReport = <T extends { report_type: CsvReport; games: number }>(
+  rows: readonly T[],
+  reportType: CsvReport,
+): T[] => rows.filter((row) => row.report_type === reportType && row.games > 0);
+
+const sortCareerListItems = <T extends { name: string; id: string }>(items: readonly T[]): T[] =>
+  items.slice().sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id));
+
+const buildPlayerCareerListItem = (rows: readonly PlayerCareerRow[]): CareerPlayerListItem => {
+  const regularPlayedRows = filterPlayedRowsByReport(rows, "regular");
+  const playoffPlayedRows = filterPlayedRowsByReport(rows, "playoffs");
+
+  return {
+    id: rows[0].player_id,
+    name: rows[0].name,
+    position: requirePlayerPosition(rows.find((row) => row.position)?.position),
+    firstSeason: Math.min(...rows.map((row) => row.season)),
+    lastSeason: Math.max(...rows.map((row) => row.season)),
+    seasonsOwned: countDistinctSeasons(rows),
+    seasonsPlayedRegular: countDistinctSeasons(regularPlayedRows),
+    seasonsPlayedPlayoffs: countDistinctSeasons(playoffPlayedRows),
+    teamsOwned: countDistinctTeams(rows),
+    teamsPlayedRegular: countDistinctTeams(regularPlayedRows),
+    teamsPlayedPlayoffs: countDistinctTeams(playoffPlayedRows),
+    regularGames: rows
+      .filter((row) => row.report_type === "regular")
+      .reduce((sum, row) => sum + row.games, 0),
+    playoffGames: rows
+      .filter((row) => row.report_type === "playoffs")
+      .reduce((sum, row) => sum + row.games, 0),
+  };
+};
+
+const buildGoalieCareerListItem = (rows: readonly GoalieCareerRow[]): CareerGoalieListItem => {
+  const regularPlayedRows = filterPlayedRowsByReport(rows, "regular");
+  const playoffPlayedRows = filterPlayedRowsByReport(rows, "playoffs");
+
+  return {
+    id: rows[0].goalie_id,
+    name: rows[0].name,
+    firstSeason: Math.min(...rows.map((row) => row.season)),
+    lastSeason: Math.max(...rows.map((row) => row.season)),
+    seasonsOwned: countDistinctSeasons(rows),
+    seasonsPlayedRegular: countDistinctSeasons(regularPlayedRows),
+    seasonsPlayedPlayoffs: countDistinctSeasons(playoffPlayedRows),
+    teamsOwned: countDistinctTeams(rows),
+    teamsPlayedRegular: countDistinctTeams(regularPlayedRows),
+    teamsPlayedPlayoffs: countDistinctTeams(playoffPlayedRows),
+    regularGames: rows
+      .filter((row) => row.report_type === "regular")
+      .reduce((sum, row) => sum + row.games, 0),
+    playoffGames: rows
+      .filter((row) => row.report_type === "playoffs")
+      .reduce((sum, row) => sum + row.games, 0),
+  };
+};
+
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
   reportType: Report = "regular",
@@ -571,7 +664,7 @@ export const getPlayerCareerData = async (playerId: string): Promise<CareerPlaye
   return {
     id: playerId,
     name: rows[0].name,
-    position: rows.find((row) => row.position)?.position ?? undefined,
+    position: requirePlayerPosition(rows.find((row) => row.position)?.position),
     summary: buildCareerSummary(seasons),
     totals: {
       career: buildPlayerTotalsForScope(seasons, "career"),
@@ -600,6 +693,18 @@ export const getGoalieCareerData = async (goalieId: string): Promise<CareerGoali
     },
     seasons,
   };
+};
+
+export const getCareerPlayersData = async (): Promise<CareerPlayerListItem[]> => {
+  const rows = await getAllPlayerCareerRowsFromDb();
+  const grouped = groupCareerRowsById(rows.map((row) => ({ ...row, id: row.player_id })));
+  return sortCareerListItems([...grouped.values()].map((playerRows) => buildPlayerCareerListItem(playerRows)));
+};
+
+export const getCareerGoaliesData = async (): Promise<CareerGoalieListItem[]> => {
+  const rows = await getAllGoalieCareerRowsFromDb();
+  const grouped = groupCareerRowsById(rows.map((row) => ({ ...row, id: row.goalie_id })));
+  return sortCareerListItems([...grouped.values()].map((goalieRows) => buildGoalieCareerListItem(goalieRows)));
 };
 
 export const getPlayoffLeaderboardData = async (): Promise<

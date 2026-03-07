@@ -9,6 +9,8 @@ import {
   getGoaliesStatsCombined,
   getPlayerCareerData,
   getGoalieCareerData,
+  getCareerPlayersData,
+  getCareerGoaliesData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "./services";
@@ -197,6 +199,14 @@ export const getCareerPlayer: AugmentedRequestHandler = async (req, res) => {
 
 export const getCareerGoalie: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, () => getGoalieCareerData(req.params.id));
+};
+
+export const getCareerPlayers: AugmentedRequestHandler = async (req, res) => {
+  await withErrorHandlingCached(req, res, () => getCareerPlayersData());
+};
+
+export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
+  await withErrorHandlingCached(req, res, () => getCareerGoaliesData());
 };
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
