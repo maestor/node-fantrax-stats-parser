@@ -58,6 +58,156 @@ export interface CombinedGoalie extends Goalie {
   seasons: GoalieSeasonData[];
 }
 
+export type CountSplit = {
+  owned: number;
+  played: number;
+};
+
+export type CareerSummaryTeam = {
+  teamId: string;
+  teamName: string;
+  seasonCount: CountSplit;
+  firstSeason: number;
+  lastSeason: number;
+};
+
+export type CareerSummary = {
+  firstSeason: number;
+  lastSeason: number;
+  seasonCount: CountSplit;
+  teamCount: CountSplit;
+  teams: CareerSummaryTeam[];
+};
+
+export type CareerPlayerSeasonRow = {
+  season: number;
+  reportType: CsvReport;
+  teamId: string;
+  teamName: string;
+  position?: string;
+  games: number;
+  goals: number;
+  assists: number;
+  points: number;
+  plusMinus: number;
+  penalties: number;
+  shots: number;
+  ppp: number;
+  shp: number;
+  hits: number;
+  blocks: number;
+};
+
+export type CareerGoalieSeasonRow = {
+  season: number;
+  reportType: CsvReport;
+  teamId: string;
+  teamName: string;
+  games: number;
+  wins: number;
+  saves: number;
+  shutouts: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalties: number;
+  ppp: number;
+  shp: number;
+  gaa?: string;
+  savePercent?: string;
+};
+
+export type CareerPlayerTeamTotals = {
+  teamId: string;
+  teamName: string;
+  seasonCount: CountSplit;
+  games: number;
+  goals: number;
+  assists: number;
+  points: number;
+  plusMinus: number;
+  penalties: number;
+  shots: number;
+  ppp: number;
+  shp: number;
+  hits: number;
+  blocks: number;
+};
+
+export type CareerGoalieTeamTotals = {
+  teamId: string;
+  teamName: string;
+  seasonCount: CountSplit;
+  games: number;
+  wins: number;
+  saves: number;
+  shutouts: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalties: number;
+  ppp: number;
+  shp: number;
+};
+
+export type CareerPlayerTotals = {
+  seasonCount: CountSplit;
+  teamCount: CountSplit;
+  teams: CareerPlayerTeamTotals[];
+  games: number;
+  goals: number;
+  assists: number;
+  points: number;
+  plusMinus: number;
+  penalties: number;
+  shots: number;
+  ppp: number;
+  shp: number;
+  hits: number;
+  blocks: number;
+};
+
+export type CareerGoalieTotals = {
+  seasonCount: CountSplit;
+  teamCount: CountSplit;
+  teams: CareerGoalieTeamTotals[];
+  games: number;
+  wins: number;
+  saves: number;
+  shutouts: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalties: number;
+  ppp: number;
+  shp: number;
+};
+
+export type CareerPlayerResponse = {
+  id: string;
+  name: string;
+  position?: string;
+  summary: CareerSummary;
+  totals: {
+    career: CareerPlayerTotals;
+    regular: CareerPlayerTotals;
+    playoffs: CareerPlayerTotals;
+  };
+  seasons: CareerPlayerSeasonRow[];
+};
+
+export type CareerGoalieResponse = {
+  id: string;
+  name: string;
+  summary: CareerSummary;
+  totals: {
+    career: CareerGoalieTotals;
+    regular: CareerGoalieTotals;
+    playoffs: CareerGoalieTotals;
+  };
+  seasons: CareerGoalieSeasonRow[];
+};
+
 export type PlayerFields =
   | "name"
   | "games"

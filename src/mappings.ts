@@ -235,6 +235,9 @@ export const mapGoalieData = (
   data: RawData[],
   options: MapCsvOptions = {}
 ): GoalieWithSeason[] => {
+  const normalizeOptionalGoalieRate = (value: string): string | undefined =>
+    value === "" || value === "0" ? undefined : value;
+
   return data
     .filter(
       (item: RawData, i: number) => {
@@ -271,8 +274,8 @@ export const mapGoalieData = (
         score: 0,
         scoreAdjustedByGames: 0,
         season: item.season,
-        gaa: getShiftedField(item, CSV.GOALIE_GAA),
-        savePercent: getShiftedField(item, CSV.GOALIE_SAVE_PERCENT),
+        gaa: normalizeOptionalGoalieRate(getShiftedField(item, CSV.GOALIE_GAA)),
+        savePercent: normalizeOptionalGoalieRate(getShiftedField(item, CSV.GOALIE_SAVE_PERCENT)),
       };
     });
 };

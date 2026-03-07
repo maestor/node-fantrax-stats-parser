@@ -7,6 +7,8 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+  getPlayerCareerData,
+  getGoalieCareerData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "./services";
@@ -36,6 +38,13 @@ const getStatusCode = (err: unknown): number => {
     return code || HTTP_STATUS.INTERNAL_SERVER_ERROR;
   }
   return HTTP_STATUS.INTERNAL_SERVER_ERROR;
+};
+
+const getErrorBody = (err: unknown): unknown => {
+  if (typeof err === "object" && err !== null && "body" in err) {
+    return (err as Record<string, unknown>).body;
+  }
+  return err;
 };
 
 export const resetRouteCachesForTests = (): void => {
@@ -88,7 +97,7 @@ const withErrorHandlingCached = async (
     send(res, HTTP_STATUS.OK, data);
   } catch (error) {
     setNoStoreHeaders(res);
-    send(res, getStatusCode(error), error);
+    send(res, getStatusCode(error), getErrorBody(error));
   }
 };
 
@@ -180,6 +189,14 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const report = req.params.reportType as Report;
 
   await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId, startFrom));
+};
+
+export const getCareerPlayer: AugmentedRequestHandler = async (req, res) => {
+  await withErrorHandlingCached(req, res, () => getPlayerCareerData(req.params.id));
+};
+
+export const getCareerGoalie: AugmentedRequestHandler = async (req, res) => {
+  await withErrorHandlingCached(req, res, () => getGoalieCareerData(req.params.id));
 };
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {

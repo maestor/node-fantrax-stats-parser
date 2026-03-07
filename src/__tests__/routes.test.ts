@@ -12,6 +12,8 @@ import {
   getPlayersCombined,
   getGoaliesSeason,
   getGoaliesCombined,
+  getCareerPlayer,
+  getCareerGoalie,
   getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
@@ -23,6 +25,8 @@ import {
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+  getPlayerCareerData,
+  getGoalieCareerData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "../services";
@@ -693,6 +697,200 @@ describe("routes", () => {
     });
   });
 
+  describe("getCareerPlayer", () => {
+    test("returns 200 with player career data", async () => {
+      const mockCareer = {
+        id: "p001",
+        name: "Career Skater",
+        position: "F",
+        summary: {
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [],
+        },
+        totals: {
+          career: {
+            seasonCount: { owned: 3, played: 2 },
+            teamCount: { owned: 2, played: 1 },
+            teams: [],
+            games: 87,
+            goals: 32,
+            assists: 54,
+            points: 86,
+            plusMinus: 15,
+            penalties: 20,
+            shots: 255,
+            ppp: 21,
+            shp: 1,
+            hits: 45,
+            blocks: 34,
+          },
+          regular: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 2, played: 1 },
+            teams: [],
+            games: 82,
+            goals: 30,
+            assists: 50,
+            points: 80,
+            plusMinus: 12,
+            penalties: 18,
+            shots: 240,
+            ppp: 20,
+            shp: 1,
+            hits: 40,
+            blocks: 30,
+          },
+          playoffs: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 1, played: 1 },
+            teams: [],
+            games: 5,
+            goals: 2,
+            assists: 4,
+            points: 6,
+            plusMinus: 3,
+            penalties: 2,
+            shots: 15,
+            ppp: 1,
+            shp: 0,
+            hits: 5,
+            blocks: 4,
+          },
+        },
+        seasons: [],
+      };
+      (getPlayerCareerData as jest.Mock).mockResolvedValue(mockCareer);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/player/p001",
+        params: { id: "p001" },
+      });
+      const res = createResponse();
+
+      await getCareerPlayer(asRouteReq(req), res);
+
+      expect(getPlayerCareerData).toHaveBeenCalledWith("p001");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockCareer);
+    });
+
+    test("returns 404 with string body when player is missing", async () => {
+      (getPlayerCareerData as jest.Mock).mockRejectedValue({
+        statusCode: HTTP_STATUS.NOT_FOUND,
+        body: "Player not found",
+      });
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/player/missing",
+        params: { id: "missing" },
+      });
+      const res = createResponse();
+
+      await getCareerPlayer(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.NOT_FOUND, "Player not found");
+    });
+  });
+
+  describe("getCareerGoalie", () => {
+    test("returns 200 with goalie career data", async () => {
+      const mockCareer = {
+        id: "g001",
+        name: "Career Goalie",
+        summary: {
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [],
+        },
+        totals: {
+          career: {
+            seasonCount: { owned: 3, played: 2 },
+            teamCount: { owned: 2, played: 1 },
+            teams: [],
+            games: 58,
+            wins: 35,
+            saves: 1610,
+            shutouts: 5,
+            goals: 0,
+            assists: 4,
+            points: 4,
+            penalties: 2,
+            ppp: 0,
+            shp: 0,
+          },
+          regular: {
+            seasonCount: { owned: 1, played: 1 },
+            teamCount: { owned: 1, played: 1 },
+            teams: [],
+            games: 50,
+            wins: 30,
+            saves: 1400,
+            shutouts: 4,
+            goals: 0,
+            assists: 3,
+            points: 3,
+            penalties: 2,
+            ppp: 0,
+            shp: 0,
+          },
+          playoffs: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 2, played: 1 },
+            teams: [],
+            games: 8,
+            wins: 5,
+            saves: 210,
+            shutouts: 1,
+            goals: 0,
+            assists: 1,
+            points: 1,
+            penalties: 0,
+            ppp: 0,
+            shp: 0,
+          },
+        },
+        seasons: [],
+      };
+      (getGoalieCareerData as jest.Mock).mockResolvedValue(mockCareer);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalie/g001",
+        params: { id: "g001" },
+      });
+      const res = createResponse();
+
+      await getCareerGoalie(asRouteReq(req), res);
+
+      expect(getGoalieCareerData).toHaveBeenCalledWith("g001");
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockCareer);
+    });
+
+    test("returns 404 with string body when goalie is missing", async () => {
+      (getGoalieCareerData as jest.Mock).mockRejectedValue({
+        statusCode: HTTP_STATUS.NOT_FOUND,
+        body: "Goalie not found",
+      });
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalie/missing",
+        params: { id: "missing" },
+      });
+      const res = createResponse();
+
+      await getCareerGoalie(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.NOT_FOUND, "Goalie not found");
+    });
+  });
+
   describe("getLastModified", () => {
     test("returns 200 with timestamp from DB", async () => {
       const mockTimestamp = "2026-01-30T15:30:00.000Z";
@@ -953,6 +1151,22 @@ describe("routes", () => {
       });
     }
 
+    function buildObjectValidator(schemaName: string): ReturnType<Ajv["compile"]> {
+      const specPath = path.join(__dirname, "..", "..", "openapi.yaml");
+      const raw = fs.readFileSync(specPath, "utf8");
+      const spec = yaml.load(raw) as { components: { schemas: Record<string, unknown> } };
+      const defsJson = JSON.stringify(spec.components.schemas).replace(
+        /#\/components\/schemas\//g,
+        "#/definitions/"
+      );
+      const definitions = JSON.parse(defsJson) as Record<string, unknown>;
+      const ajv = new Ajv({ allErrors: true, strict: false });
+      return ajv.compile({
+        $ref: `#/definitions/${schemaName}`,
+        definitions,
+      });
+    }
+
     function getCapturedBody(): unknown {
       return (send as jest.Mock).mock.calls[0][2];
     }
@@ -1042,6 +1256,217 @@ describe("routes", () => {
       tieRank: false,
     };
 
+    const validCareerPlayer = {
+      id: "p001",
+      name: "Career Skater",
+      position: "F",
+      summary: {
+        firstSeason: 2022,
+        lastSeason: 2024,
+        seasonCount: { owned: 3, played: 2 },
+        teamCount: { owned: 2, played: 1 },
+        teams: [
+          {
+            teamId: "1",
+            teamName: "Colorado Avalanche",
+            seasonCount: { owned: 2, played: 2 },
+            firstSeason: 2022,
+            lastSeason: 2024,
+          },
+        ],
+      },
+      totals: {
+        career: {
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [
+            {
+              teamId: "1",
+              teamName: "Colorado Avalanche",
+              seasonCount: { owned: 2, played: 2 },
+              games: 87,
+              goals: 32,
+              assists: 54,
+              points: 86,
+              plusMinus: 15,
+              penalties: 20,
+              shots: 255,
+              ppp: 21,
+              shp: 1,
+              hits: 45,
+              blocks: 34,
+            },
+          ],
+          games: 87,
+          goals: 32,
+          assists: 54,
+          points: 86,
+          plusMinus: 15,
+          penalties: 20,
+          shots: 255,
+          ppp: 21,
+          shp: 1,
+          hits: 45,
+          blocks: 34,
+        },
+        regular: {
+          seasonCount: { owned: 2, played: 1 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [],
+          games: 82,
+          goals: 30,
+          assists: 50,
+          points: 80,
+          plusMinus: 12,
+          penalties: 18,
+          shots: 240,
+          ppp: 20,
+          shp: 1,
+          hits: 40,
+          blocks: 30,
+        },
+        playoffs: {
+          seasonCount: { owned: 2, played: 1 },
+          teamCount: { owned: 1, played: 1 },
+          teams: [],
+          games: 5,
+          goals: 2,
+          assists: 4,
+          points: 6,
+          plusMinus: 3,
+          penalties: 2,
+          shots: 15,
+          ppp: 1,
+          shp: 0,
+          hits: 5,
+          blocks: 4,
+        },
+      },
+      seasons: [
+        {
+          season: 2024,
+          reportType: "regular",
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          position: "F",
+          games: 82,
+          goals: 30,
+          assists: 50,
+          points: 80,
+          plusMinus: 12,
+          penalties: 18,
+          shots: 240,
+          ppp: 20,
+          shp: 1,
+          hits: 40,
+          blocks: 30,
+        },
+      ],
+    };
+
+    const validCareerGoalie = {
+      id: "g001",
+      name: "Career Goalie",
+      summary: {
+        firstSeason: 2022,
+        lastSeason: 2024,
+        seasonCount: { owned: 3, played: 2 },
+        teamCount: { owned: 2, played: 1 },
+        teams: [
+          {
+            teamId: "2",
+            teamName: "Carolina Hurricanes",
+            seasonCount: { owned: 2, played: 2 },
+            firstSeason: 2022,
+            lastSeason: 2024,
+          },
+        ],
+      },
+      totals: {
+        career: {
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [
+            {
+              teamId: "2",
+              teamName: "Carolina Hurricanes",
+              seasonCount: { owned: 2, played: 2 },
+              games: 58,
+              wins: 35,
+              saves: 1610,
+              shutouts: 5,
+              goals: 0,
+              assists: 4,
+              points: 4,
+              penalties: 2,
+              ppp: 0,
+              shp: 0,
+            },
+          ],
+          games: 58,
+          wins: 35,
+          saves: 1610,
+          shutouts: 5,
+          goals: 0,
+          assists: 4,
+          points: 4,
+          penalties: 2,
+          ppp: 0,
+          shp: 0,
+        },
+        regular: {
+          seasonCount: { owned: 1, played: 1 },
+          teamCount: { owned: 1, played: 1 },
+          teams: [],
+          games: 50,
+          wins: 30,
+          saves: 1400,
+          shutouts: 4,
+          goals: 0,
+          assists: 3,
+          points: 3,
+          penalties: 2,
+          ppp: 0,
+          shp: 0,
+        },
+        playoffs: {
+          seasonCount: { owned: 2, played: 1 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [],
+          games: 8,
+          wins: 5,
+          saves: 210,
+          shutouts: 1,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+        },
+      },
+      seasons: [
+        {
+          season: 2024,
+          reportType: "regular",
+          teamId: "2",
+          teamName: "Carolina Hurricanes",
+          games: 50,
+          wins: 30,
+          saves: 1400,
+          shutouts: 4,
+          goals: 0,
+          assists: 3,
+          points: 3,
+          penalties: 2,
+          ppp: 0,
+          shp: 0,
+          gaa: "2.25",
+          savePercent: "0.918",
+        },
+      ],
+    };
+
     test("getTeams response conforms to Team[] schema", async () => {
       (getTeamsWithData as jest.Mock).mockResolvedValue([validTeam]);
       const req = createRequest({ url: "/teams" });
@@ -1103,6 +1528,24 @@ describe("routes", () => {
       const res = createResponse();
       await getGoaliesCombined(asRouteReq(req), res);
       const validate = buildArrayValidator("CombinedGoalie");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getCareerPlayer response conforms to CareerPlayer schema", async () => {
+      (getPlayerCareerData as jest.Mock).mockResolvedValue(validCareerPlayer);
+      const req = createRequest({ params: { id: "p001" } });
+      const res = createResponse();
+      await getCareerPlayer(asRouteReq(req), res);
+      const validate = buildObjectValidator("CareerPlayer");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getCareerGoalie response conforms to CareerGoalie schema", async () => {
+      (getGoalieCareerData as jest.Mock).mockResolvedValue(validCareerGoalie);
+      const req = createRequest({ params: { id: "g001" } });
+      const res = createResponse();
+      await getCareerGoalie(asRouteReq(req), res);
+      const validate = buildObjectValidator("CareerGoalie");
       expect(validate(getCapturedBody())).toBe(true);
     });
 

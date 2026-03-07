@@ -10,15 +10,29 @@ import {
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "./mappings";
-import { Report, CsvReport, PlayerWithSeason, GoalieWithSeason } from "./types";
+import {
+  Report,
+  CsvReport,
+  PlayerWithSeason,
+  GoalieWithSeason,
+  CountSplit,
+  CareerPlayerResponse,
+  CareerGoalieResponse,
+  CareerPlayerSeasonRow,
+  CareerGoalieSeasonRow,
+} from "./types";
 import { CURRENT_SEASON, DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "./constants";
 import {
   getPlayersFromDb,
   getGoaliesFromDb,
+  getPlayerCareerRowsFromDb,
+  getGoalieCareerRowsFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
   getRegularSeasons,
+  type PlayerCareerRow,
+  type GoalieCareerRow,
   type PlayoffSeasonDbEntry,
   type RegularSeasonDbEntry,
 } from "./db/queries";
@@ -149,6 +163,265 @@ const mergeGoaliesSameSeason = (goalies: GoalieWithSeason[]): GoalieWithSeason[]
   }
 
   return [...merged.values()];
+};
+
+type CareerScope = "career" | CsvReport;
+
+type CareerNotFoundError = Error & {
+  statusCode: number;
+  body: string;
+};
+
+const getTeamName = (teamId: string): string => TEAMS.find((team) => team.id === teamId)?.presentName ?? teamId;
+
+const createCountSplit = (owned: number, played: number): CountSplit => ({
+  owned,
+  played,
+});
+
+const getCountSplitForRows = <T extends { season: number; teamId: string; games: number }>(
+  rows: readonly T[],
+): { seasonCount: CountSplit; teamCount: CountSplit } => {
+  const ownedSeasons = new Set<number>();
+  const playedSeasons = new Set<number>();
+  const ownedTeams = new Set<string>();
+  const playedTeams = new Set<string>();
+
+  for (const row of rows) {
+    ownedSeasons.add(row.season);
+    ownedTeams.add(row.teamId);
+    if (row.games > 0) {
+      playedSeasons.add(row.season);
+      playedTeams.add(row.teamId);
+    }
+  }
+
+  return {
+    seasonCount: createCountSplit(ownedSeasons.size, playedSeasons.size),
+    teamCount: createCountSplit(ownedTeams.size, playedTeams.size),
+  };
+};
+
+const compareReportType = (left: CsvReport, right: CsvReport): number => {
+  if (left === right) return 0;
+  return left === "regular" ? -1 : 1;
+};
+
+const sortCareerRows = <T extends { season: number; teamId: string; reportType: CsvReport }>(
+  rows: readonly T[],
+): T[] =>
+  rows
+    .slice()
+    .sort(
+      (left, right) =>
+        right.season - left.season ||
+        left.teamId.localeCompare(right.teamId) ||
+        compareReportType(left.reportType, right.reportType),
+    );
+
+const sortCareerSummaryTeams = <
+  T extends { firstSeason: number; lastSeason: number; teamName: string },
+>(
+  teams: readonly T[],
+): T[] =>
+  teams.slice().sort((left, right) => {
+    const byFirstSeason = left.firstSeason - right.firstSeason;
+    if (byFirstSeason !== 0) return byFirstSeason;
+
+    const byLastSeason = left.lastSeason - right.lastSeason;
+    if (byLastSeason !== 0) return byLastSeason;
+
+    return left.teamName.localeCompare(right.teamName);
+  });
+
+const sortCareerTotalsTeams = <T extends { seasonCount: CountSplit; teamName: string }>(
+  teams: readonly T[],
+): T[] =>
+  teams.slice().sort((left, right) => {
+    const byPlayedSeasons = right.seasonCount.played - left.seasonCount.played;
+    if (byPlayedSeasons !== 0) return byPlayedSeasons;
+
+    const byOwnedSeasons = right.seasonCount.owned - left.seasonCount.owned;
+    if (byOwnedSeasons !== 0) return byOwnedSeasons;
+
+    return left.teamName.localeCompare(right.teamName);
+  });
+
+const createNotFoundError = (message: string): CareerNotFoundError =>
+  Object.assign(new Error(message), {
+    statusCode: 404,
+    body: message,
+  });
+
+const mapOptionalGoalieRate = (value: number | null): string | undefined =>
+  value != null && value !== 0 ? String(value) : undefined;
+
+const mapPlayerCareerSeasonRows = (rows: readonly PlayerCareerRow[]): CareerPlayerSeasonRow[] =>
+  sortCareerRows(
+    rows.map((row) => ({
+      season: row.season,
+      reportType: row.report_type,
+      teamId: row.team_id,
+      teamName: getTeamName(row.team_id),
+      position: row.position ?? undefined,
+      games: row.games,
+      goals: row.goals,
+      assists: row.assists,
+      points: row.points,
+      plusMinus: row.plus_minus,
+      penalties: row.penalties,
+      shots: row.shots,
+      ppp: row.ppp,
+      shp: row.shp,
+      hits: row.hits,
+      blocks: row.blocks,
+    })),
+  );
+
+const mapGoalieCareerSeasonRows = (rows: readonly GoalieCareerRow[]): CareerGoalieSeasonRow[] =>
+  sortCareerRows(
+    rows.map((row) => ({
+      season: row.season,
+      reportType: row.report_type,
+      teamId: row.team_id,
+      teamName: getTeamName(row.team_id),
+      games: row.games,
+      wins: row.wins,
+      saves: row.saves,
+      shutouts: row.shutouts,
+      goals: row.goals,
+      assists: row.assists,
+      points: row.points,
+      penalties: row.penalties,
+      ppp: row.ppp,
+      shp: row.shp,
+      gaa: mapOptionalGoalieRate(row.gaa),
+      savePercent: mapOptionalGoalieRate(row.save_percent),
+    })),
+  );
+
+const buildCareerSummary = <T extends { season: number; teamId: string; games: number }>(rows: readonly T[]) => {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.teamId);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.teamId, [row]);
+    }
+  }
+
+  return {
+    firstSeason: Math.min(...rows.map((row) => row.season)),
+    lastSeason: Math.max(...rows.map((row) => row.season)),
+    ...getCountSplitForRows(rows),
+    teams: sortCareerSummaryTeams(
+      [...grouped.entries()].map(([teamId, teamRows]) => ({
+        teamId,
+        teamName: getTeamName(teamId),
+        seasonCount: getCountSplitForRows(teamRows).seasonCount,
+        firstSeason: Math.min(...teamRows.map((row) => row.season)),
+        lastSeason: Math.max(...teamRows.map((row) => row.season)),
+      })),
+    ),
+  };
+};
+
+const filterRowsByScope = <T extends { reportType: CsvReport }>(
+  rows: readonly T[],
+  scope: CareerScope,
+): T[] => (scope === "career" ? [...rows] : rows.filter((row) => row.reportType === scope));
+
+const buildPlayerTotalsForScope = (rows: readonly CareerPlayerSeasonRow[], scope: CareerScope) => {
+  const scopedRows = filterRowsByScope(rows, scope);
+  const grouped = new Map<string, CareerPlayerSeasonRow[]>();
+
+  for (const row of scopedRows) {
+    const list = grouped.get(row.teamId);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.teamId, [row]);
+    }
+  }
+
+  return {
+    ...getCountSplitForRows(scopedRows),
+    teams: sortCareerTotalsTeams(
+      [...grouped.entries()].map(([teamId, teamRows]) => ({
+        teamId,
+        teamName: getTeamName(teamId),
+        seasonCount: getCountSplitForRows(teamRows).seasonCount,
+        games: teamRows.reduce((sum, row) => sum + row.games, 0),
+        goals: teamRows.reduce((sum, row) => sum + row.goals, 0),
+        assists: teamRows.reduce((sum, row) => sum + row.assists, 0),
+        points: teamRows.reduce((sum, row) => sum + row.points, 0),
+        plusMinus: teamRows.reduce((sum, row) => sum + row.plusMinus, 0),
+        penalties: teamRows.reduce((sum, row) => sum + row.penalties, 0),
+        shots: teamRows.reduce((sum, row) => sum + row.shots, 0),
+        ppp: teamRows.reduce((sum, row) => sum + row.ppp, 0),
+        shp: teamRows.reduce((sum, row) => sum + row.shp, 0),
+        hits: teamRows.reduce((sum, row) => sum + row.hits, 0),
+        blocks: teamRows.reduce((sum, row) => sum + row.blocks, 0),
+      })),
+    ),
+    games: scopedRows.reduce((sum, row) => sum + row.games, 0),
+    goals: scopedRows.reduce((sum, row) => sum + row.goals, 0),
+    assists: scopedRows.reduce((sum, row) => sum + row.assists, 0),
+    points: scopedRows.reduce((sum, row) => sum + row.points, 0),
+    plusMinus: scopedRows.reduce((sum, row) => sum + row.plusMinus, 0),
+    penalties: scopedRows.reduce((sum, row) => sum + row.penalties, 0),
+    shots: scopedRows.reduce((sum, row) => sum + row.shots, 0),
+    ppp: scopedRows.reduce((sum, row) => sum + row.ppp, 0),
+    shp: scopedRows.reduce((sum, row) => sum + row.shp, 0),
+    hits: scopedRows.reduce((sum, row) => sum + row.hits, 0),
+    blocks: scopedRows.reduce((sum, row) => sum + row.blocks, 0),
+  };
+};
+
+const buildGoalieTotalsForScope = (rows: readonly CareerGoalieSeasonRow[], scope: CareerScope) => {
+  const scopedRows = filterRowsByScope(rows, scope);
+  const grouped = new Map<string, CareerGoalieSeasonRow[]>();
+
+  for (const row of scopedRows) {
+    const list = grouped.get(row.teamId);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.teamId, [row]);
+    }
+  }
+
+  return {
+    ...getCountSplitForRows(scopedRows),
+    teams: sortCareerTotalsTeams(
+      [...grouped.entries()].map(([teamId, teamRows]) => ({
+        teamId,
+        teamName: getTeamName(teamId),
+        seasonCount: getCountSplitForRows(teamRows).seasonCount,
+        games: teamRows.reduce((sum, row) => sum + row.games, 0),
+        wins: teamRows.reduce((sum, row) => sum + row.wins, 0),
+        saves: teamRows.reduce((sum, row) => sum + row.saves, 0),
+        shutouts: teamRows.reduce((sum, row) => sum + row.shutouts, 0),
+        goals: teamRows.reduce((sum, row) => sum + row.goals, 0),
+        assists: teamRows.reduce((sum, row) => sum + row.assists, 0),
+        points: teamRows.reduce((sum, row) => sum + row.points, 0),
+        penalties: teamRows.reduce((sum, row) => sum + row.penalties, 0),
+        ppp: teamRows.reduce((sum, row) => sum + row.ppp, 0),
+        shp: teamRows.reduce((sum, row) => sum + row.shp, 0),
+      })),
+    ),
+    games: scopedRows.reduce((sum, row) => sum + row.games, 0),
+    wins: scopedRows.reduce((sum, row) => sum + row.wins, 0),
+    saves: scopedRows.reduce((sum, row) => sum + row.saves, 0),
+    shutouts: scopedRows.reduce((sum, row) => sum + row.shutouts, 0),
+    goals: scopedRows.reduce((sum, row) => sum + row.goals, 0),
+    assists: scopedRows.reduce((sum, row) => sum + row.assists, 0),
+    points: scopedRows.reduce((sum, row) => sum + row.points, 0),
+    penalties: scopedRows.reduce((sum, row) => sum + row.penalties, 0),
+    ppp: scopedRows.reduce((sum, row) => sum + row.ppp, 0),
+    shp: scopedRows.reduce((sum, row) => sum + row.shp, 0),
+  };
 };
 
 export const getAvailableSeasons = async (
@@ -287,6 +560,47 @@ export const getGoaliesStatsCombined = async (
   report === "both"
     ? getGoaliesStatsCombinedBoth(teamId, startFrom)
     : getGoaliesCombinedForReport(teamId, report, startFrom);
+
+export const getPlayerCareerData = async (playerId: string): Promise<CareerPlayerResponse> => {
+  const rows = await getPlayerCareerRowsFromDb(playerId);
+  if (!rows.length) {
+    throw createNotFoundError("Player not found");
+  }
+
+  const seasons = mapPlayerCareerSeasonRows(rows);
+  return {
+    id: playerId,
+    name: rows[0].name,
+    position: rows.find((row) => row.position)?.position ?? undefined,
+    summary: buildCareerSummary(seasons),
+    totals: {
+      career: buildPlayerTotalsForScope(seasons, "career"),
+      regular: buildPlayerTotalsForScope(seasons, "regular"),
+      playoffs: buildPlayerTotalsForScope(seasons, "playoffs"),
+    },
+    seasons,
+  };
+};
+
+export const getGoalieCareerData = async (goalieId: string): Promise<CareerGoalieResponse> => {
+  const rows = await getGoalieCareerRowsFromDb(goalieId);
+  if (!rows.length) {
+    throw createNotFoundError("Goalie not found");
+  }
+
+  const seasons = mapGoalieCareerSeasonRows(rows);
+  return {
+    id: goalieId,
+    name: rows[0].name,
+    summary: buildCareerSummary(seasons),
+    totals: {
+      career: buildGoalieTotalsForScope(seasons, "career"),
+      regular: buildGoalieTotalsForScope(seasons, "regular"),
+      playoffs: buildGoalieTotalsForScope(seasons, "playoffs"),
+    },
+    seasons,
+  };
+};
 
 export const getPlayoffLeaderboardData = async (): Promise<
   PlayoffLeaderboardEntry[]

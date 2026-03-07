@@ -6,6 +6,9 @@ function castRows<T>(rows: unknown[]): T[] {
   return rows as T[];
 }
 
+const mapOptionalGoalieRate = (value: number | null): string | undefined =>
+  value != null && value !== 0 ? String(value) : undefined;
+
 interface PlayerRow {
   player_id: string;
   name: string;
@@ -24,6 +27,26 @@ interface PlayerRow {
   season: number;
 }
 
+export interface PlayerCareerRow {
+  player_id: string;
+  name: string;
+  position: string | null;
+  team_id: string;
+  season: number;
+  report_type: CsvReport;
+  games: number;
+  goals: number;
+  assists: number;
+  points: number;
+  plus_minus: number;
+  penalties: number;
+  shots: number;
+  ppp: number;
+  shp: number;
+  hits: number;
+  blocks: number;
+}
+
 interface GoalieRow {
   goalie_id: string;
   name: string;
@@ -40,6 +63,26 @@ interface GoalieRow {
   gaa: number | null;
   save_percent: number | null;
   season: number;
+}
+
+export interface GoalieCareerRow {
+  goalie_id: string;
+  name: string;
+  team_id: string;
+  season: number;
+  report_type: CsvReport;
+  games: number;
+  wins: number;
+  saves: number;
+  shutouts: number;
+  goals: number;
+  assists: number;
+  points: number;
+  penalties: number;
+  ppp: number;
+  shp: number;
+  gaa: number | null;
+  save_percent: number | null;
 }
 
 const mapPlayerRow = (row: PlayerRow): PlayerWithSeason => ({
@@ -75,8 +118,8 @@ const mapGoalieRow = (row: GoalieRow): GoalieWithSeason => ({
   penalties: row.penalties,
   ppp: row.ppp,
   shp: row.shp,
-  gaa: row.gaa != null ? String(row.gaa) : undefined,
-  savePercent: row.save_percent != null ? String(row.save_percent) : undefined,
+  gaa: mapOptionalGoalieRate(row.gaa),
+  savePercent: mapOptionalGoalieRate(row.save_percent),
   score: 0,
   scoreAdjustedByGames: 0,
   season: row.season,
@@ -112,6 +155,40 @@ export const getGoaliesFromDb = async (
     args: [teamId, season, reportType],
   });
   return castRows<GoalieRow>(result.rows).map(mapGoalieRow);
+};
+
+export const getPlayerCareerRowsFromDb = async (
+  playerId: string,
+): Promise<PlayerCareerRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute({
+    sql: `SELECT player_id, name, position, team_id, season, report_type, games, goals, assists, points,
+                 plus_minus, penalties, shots, ppp, shp, hits, blocks
+          FROM players
+          WHERE player_id = ?
+          ORDER BY season DESC,
+                   team_id ASC,
+                   CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    args: [playerId],
+  });
+  return castRows<PlayerCareerRow>(result.rows);
+};
+
+export const getGoalieCareerRowsFromDb = async (
+  goalieId: string,
+): Promise<GoalieCareerRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute({
+    sql: `SELECT goalie_id, name, team_id, season, report_type, games, wins, saves, shutouts,
+                 goals, assists, points, penalties, ppp, shp, gaa, save_percent
+          FROM goalies
+          WHERE goalie_id = ?
+          ORDER BY season DESC,
+                   team_id ASC,
+                   CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    args: [goalieId],
+  });
+  return castRows<GoalieCareerRow>(result.rows);
 };
 
 export const getAvailableSeasonsFromDb = async (

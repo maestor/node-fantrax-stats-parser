@@ -378,6 +378,20 @@ describe("mappings", () => {
       expect(result[0].shp).toBe(0);
     });
 
+    test("maps placeholder 0 gaa and savePercent to undefined", () => {
+      const result = mapGoalieData([
+        mockRawDataFirstRow,
+        {
+          ...mockRawDataGoalie2014,
+          field10: "0",
+          field12: "0",
+        },
+      ]);
+
+      expect(result[0].gaa).toBeUndefined();
+      expect(result[0].savePercent).toBeUndefined();
+    });
+
     test("maps all RawData fields to GoalieWithSeason", () => {
       const result = mapGoalieData([mockRawDataFirstRow, mockRawDataGoalie2014]);
 
