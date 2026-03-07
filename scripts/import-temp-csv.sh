@@ -7,12 +7,13 @@ TEMP_DIR="${ROOT_DIR}/csv/temp"
 HANDLER_SCRIPT="${ROOT_DIR}/scripts/handle-csv.sh"
 
 DRY_RUN=false
+KEEP_TEMP=false
 SEASON_START_YEAR="${IMPORT_SEASON_START_YEAR:-}"
 REPORT_TYPE_FILTER="${IMPORT_REPORT_TYPE:-}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/import-temp-csv.sh [--dry-run|-n] [--season=YYYY] [--report-type=regular|playoffs]
+Usage: ./scripts/import-temp-csv.sh [--dry-run|-n] [--keep-temp] [--season=YYYY] [--report-type=regular|playoffs|both]
 
 Scans csv/temp/*.csv for files matching:
   {teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv
@@ -22,10 +23,12 @@ Then cleans each CSV using scripts/handle-csv.sh and writes it to:
 
 Options:
   --dry-run, -n   Print what would be imported, but do not write files
+  --keep-temp     Keep source files in csv/temp after successful DB import
   --season=YYYY   Import only files for this season start year (also
                   used for R2 upload/DB import filtering)
-  --report-type=regular|playoffs
-                  Import only one report type (also used for R2 upload/DB import filtering)
+  --report-type=regular|playoffs|both
+                  Import only one report type. `both` is the default and means
+                  no report-type filter for file processing, R2 upload, or DB import.
   --help, -h      Show this help
 USAGE
 }
@@ -34,6 +37,10 @@ while (( "$#" )); do
   case "$1" in
     --dry-run|-n)
       DRY_RUN=true
+      shift
+      ;;
+    --keep-temp)
+      KEEP_TEMP=true
       shift
       ;;
     --season=*)
@@ -60,8 +67,8 @@ if [[ -n "$SEASON_START_YEAR" ]] && [[ ! "$SEASON_START_YEAR" =~ ^[0-9]{4}$ ]]; 
   echo "Invalid --season value: $SEASON_START_YEAR (expected YYYY)" >&2
   exit 2
 fi
-if [[ -n "$REPORT_TYPE_FILTER" ]] && [[ ! "$REPORT_TYPE_FILTER" =~ ^(regular|playoffs)$ ]]; then
-  echo "Invalid --report-type value: $REPORT_TYPE_FILTER (expected regular or playoffs)" >&2
+if [[ -n "$REPORT_TYPE_FILTER" ]] && [[ ! "$REPORT_TYPE_FILTER" =~ ^(regular|playoffs|both)$ ]]; then
+  echo "Invalid --report-type value: $REPORT_TYPE_FILTER (expected regular, playoffs, or both)" >&2
   exit 2
 fi
 
@@ -114,7 +121,7 @@ for filepath in "${csv_files[@]}"; do
       skipped=$((skipped + 1))
       continue
     fi
-    if [[ -n "$REPORT_TYPE_FILTER" ]] && [[ "$report_type" != "$REPORT_TYPE_FILTER" ]]; then
+    if [[ -n "$REPORT_TYPE_FILTER" ]] && [[ "$REPORT_TYPE_FILTER" != "both" ]] && [[ "$report_type" != "$REPORT_TYPE_FILTER" ]]; then
       echo "Skip: $filename (report-type filter: expected ${REPORT_TYPE_FILTER})"
       skipped=$((skipped + 1))
       continue
@@ -142,22 +149,23 @@ done
 
 # Upload to R2 and import to database if files were imported
 if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
-  mode_args=()
-  report_type_args=()
+  upload_args=(npm run r2:upload --)
+  import_args=(npm run db:import:stats --)
+
   if [[ -n "$SEASON_START_YEAR" ]]; then
-    mode_args=(--season="${SEASON_START_YEAR}")
-  else
-    mode_args=(--current-only)
+    upload_args+=("--season=${SEASON_START_YEAR}")
+    import_args+=("--season=${SEASON_START_YEAR}")
   fi
-  if [[ -n "$REPORT_TYPE_FILTER" ]]; then
-    report_type_args=(--report-type="${REPORT_TYPE_FILTER}")
+  if [[ -n "$REPORT_TYPE_FILTER" ]] && [[ "$REPORT_TYPE_FILTER" != "both" ]]; then
+    upload_args+=("--report-type=${REPORT_TYPE_FILTER}")
+    import_args+=("--report-type=${REPORT_TYPE_FILTER}")
   fi
 
   # Upload to R2 if enabled (CSV backup/download store)
   if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then
     echo ""
     echo "📤 Uploading to R2..."
-    if ! npm run r2:upload -- "${mode_args[@]}" "${report_type_args[@]}"; then
+    if ! "${upload_args[@]}"; then
       echo "⚠️  R2 upload failed" >&2
     fi
   fi
@@ -165,17 +173,22 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
   # Import to database (USE_REMOTE_DB controls local vs remote)
   echo ""
   echo "📥 Importing to database..."
-  if npm run db:import:stats -- "${mode_args[@]}" "${report_type_args[@]}"; then
-    echo ""
-    echo "🧹 Cleaning up temp files..."
-    removed=0
-    for imported_path in "${imported_source_files[@]}"; do
-      if [[ -f "$imported_path" ]]; then
-        rm -f "$imported_path"
-        removed=$((removed + 1))
-      fi
-    done
-    echo "Removed ${removed} imported file(s) from csv/temp/"
+  if "${import_args[@]}"; then
+    if [[ "$KEEP_TEMP" == "true" ]]; then
+      echo ""
+      echo "📌 Keeping temp files in csv/temp/ (--keep-temp)"
+    else
+      echo ""
+      echo "🧹 Cleaning up temp files..."
+      removed=0
+      for imported_path in "${imported_source_files[@]}"; do
+        if [[ -f "$imported_path" ]]; then
+          rm -f "$imported_path"
+          removed=$((removed + 1))
+        fi
+      done
+      echo "Removed ${removed} imported file(s) from csv/temp/"
+    fi
   else
     echo "⚠️  Database import failed, keeping temp files" >&2
   fi

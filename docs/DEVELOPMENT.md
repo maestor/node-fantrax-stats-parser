@@ -101,7 +101,7 @@ npm run verify
 - `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to regular files (and `--year=YYYY` when provided).
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to playoffs files (and `--year=YYYY` when provided).
 - `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present and removes only empty placeholder first columns + `Age`.
-- `./scripts/import-temp-csv.sh [--dry-run] [--season=YYYY] [--report-type=regular|playoffs]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB.
+- `./scripts/import-temp-csv.sh [--dry-run] [--keep-temp] [--season=YYYY] [--report-type=regular|playoffs|both]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB. By default it removes successfully imported source files from `csv/temp/`; use `--keep-temp` to preserve them. If `--season` is omitted it processes all matched seasons; if `--report-type` is omitted, `both` is the default.
 
 ### Fantrax IDs in imports
 
@@ -109,7 +109,9 @@ npm run verify
 - Import parses these IDs and stores them as:
   - `id` for skaters
   - `id` for goalies
-- Parser remains backward-compatible with older cleaned CSV files that do not include the first `ID` column.
+- The import pipeline expects Fantrax's leading `ID` column to be preserved.
+- Rows with a missing Fantrax ID are skipped during DB import and reported after the import completes; the rest of the file still imports.
+- Rows with `0` games are imported into the database, but player/goalie API queries currently filter them out.
 
 ### Database (Turso/SQLite)
 - `npm run db:migrate` - Create/update database schema

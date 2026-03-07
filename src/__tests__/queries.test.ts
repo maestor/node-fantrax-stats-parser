@@ -53,7 +53,7 @@ describe("db/queries", () => {
       const result = await getPlayersFromDb("1", 2024, "regular");
 
       expect(mockExecute).toHaveBeenCalledWith({
-        sql: expect.stringContaining("SELECT"),
+        sql: expect.stringContaining("games > 0"),
         args: ["1", 2024, "regular"],
       });
 
@@ -168,7 +168,7 @@ describe("db/queries", () => {
       const result = await getGoaliesFromDb("1", 2024, "regular");
 
       expect(mockExecute).toHaveBeenCalledWith({
-        sql: expect.stringContaining("SELECT"),
+        sql: expect.stringContaining("games > 0"),
         args: ["1", 2024, "regular"],
       });
 
@@ -267,7 +267,7 @@ describe("db/queries", () => {
       const result = await getAvailableSeasonsFromDb("1", "regular");
 
       expect(mockExecute).toHaveBeenCalledWith({
-        sql: expect.stringContaining("DISTINCT season"),
+        sql: expect.stringContaining("games > 0"),
         args: ["1", "regular"],
       });
       expect(result).toEqual([2012, 2013, 2014]);
@@ -288,7 +288,7 @@ describe("db/queries", () => {
 
       const result = await getTeamIdsWithData();
 
-      expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining("UNION"));
+      expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining("games > 0"));
       expect(result).toEqual(["1", "2", "3"]);
     });
 

@@ -274,12 +274,14 @@ ID behavior:
 - When an `ID` column is present, import parses it and stores it in DB/API as:
   - `id` for skaters
   - `id` for goalies
-- The parser still supports older cleaned CSVs where the first `ID` column was removed.
+- The import pipeline expects Fantrax's leading `ID` column to be preserved.
+- Rows with a missing Fantrax ID are skipped during DB import and reported after the import completes; the rest of the file still imports.
+- Rows with `0` games are imported into the database, but player/goalie API responses currently filter them out.
 
 ### Import files from `csv/temp`
 
 - Script: `scripts/import-temp-csv.sh`
-- Supports `--season=YYYY` and `--report-type=regular|playoffs` filters
+- Supports `--keep-temp`, `--season=YYYY`, and `--report-type=regular|playoffs|both` filters
 - Assumes input files in `csv/temp/` are named:
   - `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
 
@@ -292,7 +294,9 @@ It will:
 - Create `csv/<teamId>/` if it doesn't exist
 - Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
 - Import into database (`npm run db:import:stats`)
-- Clean up temp files after successful DB import
+- Clean up temp files after successful DB import, unless `--keep-temp` is used
+- If `--season` is omitted, all matched seasons are uploaded/imported
+- If `--report-type` is omitted, `both` is the default and all matched report types are uploaded/imported
 
 Preview without writing:
 
@@ -304,6 +308,7 @@ Import (write cleaned files):
 
 ```
 ./scripts/import-temp-csv.sh
+./scripts/import-temp-csv.sh --keep-temp
 ```
 
 Import a single season only:
@@ -317,6 +322,7 @@ Import only one report type:
 ```
 ./scripts/import-temp-csv.sh --report-type=regular
 ./scripts/import-temp-csv.sh --report-type=playoffs
+./scripts/import-temp-csv.sh --report-type=both
 ./scripts/import-temp-csv.sh --season=2018 --report-type=playoffs
 ```
 
