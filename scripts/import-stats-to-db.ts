@@ -67,6 +67,9 @@ const main = async () => {
   let totalGoalies = 0;
   let totalFiles = 0;
   let errors = 0;
+  let skippedPlayersMissingId = 0;
+  let skippedGoaliesMissingId = 0;
+  const missingIdMessages: string[] = [];
 
   for (const team of TEAMS) {
     const teamDir = path.join(csvDir, team.id);
@@ -110,20 +113,25 @@ const main = async () => {
         const rawData = await csv().fromFile(normalizedPath);
         const dataWithSeason = rawData.map((item) => ({ ...item, season }));
 
-        const players = mapPlayerData(dataWithSeason);
-        const goalies = mapGoalieData(dataWithSeason);
+        const players = mapPlayerData(dataWithSeason, { includeZeroGames: true });
+        const goalies = mapGoalieData(dataWithSeason, { includeZeroGames: true });
         const playersMissingId = players.filter((p) => !p.id).length;
         const goaliesMissingId = goalies.filter((g) => !g.id).length;
+        const playersToImport = players.filter((p) => p.id);
+        const goaliesToImport = goalies.filter((g) => g.id);
+
         if (playersMissingId > 0 || goaliesMissingId > 0) {
-          throw new Error(
+          missingIdMessages.push(
             `Missing Fantrax IDs in ${file}: players=${playersMissingId}, goalies=${goaliesMissingId}. ` +
-              "All rows must have IDs before DB import.",
+              "All rows must have IDs before DB import."
           );
+          skippedPlayersMissingId += playersMissingId;
+          skippedGoaliesMissingId += goaliesMissingId;
         }
 
         if (dryRun) {
           console.log(
-            `  🔍 Would import: ${file} (${players.length} players, ${goalies.length} goalies)`
+            `  🔍 Would import: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`
           );
         } else {
           // Build batch: delete existing + insert all rows atomically
@@ -138,7 +146,7 @@ const main = async () => {
             },
           ];
 
-          for (const player of players) {
+          for (const player of playersToImport) {
             statements.push({
               sql: `INSERT INTO players (team_id, season, report_type, player_id, name, position, games, goals, assists, points, plus_minus, penalties, shots, ppp, shp, hits, blocks)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -164,7 +172,7 @@ const main = async () => {
             });
           }
 
-          for (const goalie of goalies) {
+          for (const goalie of goaliesToImport) {
             statements.push({
               sql: `INSERT INTO goalies (team_id, season, report_type, goalie_id, name, games, wins, saves, shutouts, goals, assists, points, penalties, ppp, shp, gaa, save_percent)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -193,12 +201,12 @@ const main = async () => {
           await db.batch(statements, "write");
 
           console.log(
-            `  ✅ Imported: ${file} (${players.length} players, ${goalies.length} goalies)`
+            `  ✅ Imported: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`
           );
         }
 
-        totalPlayers += players.length;
-        totalGoalies += goalies.length;
+        totalPlayers += playersToImport.length;
+        totalGoalies += goaliesToImport.length;
         totalFiles++;
       } catch (error) {
         console.error(`  ❌ Error importing ${file}:`, error);
@@ -224,6 +232,15 @@ const main = async () => {
   console.log(`   Players imported: ${totalPlayers}`);
   console.log(`   Goalies imported: ${totalGoalies}`);
   console.log(`   Errors: ${errors}`);
+  console.log(`   Rows skipped (missing IDs): players=${skippedPlayersMissingId}, goalies=${skippedGoaliesMissingId}`);
+
+  if (missingIdMessages.length > 0) {
+    console.log("");
+    console.log("⚠️ Missing Fantrax IDs:");
+    for (const message of missingIdMessages) {
+      console.log(`   ${message}`);
+    }
+  }
   console.log("");
   console.log("✨ Done!");
 };

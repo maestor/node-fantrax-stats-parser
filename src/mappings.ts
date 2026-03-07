@@ -35,17 +35,14 @@ const parseFantraxId = (value: string): string | undefined => {
   return match ? match[1] : undefined;
 };
 
-const hasLeadingIdColumn = (item: RawData): boolean => {
-  return parseFantraxId(item[CSV.SKATER_TYPE]) !== undefined;
-};
-
-const getShiftedField = (item: RawData, key: string, offset: 0 | 1): string => {
-  // "Skaters" acts as first data column; when ID is present, skater type shifts to field2.
+const getShiftedField = (item: RawData, key: string): string => {
+  // "Skaters" acts as the first column key, but data rows now always keep
+  // Fantrax's leading ID column there, so skater type starts at field2.
   if (key === CSV.SKATER_TYPE) {
-    return offset === 0 ? item[CSV.SKATER_TYPE] : item.field2;
+    return item.field2;
   }
 
-  const fieldNo = Number(key.slice(5)) + offset;
+  const fieldNo = Number(key.slice(5)) + 1;
   const shiftedKey = `field${fieldNo}` as keyof RawData;
   const value = item[shiftedKey];
   return typeof value === "string" ? value : "";
@@ -53,48 +50,59 @@ const getShiftedField = (item: RawData, key: string, offset: 0 | 1): string => {
 
 const parseNameAndFantraxId = (rawName: string, rawId: string): { name: string; id: string } => {
   const name = rawName.replace(/\*[A-Za-z0-9]+\*/g, "").replace(/\s+/g, " ").trim();
-  const id = parseFantraxId(rawId) ?? parseFantraxId(rawName) ?? "";
+  const id = parseFantraxId(rawId) ?? "";
   return {
     name,
     id,
   };
 };
 
-export const mapPlayerData = (data: RawData[]): PlayerWithSeason[] => {
+type MapCsvOptions = {
+  includeZeroGames?: boolean;
+};
+
+const isHeaderRow = (item: RawData): boolean => {
+  return item[CSV.SKATER_TYPE] === "ID" || getShiftedField(item, CSV.SKATER_TYPE) === "Pos";
+};
+
+export const mapPlayerData = (
+  data: RawData[],
+  options: MapCsvOptions = {}
+): PlayerWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) => {
         if (i === 0) return false;
-        const offset: 0 | 1 = hasLeadingIdColumn(item) ? 1 : 0;
-        const skaterType = getShiftedField(item, CSV.SKATER_TYPE, offset);
-        const name = getShiftedField(item, CSV.NAME, offset);
-        const games = getShiftedField(item, CSV.PLAYER_GAMES, offset);
+        if (isHeaderRow(item)) return false;
+        const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
+        const name = getShiftedField(item, CSV.NAME);
+        const games = getShiftedField(item, CSV.PLAYER_GAMES);
 
-        return name !== "" && skaterType !== "G" && parseNumber(games) > 0;
+        if (name === "" || skaterType === "G") {
+          return false;
+        }
+
+        return options.includeZeroGames ? true : parseNumber(games) > 0;
       }
     )
     .map((item: RawData): PlayerWithSeason => {
-      const offset: 0 | 1 = hasLeadingIdColumn(item) ? 1 : 0;
-      const skaterType = getShiftedField(item, CSV.SKATER_TYPE, offset);
-      const { name, id } = parseNameAndFantraxId(
-        getShiftedField(item, CSV.NAME, offset),
-        item[CSV.SKATER_TYPE]
-      );
+      const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
+      const { name, id } = parseNameAndFantraxId(getShiftedField(item, CSV.NAME), item[CSV.SKATER_TYPE]);
       return {
         id,
         name,
         position: skaterType,
-        games: parseNumber(getShiftedField(item, CSV.PLAYER_GAMES, offset)),
-        goals: parseNumber(getShiftedField(item, CSV.PLAYER_GOALS, offset)),
-        assists: parseNumber(getShiftedField(item, CSV.PLAYER_ASSISTS, offset)),
-        points: parseNumber(getShiftedField(item, CSV.PLAYER_POINTS, offset)),
-        plusMinus: parseNumber(getShiftedField(item, CSV.PLAYER_PLUS_MINUS, offset)),
-        penalties: parseNumber(getShiftedField(item, CSV.PLAYER_PENALTIES, offset)),
-        shots: parseNumber(getShiftedField(item, CSV.PLAYER_SHOTS, offset)),
-        ppp: parseNumber(getShiftedField(item, CSV.PLAYER_PPP, offset)),
-        shp: parseNumber(getShiftedField(item, CSV.PLAYER_SHP, offset)),
-        hits: parseNumber(getShiftedField(item, CSV.PLAYER_HITS, offset)),
-        blocks: parseNumber(getShiftedField(item, CSV.PLAYER_BLOCKS, offset)),
+        games: parseNumber(getShiftedField(item, CSV.PLAYER_GAMES)),
+        goals: parseNumber(getShiftedField(item, CSV.PLAYER_GOALS)),
+        assists: parseNumber(getShiftedField(item, CSV.PLAYER_ASSISTS)),
+        points: parseNumber(getShiftedField(item, CSV.PLAYER_POINTS)),
+        plusMinus: parseNumber(getShiftedField(item, CSV.PLAYER_PLUS_MINUS)),
+        penalties: parseNumber(getShiftedField(item, CSV.PLAYER_PENALTIES)),
+        shots: parseNumber(getShiftedField(item, CSV.PLAYER_SHOTS)),
+        ppp: parseNumber(getShiftedField(item, CSV.PLAYER_PPP)),
+        shp: parseNumber(getShiftedField(item, CSV.PLAYER_SHP)),
+        hits: parseNumber(getShiftedField(item, CSV.PLAYER_HITS)),
+        blocks: parseNumber(getShiftedField(item, CSV.PLAYER_BLOCKS)),
         score: 0,
         scoreAdjustedByGames: 0,
         season: item.season,
@@ -223,49 +231,48 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
   return combined;
 };
 
-export const mapGoalieData = (data: RawData[]): GoalieWithSeason[] => {
+export const mapGoalieData = (
+  data: RawData[],
+  options: MapCsvOptions = {}
+): GoalieWithSeason[] => {
   return data
     .filter(
       (item: RawData, i: number) => {
         if (i === 0) return false;
-        const offset: 0 | 1 = hasLeadingIdColumn(item) ? 1 : 0;
-        const skaterType = getShiftedField(item, CSV.SKATER_TYPE, offset);
-        const name = getShiftedField(item, CSV.NAME, offset);
-        const games = getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD, offset);
-        const wins = getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD, offset);
+        if (isHeaderRow(item)) return false;
+        const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
+        const name = getShiftedField(item, CSV.NAME);
+        const games = getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD);
+        const wins = getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD);
 
-        return (
-          name !== "" &&
-          skaterType === "G" &&
-          (parseNumber(games) > 0 || parseWinsFromWG(wins) > 0)
-        );
+        if (name === "" || skaterType !== "G") {
+          return false;
+        }
+
+        return options.includeZeroGames ? true : parseNumber(games) > 0 || parseWinsFromWG(wins) > 0;
       }
     )
     .map((item: RawData): GoalieWithSeason => {
-      const offset: 0 | 1 = hasLeadingIdColumn(item) ? 1 : 0;
-      const { name, id } = parseNameAndFantraxId(
-        getShiftedField(item, CSV.NAME, offset),
-        item[CSV.SKATER_TYPE]
-      );
+      const { name, id } = parseNameAndFantraxId(getShiftedField(item, CSV.NAME), item[CSV.SKATER_TYPE]);
       return {
         id,
         name,
         // We normalize CSVs so goalies always use: field7 = GP, field8 = W-G.
-        games: parseNumber(getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD, offset)),
-        wins: parseWinsFromWG(getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD, offset)),
-        saves: parseNumber(getShiftedField(item, CSV.GOALIE_SAVES, offset)),
-        shutouts: parseNumber(getShiftedField(item, CSV.GOALIE_SHUTOUTS, offset)),
-        goals: parseNumber(getShiftedField(item, CSV.GOALIE_GOALS, offset)),
-        assists: parseNumber(getShiftedField(item, CSV.GOALIE_ASSISTS, offset)),
-        points: parseNumber(getShiftedField(item, CSV.GOALIE_POINTS, offset)),
-        penalties: parseNumber(getShiftedField(item, CSV.GOALIE_PENALTIES, offset)),
-        ppp: parseNumber(getShiftedField(item, CSV.GOALIE_PPP, offset)),
-        shp: parseNumber(getShiftedField(item, CSV.GOALIE_SHP, offset)),
+        games: parseNumber(getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD)),
+        wins: parseWinsFromWG(getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD)),
+        saves: parseNumber(getShiftedField(item, CSV.GOALIE_SAVES)),
+        shutouts: parseNumber(getShiftedField(item, CSV.GOALIE_SHUTOUTS)),
+        goals: parseNumber(getShiftedField(item, CSV.GOALIE_GOALS)),
+        assists: parseNumber(getShiftedField(item, CSV.GOALIE_ASSISTS)),
+        points: parseNumber(getShiftedField(item, CSV.GOALIE_POINTS)),
+        penalties: parseNumber(getShiftedField(item, CSV.GOALIE_PENALTIES)),
+        ppp: parseNumber(getShiftedField(item, CSV.GOALIE_PPP)),
+        shp: parseNumber(getShiftedField(item, CSV.GOALIE_SHP)),
         score: 0,
         scoreAdjustedByGames: 0,
         season: item.season,
-        gaa: getShiftedField(item, CSV.GOALIE_GAA, offset),
-        savePercent: getShiftedField(item, CSV.GOALIE_SAVE_PERCENT, offset),
+        gaa: getShiftedField(item, CSV.GOALIE_GAA),
+        savePercent: getShiftedField(item, CSV.GOALIE_SAVE_PERCENT),
       };
     });
 };

@@ -19,5 +19,6 @@
 ## Task Completion and Handoff
 - You may commit independently on the working branch.
 - After finishing implementation, ask the user to review.
-- After user accepts changes, offer PR notes as a copy-pasteable code block.
+- After user accepts changes, complete a commit phase on the current branch before offering PR notes.
+- After the commit phase, offer PR notes as a copy-pasteable code block.
 - User handles final PR flow.

@@ -47,6 +47,30 @@ describe("mappings", () => {
       expect(result[0].name).toBe("Connor McDavid");
     });
 
+    test("includes players with 0 games when includeZeroGames is true", () => {
+      const result = mapPlayerData([mockRawDataFirstRow, mockRawDataZeroGames], {
+        includeZeroGames: true,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Zero Games Player");
+      expect(result[0].games).toBe(0);
+    });
+
+    test("excludes later section header rows when includeZeroGames is true", () => {
+      const secondHeaderRow = {
+        ...mockRawDataFirstRow,
+        season: 2025,
+      };
+
+      const result = mapPlayerData([mockRawDataFirstRow, secondHeaderRow, mockRawDataZeroGames], {
+        includeZeroGames: true,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Zero Games Player");
+    });
+
     test("correctly parses numbers with commas (1,234)", () => {
       const result = mapPlayerData([mockRawDataFirstRow, mockRawDataPlayerWithCommas]);
       expect(result[0].games).toBe(82);
@@ -79,17 +103,6 @@ describe("mappings", () => {
       });
     });
 
-    test("extracts id from *id* in name and strips token from display name", () => {
-      const withIdInName = {
-        ...mockRawDataPlayer,
-        field2: "Sebastian Aho *00qs7*",
-      };
-      const result = mapPlayerData([mockRawDataFirstRow, withIdInName]);
-
-      expect(result[0].name).toBe("Sebastian Aho");
-      expect(result[0].id).toBe("00qs7");
-    });
-
     test("parses id from first CSV column when export keeps ID field", () => {
       const withLeadingIdColumn = {
         ...mockRawDataPlayer,
@@ -97,6 +110,9 @@ describe("mappings", () => {
         field2: "F",
         field3: "Sebastian Aho",
         field4: "CAR",
+        field5: "F",
+        field6: "Act",
+        field7: "@NJD",
         field8: "82",
         field9: "30",
         field10: "50",
@@ -119,10 +135,23 @@ describe("mappings", () => {
       expect(result[0].games).toBe(82);
     });
 
+    test("returns empty id when leading ID column is malformed", () => {
+      const withoutValidId = {
+        ...mockRawDataPlayer,
+        Skaters: "not-an-id",
+      };
+
+      const result = mapPlayerData([mockRawDataFirstRow, withoutValidId]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Connor McDavid");
+      expect(result[0].id).toBe("");
+    });
+
     test("filters out malformed row where name is undefined", () => {
       const malformed = {
         ...mockRawDataPlayer,
-        field2: undefined,
+        field3: undefined,
       } as unknown as typeof mockRawDataPlayer;
 
       const result = mapPlayerData([mockRawDataFirstRow, malformed]);
@@ -133,16 +162,16 @@ describe("mappings", () => {
     test("defaults to 0 when Number() fails", () => {
       const invalidData = {
         ...mockRawDataPlayer,
-        field8: "invalid", // goals
-        field9: "", // assists
-        field10: "", // points
-        field11: "", // plusMinus
-        field12: "", // penalties
-        field13: "", // shots
-        field14: "", // ppp
-        field15: "", // shp
-        field16: "", // hits
-        field17: "", // blocks
+        field9: "invalid", // goals
+        field10: "", // assists
+        field11: "", // points
+        field12: "", // plusMinus
+        field13: "", // penalties
+        field14: "", // shots
+        field15: "", // ppp
+        field16: "", // shp
+        field17: "", // hits
+        field18: "", // blocks
       };
       const result = mapPlayerData([mockRawDataFirstRow, invalidData]);
       expect(result[0].goals).toBe(0);
@@ -163,16 +192,16 @@ describe("mappings", () => {
       const season1 = {
         ...mockRawDataPlayer,
         season: 2023,
-        field2: "Player A",
-        field7: "50",
-        field8: "30",
+        field3: "Player A",
+        field8: "50",
+        field9: "30",
       };
       const season2 = {
         ...mockRawDataPlayer,
         season: 2024,
-        field2: "Player A",
-        field7: "32",
-        field8: "20",
+        field3: "Player A",
+        field8: "32",
+        field9: "20",
       };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
@@ -205,8 +234,8 @@ describe("mappings", () => {
     });
 
     test("handles multiple different players", () => {
-      const player1 = { ...mockRawDataPlayer, field2: "Player A *id001*" };
-      const player2 = { ...mockRawDataPlayer, field2: "Player B *id002*" };
+      const player1 = { ...mockRawDataPlayer, Skaters: "*id001*", field3: "Player A" };
+      const player2 = { ...mockRawDataPlayer, Skaters: "*id002*", field3: "Player B" };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
 
@@ -215,11 +244,12 @@ describe("mappings", () => {
     });
 
     test("keeps same-name players separate when id differs", () => {
-      const player1 = { ...mockRawDataPlayer, field2: "Alex Smith *id001*" };
+      const player1 = { ...mockRawDataPlayer, Skaters: "*id001*", field3: "Alex Smith" };
       const player2 = {
         ...mockRawDataPlayer,
-        field2: "Alex Smith *id002*",
-        field8: "10",
+        Skaters: "*id002*",
+        field3: "Alex Smith",
+        field9: "10",
       };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, player1, player2]);
@@ -247,8 +277,8 @@ describe("mappings", () => {
         return players;
       });
 
-      const season1 = { ...mockRawDataPlayer, season: 2023, field2: "Player A" };
-      const season2 = { ...mockRawDataPlayer, season: 2024, field2: "Player A" };
+      const season1 = { ...mockRawDataPlayer, season: 2023, field3: "Player A" };
+      const season2 = { ...mockRawDataPlayer, season: 2024, field3: "Player A" };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
 
@@ -284,8 +314,8 @@ describe("mappings", () => {
         return players;
       });
 
-      const season1 = { ...mockRawDataPlayer, season: 2023, field2: "Player A" };
-      const season2 = { ...mockRawDataPlayer, season: 2024, field2: "Player A" };
+      const season1 = { ...mockRawDataPlayer, season: 2023, field3: "Player A" };
+      const season2 = { ...mockRawDataPlayer, season: 2024, field3: "Player A" };
 
       const result = mapCombinedPlayerData([mockRawDataFirstRow, season1, season2]);
 
@@ -372,17 +402,6 @@ describe("mappings", () => {
       });
     });
 
-    test("extracts id from *id* in name and strips token from display name", () => {
-      const withIdInName = {
-        ...mockRawDataGoalie2014,
-        field2: "Juuse Saros *g007*",
-      };
-      const result = mapGoalieData([mockRawDataFirstRow, withIdInName]);
-
-      expect(result[0].name).toBe("Juuse Saros");
-      expect(result[0].id).toBe("g007");
-    });
-
     test("parses id from first CSV column when export keeps ID field", () => {
       const withLeadingIdColumn = {
         ...mockRawDataGoalie2014,
@@ -390,6 +409,9 @@ describe("mappings", () => {
         field2: "G",
         field3: "Juuse Saros",
         field4: "NSH",
+        field5: "G",
+        field6: "Act",
+        field7: "",
         field8: "60", // GP
         field9: "30", // W-G
         field10: "2.50", // GAA
@@ -419,6 +441,9 @@ describe("mappings", () => {
         field2: "G",
         field3: "Juuse Saros",
         field4: "NSH",
+        field5: "G",
+        field6: "Act",
+        field7: "",
         field8: "60", // GP
         field9: "30", // W-G
         field10: "2.50", // GAA
@@ -445,19 +470,47 @@ describe("mappings", () => {
     test("excludes goalies with both games and wins as 0", () => {
       const zeroGoalie = {
         ...mockRawDataGoalie2014,
-        field7: "0",
         field8: "0",
+        field9: "0",
       };
       const result = mapGoalieData([mockRawDataFirstRow, zeroGoalie]);
 
       expect(result.length).toBe(0);
     });
 
+    test("includes goalies with 0 games when includeZeroGames is true", () => {
+      const zeroGoalie = {
+        ...mockRawDataGoalie2014,
+        field8: "0",
+        field9: "0",
+      };
+      const result = mapGoalieData([mockRawDataFirstRow, zeroGoalie], {
+        includeZeroGames: true,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].games).toBe(0);
+      expect(result[0].wins).toBe(0);
+    });
+
+    test("excludes later goalie header rows when includeZeroGames is true", () => {
+      const secondHeaderRow = {
+        ...mockRawDataFirstRow,
+        season: 2025,
+      };
+      const result = mapGoalieData([mockRawDataFirstRow, secondHeaderRow, mockRawDataGoalie2014], {
+        includeZeroGames: true,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Carey Price");
+    });
+
     test("includes goalie with games > 0, wins = 0", () => {
       const goalie = {
         ...mockRawDataGoalie2014,
-        field7: "0",
-        field8: "10",
+        field8: "0",
+        field9: "10",
       };
       const result = mapGoalieData([mockRawDataFirstRow, goalie]);
 
@@ -467,8 +520,8 @@ describe("mappings", () => {
     test("treats empty wins value as 0 (W-G parsing)", () => {
       const data = {
         ...mockRawDataGoalie2014,
-        field7: "10", // GP
-        field8: "", // W-G (wins) empty
+        field8: "10", // GP
+        field9: "", // W-G (wins) empty
       };
 
       const result = mapGoalieData([mockRawDataFirstRow, data]);
@@ -481,8 +534,8 @@ describe("mappings", () => {
     test("includes goalie with wins > 0, games = 0", () => {
       const goalie = {
         ...mockRawDataGoalie2014,
-        field7: "10",
-        field8: "0",
+        field8: "10",
+        field9: "0",
       };
       const result = mapGoalieData([mockRawDataFirstRow, goalie]);
 
@@ -492,7 +545,7 @@ describe("mappings", () => {
     test("handles commas in goalie numbers", () => {
       const goalieWithCommas = {
         ...mockRawDataGoalie2014,
-        field10: "2,500",
+        field11: "2,500",
       };
       const result = mapGoalieData([mockRawDataFirstRow, goalieWithCommas]);
 
@@ -502,7 +555,7 @@ describe("mappings", () => {
     test("excludes goalies with empty field2", () => {
       const emptyNameGoalie = {
         ...mockRawDataGoalie2014,
-        field2: "",
+        field3: "",
       };
       const result = mapGoalieData([mockRawDataFirstRow, emptyNameGoalie]);
 
@@ -512,15 +565,15 @@ describe("mappings", () => {
     test("defaults goalie stats to 0 when Number() fails", () => {
       const invalidGoalie = {
         ...mockRawDataGoalie2014,
-        field7: "10", // games - keep valid to pass filter
-        field8: "", // wins - will be 0
-        field10: "invalid", // saves
-        field12: "", // shutouts
-        field13: "", // penalties
-        field14: "", // goals
-        field15: "", // assists
-        field16: "", // points
-        field17: "", // ppp
+        field8: "10", // games - keep valid to pass filter
+        field9: "", // wins - will be 0
+        field11: "invalid", // saves
+        field13: "", // shutouts
+        field14: "", // penalties
+        field15: "", // goals
+        field16: "", // assists
+        field17: "", // points
+        field18: "", // ppp
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie]);
 
@@ -537,8 +590,8 @@ describe("mappings", () => {
     test("defaults goalie games to 0 for season 2012 when Number() fails", () => {
       const invalidGoalie2012Games = {
         ...mockRawDataGoalie2012,
-        field7: "", // games (for <=2013) - will be 0
-        field8: "10", // wins (for <=2013) - keep valid to pass filter
+        field8: "", // games (for <=2013) - will be 0
+        field9: "10", // wins (for <=2013) - keep valid to pass filter
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie2012Games]);
 
@@ -549,8 +602,8 @@ describe("mappings", () => {
     test("defaults goalie wins to 0 for season 2012 when Number() fails", () => {
       const invalidGoalie2012Wins = {
         ...mockRawDataGoalie2012,
-        field7: "10", // games (for <=2013) - keep valid to pass filter
-        field8: "", // wins (for <=2013) - will be 0
+        field8: "10", // games (for <=2013) - keep valid to pass filter
+        field9: "", // wins (for <=2013) - will be 0
       };
       const result = mapGoalieData([mockRawDataFirstRow, invalidGoalie2012Wins]);
 
@@ -561,7 +614,7 @@ describe("mappings", () => {
     test("handles field18 with comma in ternary", () => {
       const goalieWithCommaInField18 = {
         ...mockRawDataGoalie2014,
-        field18: "1,234",
+        field19: "1,234",
       };
       const result = mapGoalieData([mockRawDataFirstRow, goalieWithCommaInField18]);
 
@@ -581,16 +634,16 @@ describe("mappings", () => {
       const season1 = {
         ...mockRawDataGoalie2014,
         season: 2023,
-        field2: "Goalie A",
-        field7: "60",
-        field8: "30",
+        field3: "Goalie A",
+        field8: "60",
+        field9: "30",
       };
       const season2 = {
         ...mockRawDataGoalie2014,
         season: 2024,
-        field2: "Goalie A",
-        field7: "40",
-        field8: "20",
+        field3: "Goalie A",
+        field8: "40",
+        field9: "20",
       };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
@@ -623,8 +676,8 @@ describe("mappings", () => {
     });
 
     test("handles multiple different goalies", () => {
-      const goalie1 = { ...mockRawDataGoalie2014, field2: "Goalie A *g101*" };
-      const goalie2 = { ...mockRawDataGoalie2014, field2: "Goalie B *g102*" };
+      const goalie1 = { ...mockRawDataGoalie2014, Skaters: "*g101*", field3: "Goalie A" };
+      const goalie2 = { ...mockRawDataGoalie2014, Skaters: "*g102*", field3: "Goalie B" };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
 
@@ -633,11 +686,12 @@ describe("mappings", () => {
     });
 
     test("keeps same-name goalies separate when id differs", () => {
-      const goalie1 = { ...mockRawDataGoalie2014, field2: "John Doe *g001*" };
+      const goalie1 = { ...mockRawDataGoalie2014, Skaters: "*g001*", field3: "John Doe" };
       const goalie2 = {
         ...mockRawDataGoalie2014,
-        field2: "John Doe *g002*",
-        field8: "10",
+        Skaters: "*g002*",
+        field3: "John Doe",
+        field9: "10",
       };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, goalie1, goalie2]);
@@ -676,8 +730,8 @@ describe("mappings", () => {
         return goalies;
       });
 
-      const season1 = { ...mockRawDataGoalie2014, season: 2023, field2: "Goalie A" };
-      const season2 = { ...mockRawDataGoalie2014, season: 2024, field2: "Goalie A" };
+      const season1 = { ...mockRawDataGoalie2014, season: 2023, field3: "Goalie A" };
+      const season2 = { ...mockRawDataGoalie2014, season: 2024, field3: "Goalie A" };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
 
@@ -714,8 +768,8 @@ describe("mappings", () => {
         return goalies;
       });
 
-      const season1 = { ...mockRawDataGoalie2014, season: 2023, field2: "Goalie A" };
-      const season2 = { ...mockRawDataGoalie2014, season: 2024, field2: "Goalie A" };
+      const season1 = { ...mockRawDataGoalie2014, season: 2023, field3: "Goalie A" };
+      const season2 = { ...mockRawDataGoalie2014, season: 2024, field3: "Goalie A" };
 
       const result = mapCombinedGoalieData([mockRawDataFirstRow, season1, season2]);
 
