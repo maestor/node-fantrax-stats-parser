@@ -32,8 +32,8 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 See [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs) for the interactive API reference (Swagger UI).
 The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json).
 
-The API includes team-scoped season/combined leaderboards plus career endpoints for single Fantrax IDs:
-`/career/player/{id}` and `/career/goalie/{id}`.
+The API includes team-scoped season/combined leaderboards plus career endpoints for both list and single-resource lookups:
+`/career/players`, `/career/goalies`, `/career/player/{id}`, and `/career/goalie/{id}`.
 
 ### Viewing docs locally
 

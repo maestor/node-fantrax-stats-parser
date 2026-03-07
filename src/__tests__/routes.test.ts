@@ -14,6 +14,8 @@ import {
   getGoaliesCombined,
   getCareerPlayer,
   getCareerGoalie,
+  getCareerPlayers,
+  getCareerGoalies,
   getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
@@ -27,6 +29,8 @@ import {
   getGoaliesStatsCombined,
   getPlayerCareerData,
   getGoalieCareerData,
+  getCareerPlayersData,
+  getCareerGoaliesData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "../services";
@@ -796,6 +800,40 @@ describe("routes", () => {
     });
   });
 
+  describe("getCareerPlayers", () => {
+    test("returns 200 with player career list data", async () => {
+      const mockList = [
+        {
+          id: "p001",
+          name: "Career Skater",
+          position: "F",
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonsOwned: 3,
+          seasonsPlayedRegular: 1,
+          seasonsPlayedPlayoffs: 1,
+          teamsOwned: 2,
+          teamsPlayedRegular: 1,
+          teamsPlayedPlayoffs: 1,
+          regularGames: 82,
+          playoffGames: 5,
+        },
+      ];
+      (getCareerPlayersData as jest.Mock).mockResolvedValue(mockList);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/players",
+      });
+      const res = createResponse();
+
+      await getCareerPlayers(asRouteReq(req), res);
+
+      expect(getCareerPlayersData).toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockList);
+    });
+  });
+
   describe("getCareerGoalie", () => {
     test("returns 200 with goalie career data", async () => {
       const mockCareer = {
@@ -888,6 +926,39 @@ describe("routes", () => {
       await getCareerGoalie(asRouteReq(req), res);
 
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.NOT_FOUND, "Goalie not found");
+    });
+  });
+
+  describe("getCareerGoalies", () => {
+    test("returns 200 with goalie career list data", async () => {
+      const mockList = [
+        {
+          id: "g001",
+          name: "Career Goalie",
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonsOwned: 3,
+          seasonsPlayedRegular: 1,
+          seasonsPlayedPlayoffs: 1,
+          teamsOwned: 2,
+          teamsPlayedRegular: 1,
+          teamsPlayedPlayoffs: 1,
+          regularGames: 50,
+          playoffGames: 8,
+        },
+      ];
+      (getCareerGoaliesData as jest.Mock).mockResolvedValue(mockList);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalies",
+      });
+      const res = createResponse();
+
+      await getCareerGoalies(asRouteReq(req), res);
+
+      expect(getCareerGoaliesData).toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockList);
     });
   });
 
@@ -1178,6 +1249,7 @@ describe("routes", () => {
     const validPlayer = {
       id: "p900",
       name: "Test Player",
+      position: "F",
       games: 82,
       goals: 30,
       assists: 40,
@@ -1467,6 +1539,37 @@ describe("routes", () => {
       ],
     };
 
+    const validCareerPlayerListItem = {
+      id: "p001",
+      name: "Career Skater",
+      position: "F",
+      firstSeason: 2022,
+      lastSeason: 2024,
+      seasonsOwned: 3,
+      seasonsPlayedRegular: 1,
+      seasonsPlayedPlayoffs: 1,
+      teamsOwned: 2,
+      teamsPlayedRegular: 1,
+      teamsPlayedPlayoffs: 1,
+      regularGames: 82,
+      playoffGames: 5,
+    };
+
+    const validCareerGoalieListItem = {
+      id: "g001",
+      name: "Career Goalie",
+      firstSeason: 2022,
+      lastSeason: 2024,
+      seasonsOwned: 3,
+      seasonsPlayedRegular: 1,
+      seasonsPlayedPlayoffs: 1,
+      teamsOwned: 2,
+      teamsPlayedRegular: 1,
+      teamsPlayedPlayoffs: 1,
+      regularGames: 50,
+      playoffGames: 8,
+    };
+
     test("getTeams response conforms to Team[] schema", async () => {
       (getTeamsWithData as jest.Mock).mockResolvedValue([validTeam]);
       const req = createRequest({ url: "/teams" });
@@ -1540,12 +1643,30 @@ describe("routes", () => {
       expect(validate(getCapturedBody())).toBe(true);
     });
 
+    test("getCareerPlayers response conforms to CareerPlayerListItem[] schema", async () => {
+      (getCareerPlayersData as jest.Mock).mockResolvedValue([validCareerPlayerListItem]);
+      const req = createRequest({ method: "GET", url: "/career/players" });
+      const res = createResponse();
+      await getCareerPlayers(asRouteReq(req), res);
+      const validate = buildArrayValidator("CareerPlayerListItem");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
     test("getCareerGoalie response conforms to CareerGoalie schema", async () => {
       (getGoalieCareerData as jest.Mock).mockResolvedValue(validCareerGoalie);
       const req = createRequest({ params: { id: "g001" } });
       const res = createResponse();
       await getCareerGoalie(asRouteReq(req), res);
       const validate = buildObjectValidator("CareerGoalie");
+      expect(validate(getCapturedBody())).toBe(true);
+    });
+
+    test("getCareerGoalies response conforms to CareerGoalieListItem[] schema", async () => {
+      (getCareerGoaliesData as jest.Mock).mockResolvedValue([validCareerGoalieListItem]);
+      const req = createRequest({ method: "GET", url: "/career/goalies" });
+      const res = createResponse();
+      await getCareerGoalies(asRouteReq(req), res);
+      const validate = buildArrayValidator("CareerGoalieListItem");
       expect(validate(getCapturedBody())).toBe(true);
     });
 

@@ -276,7 +276,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/CareerPlayerStatsLine"
         - type: object
-          required: [season, reportType, teamId, teamName]
+          required: [season, reportType, teamId, teamName, position]
           properties:
             season:
               type: integer
@@ -314,7 +314,7 @@ components:
 
     CareerPlayer:
       type: object
-      required: [id, name, summary, totals, seasons]
+      required: [id, name, position, summary, totals, seasons]
       properties:
         id:
           type: string
@@ -338,6 +338,91 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CareerPlayerSeason"
+
+    CareerPlayerListItem:
+      type: object
+      required:
+        - id
+        - name
+        - position
+        - firstSeason
+        - lastSeason
+        - seasonsOwned
+        - seasonsPlayedRegular
+        - seasonsPlayedPlayoffs
+        - teamsOwned
+        - teamsPlayedRegular
+        - teamsPlayedPlayoffs
+        - regularGames
+        - playoffGames
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        firstSeason:
+          type: integer
+        lastSeason:
+          type: integer
+        seasonsOwned:
+          type: integer
+        seasonsPlayedRegular:
+          type: integer
+        seasonsPlayedPlayoffs:
+          type: integer
+        teamsOwned:
+          type: integer
+        teamsPlayedRegular:
+          type: integer
+        teamsPlayedPlayoffs:
+          type: integer
+        regularGames:
+          type: integer
+        playoffGames:
+          type: integer
+
+    CareerGoalieListItem:
+      type: object
+      required:
+        - id
+        - name
+        - firstSeason
+        - lastSeason
+        - seasonsOwned
+        - seasonsPlayedRegular
+        - seasonsPlayedPlayoffs
+        - teamsOwned
+        - teamsPlayedRegular
+        - teamsPlayedPlayoffs
+        - regularGames
+        - playoffGames
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        firstSeason:
+          type: integer
+        lastSeason:
+          type: integer
+        seasonsOwned:
+          type: integer
+        seasonsPlayedRegular:
+          type: integer
+        seasonsPlayedPlayoffs:
+          type: integer
+        teamsOwned:
+          type: integer
+        teamsPlayedRegular:
+          type: integer
+        teamsPlayedPlayoffs:
+          type: integer
+        regularGames:
+          type: integer
+        playoffGames:
+          type: integer
 
     CareerGoalie:
       type: object
@@ -1011,6 +1096,24 @@ paths:
         "404":
           description: Player not found.
 
+  /career/players:
+    get:
+      summary: Career player list
+      description: |
+        Returns one summary row per player across all fantasy teams.
+        Zero-game rows count toward owned seasons and teams, but not played counts.
+      responses:
+        "200":
+          description: Career player list entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CareerPlayerListItem"
+        "401":
+          description: Missing or invalid API key.
+
   /career/goalie/{id}:
     get:
       summary: Career stats for one goalie
@@ -1030,6 +1133,24 @@ paths:
           description: Missing or invalid API key.
         "404":
           description: Goalie not found.
+
+  /career/goalies:
+    get:
+      summary: Career goalie list
+      description: |
+        Returns one summary row per goalie across all fantasy teams.
+        Zero-game rows count toward owned seasons and teams, but not played counts.
+      responses:
+        "200":
+          description: Career goalie list entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CareerGoalieListItem"
+        "401":
+          description: Missing or invalid API key.
 
   /leaderboard/playoffs:
     get:

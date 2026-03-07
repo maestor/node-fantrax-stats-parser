@@ -84,7 +84,7 @@ export type CareerPlayerSeasonRow = {
   reportType: CsvReport;
   teamId: string;
   teamName: string;
-  position?: string;
+  position: string;
   games: number;
   goals: number;
   assists: number;
@@ -186,7 +186,7 @@ export type CareerGoalieTotals = {
 export type CareerPlayerResponse = {
   id: string;
   name: string;
-  position?: string;
+  position: string;
   summary: CareerSummary;
   totals: {
     career: CareerPlayerTotals;
@@ -206,6 +206,37 @@ export type CareerGoalieResponse = {
     playoffs: CareerGoalieTotals;
   };
   seasons: CareerGoalieSeasonRow[];
+};
+
+export type CareerPlayerListItem = {
+  id: string;
+  name: string;
+  position: string;
+  firstSeason: number;
+  lastSeason: number;
+  seasonsOwned: number;
+  seasonsPlayedRegular: number;
+  seasonsPlayedPlayoffs: number;
+  teamsOwned: number;
+  teamsPlayedRegular: number;
+  teamsPlayedPlayoffs: number;
+  regularGames: number;
+  playoffGames: number;
+};
+
+export type CareerGoalieListItem = {
+  id: string;
+  name: string;
+  firstSeason: number;
+  lastSeason: number;
+  seasonsOwned: number;
+  seasonsPlayedRegular: number;
+  seasonsPlayedPlayoffs: number;
+  teamsOwned: number;
+  teamsPlayedRegular: number;
+  teamsPlayedPlayoffs: number;
+  regularGames: number;
+  playoffGames: number;
 };
 
 export type PlayerFields =

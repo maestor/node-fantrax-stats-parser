@@ -191,6 +191,30 @@ export const getGoalieCareerRowsFromDb = async (
   return castRows<GoalieCareerRow>(result.rows);
 };
 
+export const getAllPlayerCareerRowsFromDb = async (): Promise<PlayerCareerRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT player_id, name, position, team_id, season, report_type, games, goals, assists, points,
+            plus_minus, penalties, shots, ppp, shp, hits, blocks
+     FROM players
+     ORDER BY name ASC, player_id ASC, season DESC, team_id ASC,
+              CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+  );
+  return castRows<PlayerCareerRow>(result.rows);
+};
+
+export const getAllGoalieCareerRowsFromDb = async (): Promise<GoalieCareerRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT goalie_id, name, team_id, season, report_type, games, wins, saves, shutouts,
+            goals, assists, points, penalties, ppp, shp, gaa, save_percent
+     FROM goalies
+     ORDER BY name ASC, goalie_id ASC, season DESC, team_id ASC,
+              CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+  );
+  return castRows<GoalieCareerRow>(result.rows);
+};
+
 export const getAvailableSeasonsFromDb = async (
   teamId: string,
   reportType: CsvReport
