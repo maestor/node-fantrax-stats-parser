@@ -4,6 +4,8 @@ import {
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
   getGoaliesStatsCombined,
+  getPlayerCareerData,
+  getGoalieCareerData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "../services";
@@ -22,6 +24,8 @@ import {
 import {
   getPlayersFromDb,
   getGoaliesFromDb,
+  getPlayerCareerRowsFromDb,
+  getGoalieCareerRowsFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
@@ -415,6 +419,552 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "both");
       expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
       expect(result).toEqual([mockGoalie]);
+    });
+  });
+
+  describe("getPlayerCareerData", () => {
+    test("builds a career response with owned and played counts", async () => {
+      (getPlayerCareerRowsFromDb as jest.Mock).mockResolvedValue([
+        {
+          player_id: "p001",
+          name: "Career Skater",
+          position: "F",
+          team_id: "1",
+          season: 2024,
+          report_type: "regular",
+          games: 82,
+          goals: 30,
+          assists: 50,
+          points: 80,
+          plus_minus: 12,
+          penalties: 18,
+          shots: 240,
+          ppp: 20,
+          shp: 1,
+          hits: 40,
+          blocks: 30,
+        },
+        {
+          player_id: "p001",
+          name: "Career Skater",
+          position: "F",
+          team_id: "1",
+          season: 2024,
+          report_type: "playoffs",
+          games: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p001",
+          name: "Career Skater",
+          position: "F",
+          team_id: "99",
+          season: 2023,
+          report_type: "regular",
+          games: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p001",
+          name: "Career Skater",
+          position: "F",
+          team_id: "1",
+          season: 2022,
+          report_type: "playoffs",
+          games: 5,
+          goals: 2,
+          assists: 4,
+          points: 6,
+          plus_minus: 3,
+          penalties: 2,
+          shots: 15,
+          ppp: 1,
+          shp: 0,
+          hits: 5,
+          blocks: 4,
+        },
+      ]);
+
+      const result = await getPlayerCareerData("p001");
+
+      expect(result).toMatchObject({
+        id: "p001",
+        name: "Career Skater",
+        position: "F",
+        summary: {
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+          teams: [
+            {
+              teamId: "1",
+              teamName: TEAMS[0].presentName,
+              seasonCount: { owned: 2, played: 2 },
+              firstSeason: 2022,
+              lastSeason: 2024,
+            },
+            {
+              teamId: "99",
+              teamName: "99",
+              seasonCount: { owned: 1, played: 0 },
+              firstSeason: 2023,
+              lastSeason: 2023,
+            },
+          ],
+        },
+        totals: {
+          career: {
+            seasonCount: { owned: 3, played: 2 },
+            teamCount: { owned: 2, played: 1 },
+            games: 87,
+            goals: 32,
+            assists: 54,
+            points: 86,
+            plusMinus: 15,
+            penalties: 20,
+            shots: 255,
+            ppp: 21,
+            shp: 1,
+            hits: 45,
+            blocks: 34,
+          },
+          regular: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 2, played: 1 },
+            games: 82,
+            goals: 30,
+            assists: 50,
+            points: 80,
+          },
+          playoffs: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 1, played: 1 },
+            games: 5,
+            goals: 2,
+            assists: 4,
+            points: 6,
+          },
+        },
+      });
+      expect(result.totals.career.teams).toEqual([
+        expect.objectContaining({
+          teamId: "1",
+          teamName: TEAMS[0].presentName,
+          seasonCount: { owned: 2, played: 2 },
+          games: 87,
+          points: 86,
+        }),
+        expect.objectContaining({
+          teamId: "99",
+          teamName: "99",
+          seasonCount: { owned: 1, played: 0 },
+          games: 0,
+          points: 0,
+        }),
+      ]);
+      expect(result.seasons.map((row) => `${row.season}-${row.teamId}-${row.reportType}`)).toEqual([
+        "2024-1-regular",
+        "2024-1-playoffs",
+        "2023-99-regular",
+        "2022-1-playoffs",
+      ]);
+    });
+
+    test("throws 404 metadata when player is not found", async () => {
+      (getPlayerCareerRowsFromDb as jest.Mock).mockResolvedValue([]);
+
+      await expect(getPlayerCareerData("missing")).rejects.toMatchObject({
+        statusCode: 404,
+        body: "Player not found",
+      });
+    });
+
+    test("sorts season and team aggregates consistently when positions are missing", async () => {
+      (getPlayerCareerRowsFromDb as jest.Mock).mockResolvedValue([
+        {
+          player_id: "p002",
+          name: "No Position Skater",
+          position: null,
+          team_id: "1",
+          season: 2021,
+          report_type: "playoffs",
+          games: 1,
+          goals: 1,
+          assists: 0,
+          points: 1,
+          plus_minus: 1,
+          penalties: 0,
+          shots: 2,
+          ppp: 0,
+          shp: 0,
+          hits: 1,
+          blocks: 0,
+        },
+        {
+          player_id: "p002",
+          name: "No Position Skater",
+          position: null,
+          team_id: "2",
+          season: 2021,
+          report_type: "regular",
+          games: 1,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 1,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 1,
+        },
+        {
+          player_id: "p002",
+          name: "No Position Skater",
+          position: null,
+          team_id: "1",
+          season: 2021,
+          report_type: "regular",
+          games: 1,
+          goals: 1,
+          assists: 1,
+          points: 2,
+          plus_minus: 1,
+          penalties: 0,
+          shots: 3,
+          ppp: 1,
+          shp: 0,
+          hits: 1,
+          blocks: 1,
+        },
+        {
+          player_id: "p002",
+          name: "No Position Skater",
+          position: null,
+          team_id: "1",
+          season: 2021,
+          report_type: "regular",
+          games: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+      ]);
+
+      const result = await getPlayerCareerData("p002");
+
+      expect(result.position).toBeUndefined();
+      expect(result.seasons.map((row) => `${row.teamId}-${row.reportType}`)).toEqual([
+        "1-regular",
+        "1-regular",
+        "1-playoffs",
+        "2-regular",
+      ]);
+      expect(result.summary.teams.map((team) => team.teamId)).toEqual(["2", "1"]);
+      expect(result.totals.career.teams.map((team) => team.teamId)).toEqual(["2", "1"]);
+    });
+
+    test("uses later sort tie-breakers for summary and totals team ordering", async () => {
+      (getPlayerCareerRowsFromDb as jest.Mock).mockResolvedValue([
+        {
+          player_id: "p003",
+          name: "Sorting Skater",
+          position: "F",
+          team_id: "3",
+          season: 2022,
+          report_type: "regular",
+          games: 1,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 1,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p003",
+          name: "Sorting Skater",
+          position: "F",
+          team_id: "3",
+          season: 2021,
+          report_type: "regular",
+          games: 1,
+          goals: 1,
+          assists: 0,
+          points: 1,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 1,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p003",
+          name: "Sorting Skater",
+          position: "F",
+          team_id: "2",
+          season: 2024,
+          report_type: "playoffs",
+          games: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p003",
+          name: "Sorting Skater",
+          position: "F",
+          team_id: "2",
+          season: 2020,
+          report_type: "regular",
+          games: 1,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 1,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+        {
+          player_id: "p003",
+          name: "Sorting Skater",
+          position: "F",
+          team_id: "1",
+          season: 2020,
+          report_type: "regular",
+          games: 1,
+          goals: 1,
+          assists: 1,
+          points: 2,
+          plus_minus: 0,
+          penalties: 0,
+          shots: 1,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+        },
+      ]);
+
+      const result = await getPlayerCareerData("p003");
+
+      expect(result.summary.teams.map((team) => team.teamId)).toEqual(["1", "2", "3"]);
+      expect(result.totals.career.teams.map((team) => team.teamId)).toEqual(["3", "2", "1"]);
+    });
+  });
+
+  describe("getGoalieCareerData", () => {
+    test("builds a goalie career response without aggregated rate stats", async () => {
+      (getGoalieCareerRowsFromDb as jest.Mock).mockResolvedValue([
+        {
+          goalie_id: "g001",
+          name: "Career Goalie",
+          team_id: "2",
+          season: 2024,
+          report_type: "regular",
+          games: 50,
+          wins: 30,
+          saves: 1400,
+          shutouts: 4,
+          goals: 0,
+          assists: 3,
+          points: 3,
+          penalties: 2,
+          ppp: 0,
+          shp: 0,
+          gaa: 2.25,
+          save_percent: 0.918,
+        },
+        {
+          goalie_id: "g001",
+          name: "Career Goalie",
+          team_id: "77",
+          season: 2023,
+          report_type: "playoffs",
+          games: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          gaa: null,
+          save_percent: null,
+        },
+        {
+          goalie_id: "g001",
+          name: "Career Goalie",
+          team_id: "2",
+          season: 2022,
+          report_type: "playoffs",
+          games: 8,
+          wins: 5,
+          saves: 210,
+          shutouts: 1,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          gaa: 2.1,
+          save_percent: 0.926,
+        },
+      ]);
+
+      const result = await getGoalieCareerData("g001");
+
+      expect(result).toMatchObject({
+        id: "g001",
+        name: "Career Goalie",
+        summary: {
+          firstSeason: 2022,
+          lastSeason: 2024,
+          seasonCount: { owned: 3, played: 2 },
+          teamCount: { owned: 2, played: 1 },
+        },
+        totals: {
+          career: {
+            seasonCount: { owned: 3, played: 2 },
+            teamCount: { owned: 2, played: 1 },
+            games: 58,
+            wins: 35,
+            saves: 1610,
+            shutouts: 5,
+            goals: 0,
+            assists: 4,
+            points: 4,
+            penalties: 2,
+            ppp: 0,
+            shp: 0,
+          },
+          regular: {
+            seasonCount: { owned: 1, played: 1 },
+            teamCount: { owned: 1, played: 1 },
+            games: 50,
+            wins: 30,
+          },
+          playoffs: {
+            seasonCount: { owned: 2, played: 1 },
+            teamCount: { owned: 2, played: 1 },
+            games: 8,
+            wins: 5,
+          },
+        },
+      });
+      expect(result.totals.career).not.toHaveProperty("gaa");
+      expect(result.totals.career.teams[0]).not.toHaveProperty("gaa");
+      expect(result.seasons).toEqual([
+        expect.objectContaining({
+          season: 2024,
+          teamId: "2",
+          reportType: "regular",
+          teamName: TEAMS[1].presentName,
+          gaa: "2.25",
+          savePercent: "0.918",
+        }),
+        expect.objectContaining({
+          season: 2023,
+          teamId: "77",
+          reportType: "playoffs",
+          teamName: "77",
+          gaa: undefined,
+          savePercent: undefined,
+        }),
+        expect.objectContaining({
+          season: 2022,
+          teamId: "2",
+          reportType: "playoffs",
+          teamName: TEAMS[1].presentName,
+          gaa: "2.1",
+          savePercent: "0.926",
+        }),
+      ]);
+    });
+
+    test("maps persisted zero goalie rate placeholders to undefined in career seasons", async () => {
+      (getGoalieCareerRowsFromDb as jest.Mock).mockResolvedValue([
+        {
+          goalie_id: "g002",
+          name: "Zero Placeholder Goalie",
+          team_id: "2",
+          season: 2024,
+          report_type: "regular",
+          games: 1,
+          wins: 0,
+          saves: 20,
+          shutouts: 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          gaa: 0,
+          save_percent: 0,
+        },
+      ]);
+
+      const result = await getGoalieCareerData("g002");
+
+      expect(result.seasons[0].gaa).toBeUndefined();
+      expect(result.seasons[0].savePercent).toBeUndefined();
+    });
+
+    test("throws 404 metadata when goalie is not found", async () => {
+      (getGoalieCareerRowsFromDb as jest.Mock).mockResolvedValue([]);
+
+      await expect(getGoalieCareerData("missing")).rejects.toMatchObject({
+        statusCode: 404,
+        body: "Goalie not found",
+      });
     });
   });
 

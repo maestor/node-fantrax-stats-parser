@@ -59,6 +59,15 @@ components:
         type: integer
         example: 2020
 
+    careerId:
+      name: id
+      in: path
+      required: true
+      description: Fantrax player or goalie identifier.
+      schema:
+        type: string
+        example: "p001"
+
   schemas:
     Team:
       type: object
@@ -92,6 +101,268 @@ components:
         text:
           type: string
           example: "2023-2024"
+
+    CountSplit:
+      type: object
+      required: [owned, played]
+      properties:
+        owned:
+          type: integer
+        played:
+          type: integer
+
+    CareerSummaryTeam:
+      type: object
+      required: [teamId, teamName, seasonCount, firstSeason, lastSeason]
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        seasonCount:
+          $ref: "#/components/schemas/CountSplit"
+        firstSeason:
+          type: integer
+        lastSeason:
+          type: integer
+
+    CareerSummary:
+      type: object
+      required: [firstSeason, lastSeason, seasonCount, teamCount, teams]
+      properties:
+        firstSeason:
+          type: integer
+        lastSeason:
+          type: integer
+        seasonCount:
+          $ref: "#/components/schemas/CountSplit"
+        teamCount:
+          $ref: "#/components/schemas/CountSplit"
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerSummaryTeam"
+
+    CareerPlayerStatsLine:
+      type: object
+      required:
+        - games
+        - goals
+        - assists
+        - points
+        - plusMinus
+        - penalties
+        - shots
+        - ppp
+        - shp
+        - hits
+        - blocks
+      properties:
+        games:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        plusMinus:
+          type: number
+        penalties:
+          type: number
+        shots:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+        hits:
+          type: number
+        blocks:
+          type: number
+
+    CareerGoalieStatsLine:
+      type: object
+      required:
+        - games
+        - wins
+        - saves
+        - shutouts
+        - goals
+        - assists
+        - points
+        - penalties
+        - ppp
+        - shp
+      properties:
+        games:
+          type: number
+        wins:
+          type: number
+        saves:
+          type: number
+        shutouts:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        penalties:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+
+    CareerPlayerTeamTotals:
+      allOf:
+        - $ref: "#/components/schemas/CareerPlayerStatsLine"
+        - type: object
+          required: [teamId, teamName, seasonCount]
+          properties:
+            teamId:
+              type: string
+            teamName:
+              type: string
+            seasonCount:
+              $ref: "#/components/schemas/CountSplit"
+
+    CareerGoalieTeamTotals:
+      allOf:
+        - $ref: "#/components/schemas/CareerGoalieStatsLine"
+        - type: object
+          required: [teamId, teamName, seasonCount]
+          properties:
+            teamId:
+              type: string
+            teamName:
+              type: string
+            seasonCount:
+              $ref: "#/components/schemas/CountSplit"
+
+    CareerPlayerTotals:
+      allOf:
+        - $ref: "#/components/schemas/CareerPlayerStatsLine"
+        - type: object
+          required: [seasonCount, teamCount, teams]
+          properties:
+            seasonCount:
+              $ref: "#/components/schemas/CountSplit"
+            teamCount:
+              $ref: "#/components/schemas/CountSplit"
+            teams:
+              type: array
+              items:
+                $ref: "#/components/schemas/CareerPlayerTeamTotals"
+
+    CareerGoalieTotals:
+      allOf:
+        - $ref: "#/components/schemas/CareerGoalieStatsLine"
+        - type: object
+          required: [seasonCount, teamCount, teams]
+          properties:
+            seasonCount:
+              $ref: "#/components/schemas/CountSplit"
+            teamCount:
+              $ref: "#/components/schemas/CountSplit"
+            teams:
+              type: array
+              items:
+                $ref: "#/components/schemas/CareerGoalieTeamTotals"
+
+    CareerPlayerSeason:
+      allOf:
+        - $ref: "#/components/schemas/CareerPlayerStatsLine"
+        - type: object
+          required: [season, reportType, teamId, teamName]
+          properties:
+            season:
+              type: integer
+            reportType:
+              type: string
+              enum: [regular, playoffs]
+            teamId:
+              type: string
+            teamName:
+              type: string
+            position:
+              type: string
+
+    CareerGoalieSeason:
+      allOf:
+        - $ref: "#/components/schemas/CareerGoalieStatsLine"
+        - type: object
+          required: [season, reportType, teamId, teamName]
+          properties:
+            season:
+              type: integer
+            reportType:
+              type: string
+              enum: [regular, playoffs]
+            teamId:
+              type: string
+            teamName:
+              type: string
+            gaa:
+              type: string
+              description: Omitted when source data only contains a zero placeholder.
+            savePercent:
+              type: string
+              description: Omitted when source data only contains a zero placeholder.
+
+    CareerPlayer:
+      type: object
+      required: [id, name, summary, totals, seasons]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        summary:
+          $ref: "#/components/schemas/CareerSummary"
+        totals:
+          type: object
+          required: [career, regular, playoffs]
+          properties:
+            career:
+              $ref: "#/components/schemas/CareerPlayerTotals"
+            regular:
+              $ref: "#/components/schemas/CareerPlayerTotals"
+            playoffs:
+              $ref: "#/components/schemas/CareerPlayerTotals"
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerPlayerSeason"
+
+    CareerGoalie:
+      type: object
+      required: [id, name, summary, totals, seasons]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        summary:
+          $ref: "#/components/schemas/CareerSummary"
+        totals:
+          type: object
+          required: [career, regular, playoffs]
+          properties:
+            career:
+              $ref: "#/components/schemas/CareerGoalieTotals"
+            regular:
+              $ref: "#/components/schemas/CareerGoalieTotals"
+            playoffs:
+              $ref: "#/components/schemas/CareerGoalieTotals"
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerGoalieSeason"
 
     Player:
       type: object
@@ -208,10 +479,10 @@ components:
           type: number
         gaa:
           type: string
-          description: Goals against average. Omitted for `reportType=both`.
+          description: Goals against average. Omitted for `reportType=both` or when source data only contains a zero placeholder.
         savePercent:
           type: string
-          description: Save percentage. Omitted for `reportType=both`.
+          description: Save percentage. Omitted for `reportType=both` or when source data only contains a zero placeholder.
         score:
           type: number
         scoreAdjustedByGames:
@@ -719,6 +990,46 @@ paths:
           description: Invalid report type.
         "401":
           description: Missing or invalid API key.
+
+  /career/player/{id}:
+    get:
+      summary: Career stats for one player
+      description: |
+        Returns all imported career records for a single Fantrax player ID across all fantasy teams.
+        Zero-game rows are included and count toward `owned` totals but not `played` totals.
+      parameters:
+        - $ref: "#/components/parameters/careerId"
+      responses:
+        "200":
+          description: Career stats document for one player.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareerPlayer"
+        "401":
+          description: Missing or invalid API key.
+        "404":
+          description: Player not found.
+
+  /career/goalie/{id}:
+    get:
+      summary: Career stats for one goalie
+      description: |
+        Returns all imported career records for a single Fantrax goalie ID across all fantasy teams.
+        Zero-game rows are included and count toward `owned` totals but not `played` totals.
+      parameters:
+        - $ref: "#/components/parameters/careerId"
+      responses:
+        "200":
+          description: Career stats document for one goalie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CareerGoalie"
+        "401":
+          description: Missing or invalid API key.
+        "404":
+          description: Goalie not found.
 
   /leaderboard/playoffs:
     get:
