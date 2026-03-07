@@ -98,8 +98,8 @@ npm run verify
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
 - `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
-- `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import parse/upload/import is restricted to regular files (and `--year=YYYY` when provided).
-- `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If output is `csv/temp`, post-import parse/upload/import is restricted to playoffs files (and `--year=YYYY` when provided).
+- `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to regular files (and `--year=YYYY` when provided).
+- `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to playoffs files (and `--year=YYYY` when provided).
 - `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present and removes only empty placeholder first columns + `Age`.
 - `./scripts/import-temp-csv.sh [--dry-run] [--season=YYYY] [--report-type=regular|playoffs]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB.
 
@@ -128,6 +128,9 @@ npm run verify
 - `npm run r2:upload:current` - Upload only current season to R2
 - `npm run r2:upload -- --report-type=regular|playoffs` - Upload only one report type to R2
 - `npm run r2:download` - Download CSV files from R2
+- `npm run r2:upload:raw` - Force-upload raw `csv/temp/*.csv` to `rawFiles/<teamId>/...` and remove uploaded temp files
+- `npm run r2:download:raw` - Download all `rawFiles/` objects from R2 into `csv/temp/` (force overwrite)
+- `npm run parseAndUploadRawCsv` - Post-import raw pipeline: upload `csv/temp` to `rawFiles/` and clean uploaded temp files
 
 ### Utilities
 - `npm run clean` - Remove lib/ directory
@@ -193,6 +196,10 @@ USE_REMOTE_DB=false
 # R2_SECRET_ACCESS_KEY=your_secret_access_key
 # R2_BUCKET_NAME=ffhl-stats-csv
 # USE_R2_STORAGE=true               # Enables R2 upload in import pipeline
+# RAW_UPLOAD=false
+#   Optional Playwright post-import toggle when --out=csv/temp
+#   true  -> run parseAndUploadRawCsv (upload raw csv/temp to R2 rawFiles/ + cleanup)
+#   false -> run parseAndUploadCsv (normalize/move/import pipeline)
 ```
 
 ### Production (Vercel)
