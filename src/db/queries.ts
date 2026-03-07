@@ -92,7 +92,7 @@ export const getPlayersFromDb = async (
     sql: `SELECT player_id, name, position, games, goals, assists, points, plus_minus,
                  penalties, shots, ppp, shp, hits, blocks, season
           FROM players
-          WHERE team_id = ? AND season = ? AND report_type = ?`,
+          WHERE team_id = ? AND season = ? AND report_type = ? AND games > 0`,
     args: [teamId, season, reportType],
   });
   return castRows<PlayerRow>(result.rows).map(mapPlayerRow);
@@ -108,7 +108,7 @@ export const getGoaliesFromDb = async (
     sql: `SELECT goalie_id, name, games, wins, saves, shutouts, goals, assists, points,
                  penalties, ppp, shp, gaa, save_percent, season
           FROM goalies
-          WHERE team_id = ? AND season = ? AND report_type = ?`,
+          WHERE team_id = ? AND season = ? AND report_type = ? AND games > 0`,
     args: [teamId, season, reportType],
   });
   return castRows<GoalieRow>(result.rows).map(mapGoalieRow);
@@ -121,7 +121,7 @@ export const getAvailableSeasonsFromDb = async (
   const db = getDbClient();
   const result = await db.execute({
     sql: `SELECT DISTINCT season FROM players
-          WHERE team_id = ? AND report_type = ?
+          WHERE team_id = ? AND report_type = ? AND games > 0
           ORDER BY season`,
     args: [teamId, reportType],
   });
@@ -132,8 +132,10 @@ export const getTeamIdsWithData = async (): Promise<string[]> => {
   const db = getDbClient();
   const result = await db.execute(
     `SELECT DISTINCT team_id FROM players
+     WHERE games > 0
      UNION
      SELECT DISTINCT team_id FROM goalies
+     WHERE games > 0
      ORDER BY team_id`
   );
   return castRows<{ team_id: string }>(result.rows).map((r) => r.team_id);
