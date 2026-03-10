@@ -14,6 +14,7 @@ export const getDbClient = (): Client => {
   return clientInstance;
 };
 
+/** @internal Test-only export for resetting the shared DB client. */
 export const resetDbClientForTests = (): void => {
   clientInstance = null;
 };

@@ -26,6 +26,7 @@ This should:
 
 - ✅ Pass ESLint checks (no warnings)
 - ✅ Pass TypeScript compilation
+- ✅ Pass Knip export checks
 - ✅ Build successfully to lib/
 - ✅ Pass all tests with 100% coverage
 
@@ -73,8 +74,9 @@ npm run verify
 
 1. `npm run lint:check` - ESLint with 0 warnings allowed
 2. `npm run typecheck` - TypeScript compilation check
-3. `npm run build` - Production build (outputs to lib/)
-4. `npm run test:coverage` - Full test suite with coverage gates
+3. `npm run unused` - Knip check for unused production exports
+4. `npm run build` - Production build (outputs to lib/)
+5. `npm run test:coverage` - Full test suite with coverage gates
 
 **Must pass before every commit.** No exceptions.
 
@@ -93,6 +95,8 @@ npm run verify
 - `npm run lint:check` - Run ESLint (read-only)
 - `npm run lint:fix` - Run ESLint with auto-fix
 - `npm run typecheck` - TypeScript type checking without build
+- `npm run unused` - Run Knip against production exports
+- `npm run unused:fix` - Let Knip remove unused production exports locally
 - `npm run format` - Format code with Prettier
 
 ### Testing
@@ -100,7 +104,7 @@ npm run verify
 - `npm test` - Run all tests once
 - `npm run test:watch` - Run tests in watch mode (development)
 - `npm run test:coverage` - Run tests with coverage report
-- `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
+- `npm run verify` - **Full quality gate** (lint + typecheck + unused exports + build + coverage)
 
 ### CSV Data Import
 
@@ -248,6 +252,12 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 #### Console output rules (ESLint `no-console`)
 
 `src/playwright/**/*.ts` files are CLI utilities and have a strict rule: only `console.info` and `console.error` are allowed — `console.log` and `console.warn` are ESLint **errors**. The rest of `src/` has `no-console: warn`, which also fails `lint:check` due to `--max-warnings 0`.
+
+## Unused export checks
+
+- `knip.json` defines production entry points for the API, Vercel handlers, scripts, and Playwright import utilities.
+- `npm run unused` runs `knip --production --include exports` to catch exported helpers/utilities that are no longer reachable from real entry points.
+- Test-only exports may stay exported when necessary, but they must be marked with `/** @internal */` so production export analysis does not treat them as public surface.
 
 **Rule of thumb for any `src/` file:** use `console.info` for informational output and `console.error` for errors. Never use `console.log` or `console.warn`.
 

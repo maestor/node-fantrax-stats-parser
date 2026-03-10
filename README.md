@@ -64,10 +64,11 @@ The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code
 npm test              # Run all tests
 npm run test:watch    # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
-npm run verify        # Full quality gate (lint + typecheck + build + coverage)
+npm run unused        # Detect unused production exports
+npm run verify        # Full quality gate (lint + typecheck + unused exports + build + coverage)
 ```
 
-Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, production build, and Jest with enforced 100% global coverage thresholds.
+Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, Knip export analysis, production build, and Jest with enforced 100% global coverage thresholds.
 
 ## CI
 
@@ -693,5 +694,6 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
+- Add more realistic backend contract/integration tests so route behavior is validated with less internal mocking
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

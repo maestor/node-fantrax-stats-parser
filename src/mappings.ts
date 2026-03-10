@@ -110,6 +110,7 @@ export const mapPlayerData = (
     });
 };
 
+/** @internal Test-only export that preserves the raw-data convenience wrapper. */
 export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => {
   return mapCombinedPlayerDataFromPlayersWithSeason(mapPlayerData(rawData));
 };
@@ -280,6 +281,7 @@ export const mapGoalieData = (
     });
 };
 
+/** @internal Test-only export that preserves the raw-data convenience wrapper. */
 export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => {
   return mapCombinedGoalieDataFromGoaliesWithSeason(mapGoalieData(rawData));
 };
