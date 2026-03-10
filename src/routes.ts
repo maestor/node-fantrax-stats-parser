@@ -39,6 +39,7 @@ import {
   getRegularLeaderboardSnapshotKey,
   loadSnapshot,
 } from "./snapshots";
+import { START_SEASON, TEAMS } from "./constants";
 
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
@@ -142,6 +143,9 @@ const loadSnapshotOrFallback = async <T>(
   return fallback();
 };
 
+const getDefaultStartFromForTeam = (teamId: string): number =>
+  TEAMS.find((team) => team.id === teamId)?.firstSeason ?? START_SEASON;
+
 export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
   setNoStoreHeaders(res);
   send(res, HTTP_STATUS.OK, {
@@ -214,10 +218,11 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
     return;
   }
   const report = req.params.reportType as Report;
+  const defaultStartFrom = getDefaultStartFromForTeam(teamId);
 
   await withErrorHandlingCached(req, res, () =>
     loadSnapshotOrFallback(
-      startFrom === undefined
+      startFrom === undefined || startFrom === defaultStartFrom
         ? getCombinedSnapshotKey("players", report, teamId)
         : undefined,
       () => getPlayersStatsCombined(report, teamId, startFrom),
@@ -264,10 +269,11 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
     return;
   }
   const report = req.params.reportType as Report;
+  const defaultStartFrom = getDefaultStartFromForTeam(teamId);
 
   await withErrorHandlingCached(req, res, () =>
     loadSnapshotOrFallback(
-      startFrom === undefined
+      startFrom === undefined || startFrom === defaultStartFrom
         ? getCombinedSnapshotKey("goalies", report, teamId)
         : undefined,
       () => getGoaliesStatsCombined(report, teamId, startFrom),
