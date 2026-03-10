@@ -95,11 +95,13 @@ npm run verify
 - `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
 
 ### CSV Data Import
+- `npm run playwright:install` - Installs or refreshes Playwright's Chromium browser binaries
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
 - `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
 - `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to regular files (and `--year=YYYY` when provided).
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to playoffs files (and `--year=YYYY` when provided).
+- All `playwright:*` scripts run `playwright:install` automatically first so browser updates do not break local runs.
 - `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present and removes only empty placeholder first columns + `Age`.
 - `./scripts/import-temp-csv.sh [--dry-run] [--keep-temp] [--season=YYYY] [--report-type=regular|playoffs|both]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB. By default it removes successfully imported source files from `csv/temp/`; use `--keep-temp` to preserve them. If `--season` is omitted it processes all matched seasons; if `--report-type` is omitted, `both` is the default.
 

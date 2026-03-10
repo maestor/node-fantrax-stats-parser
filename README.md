@@ -95,11 +95,7 @@ It’s intended to be run locally (not in CI / not in production).
 ### Prerequisites
 
 - `npm install`
-- Install Playwright’s Chromium browser binaries (first time only):
-
-```
-npx playwright install chromium
-```
+- Playwright scripts now run `playwright install chromium` automatically before launch, so browser binaries are installed or refreshed as needed.
 
 ### 1) Login (saves auth state)
 
@@ -109,7 +105,7 @@ Run:
 npm run playwright:login
 ```
 
-This opens a real browser so you can log in manually, then saves the session to `src/playwright/.fantrax/fantrax-auth.json` (gitignored).
+This first ensures Chromium is installed, then opens a real browser so you can log in manually and saves the session to `src/playwright/.fantrax/fantrax-auth.json` (gitignored).
 
 ### 2) Sync league IDs (local mapping)
 
