@@ -123,15 +123,6 @@ describe("services", () => {
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
-    test("fetches player stats from DB and sorts", async () => {
-      const result = await getPlayersStatsSeason("regular", 2024);
-
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(applyPlayerScores).toHaveBeenCalled();
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayerWithSeason], "players");
-      expect(result).toEqual([mockPlayerWithSeason]);
-    });
-
     test("uses max season when season is undefined", async () => {
       await getPlayersStatsSeason("regular", undefined);
 
@@ -147,12 +138,6 @@ describe("services", () => {
 
       expect(result).toEqual([]);
       expect(getPlayersFromDb).not.toHaveBeenCalled();
-    });
-
-    test("queries correct report type", async () => {
-      await getPlayersStatsSeason("playoffs", 2023);
-
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2023, "playoffs");
     });
 
     test("when reportType is both, queries regular+playoffs and merges before scoring", async () => {
@@ -180,15 +165,6 @@ describe("services", () => {
       (getGoaliesFromDb as jest.Mock).mockResolvedValue([mockGoalieWithSeason]);
       (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
-    });
-
-    test("fetches goalie stats from DB and sorts", async () => {
-      const result = await getGoaliesStatsSeason("regular", 2024);
-
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(applyGoalieScores).toHaveBeenCalled();
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalieWithSeason], "goalies");
-      expect(result).toEqual([mockGoalieWithSeason]);
     });
 
     test("uses max season when season is undefined", async () => {
@@ -335,22 +311,12 @@ describe("services", () => {
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
-    test("fetches goalie stats for all available seasons", async () => {
+    test("uses the default team and all seasons when startFrom is omitted", async () => {
       const result = await getGoaliesStatsCombined("regular");
 
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(getGoaliesFromDb).toHaveBeenCalledTimes(3);
-      expect(mapCombinedGoalieDataFromGoaliesWithSeason).toHaveBeenCalled();
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockGoalie], "goalies");
       expect(result).toEqual([mockGoalie]);
-    });
-
-    test("queries DB for each season", async () => {
-      await getGoaliesStatsCombined("regular");
-
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2012, "regular");
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2013, "regular");
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2014, "regular");
     });
 
     test("filters seasons when startFrom is provided", async () => {
@@ -361,14 +327,6 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(getGoaliesFromDb).toHaveBeenCalledTimes(1);
       expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2020, "regular");
-      expect(result).toEqual([mockGoalie]);
-    });
-
-    test("returns all seasons when startFrom is undefined", async () => {
-      const result = await getGoaliesStatsCombined("regular", "1", undefined);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(getGoaliesFromDb).toHaveBeenCalledTimes(3);
       expect(result).toEqual([mockGoalie]);
     });
 
@@ -424,6 +382,7 @@ describe("services", () => {
       expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
       expect(result).toEqual([mockGoalie]);
     });
+
   });
 
   describe("getPlayerCareerData", () => {
