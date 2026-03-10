@@ -23,8 +23,6 @@ import {
 } from "./constants";
 import { getAvailableSeasonsFromDb } from "./db/queries";
 
-export { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
-
 const isConfiguredTeamId = (teamId: string): boolean =>
   TEAMS.some((t) => t.id === teamId);
 
@@ -52,7 +50,7 @@ export const resolveTeamId = (raw: unknown): string => {
   return teamId;
 };
 
-export const listSeasonsForTeam = async (
+const listSeasonsForTeam = async (
   teamId: string,
   reportType: CsvReport,
 ): Promise<number[]> => {

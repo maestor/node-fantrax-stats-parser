@@ -45,6 +45,7 @@ const setAuthErrorNoStoreHeaders = (res: ServerResponse): void => {
   res.setHeader("Vary", "authorization, x-api-key");
 };
 
+/** @internal Test-only export for auth helper coverage. */
 export const getApiKeysFromEnv = (): string[] => {
   const keys: string[] = [];
 
@@ -62,6 +63,7 @@ export const getApiKeysFromEnv = (): string[] => {
   return keys;
 };
 
+/** @internal Test-only export for auth helper coverage. */
 export const shouldRequireAuth = (keys: string[], explicit?: boolean): boolean => {
   if (explicit !== undefined) return explicit;
   const requireFromEnv = parseBooleanEnv(process.env.REQUIRE_API_KEY);
@@ -69,6 +71,7 @@ export const shouldRequireAuth = (keys: string[], explicit?: boolean): boolean =
   return keys.length > 0;
 };
 
+/** @internal Test-only export for auth helper coverage. */
 export const extractApiKey = (
   req: RequestLike,
   headerName: string,
@@ -88,6 +91,7 @@ export const extractApiKey = (
   return match?.[1]?.trim() || undefined;
 };
 
+/** @internal Test-only export for auth helper coverage. */
 export const isValidApiKey = (provided: string, validKeys: string[]): boolean => {
   for (const key of validKeys) {
     if (constantTimeEquals(provided, key)) return true;

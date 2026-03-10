@@ -1,0 +1,15 @@
+{
+  "entry": [
+    "src/index.ts!",
+    "src/server.ts!",
+    "api/**/*.ts!",
+    "scripts/**/*.ts!",
+    "src/playwright/**/*.ts!"
+  ],
+  "project": [
+    "src/**/*.ts!",
+    "scripts/**/*.ts!",
+    "api/**/*.ts!",
+    "!src/__tests__/**!"
+  ]
+}

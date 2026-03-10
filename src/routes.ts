@@ -70,6 +70,7 @@ const getErrorBody = (err: unknown): unknown => {
   return err;
 };
 
+/** @internal Test-only export for clearing in-memory route caches. */
 export const resetRouteCachesForTests = (): void => {
   responseCache.clear();
 };

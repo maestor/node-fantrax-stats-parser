@@ -42,7 +42,7 @@ npm run test:watch
 ### Full quality gate
 
 ```bash
-npm run verify  # Runs lint, typecheck, build, and test:coverage
+npm run verify  # Runs lint, typecheck, unused export check, build, and test:coverage
 ```
 
 ---
@@ -51,7 +51,7 @@ npm run verify  # Runs lint, typecheck, build, and test:coverage
 
 ### Async Functions
 
-Many functions are async (database queries, resolveTeamId, etc.). Always use `await`:
+Many functions are async (database queries, service calls, route handlers, etc.). Always use `await`:
 
 ```typescript
 // ❌ Wrong
@@ -126,6 +126,14 @@ Keep this directory updated whenever a new module or integration boundary is add
 
 ---
 
+## Unused Export Guard
+
+- `npm run unused` runs Knip in production mode and fails on unused exported runtime helpers.
+- Coverage does not replace this check. A helper can still have direct unit-test coverage while being unreachable from real entry points.
+- If an export exists only for tests, mark it with `/** @internal */` rather than leaving it as an accidental public export.
+
+---
+
 ## Test Requirements for New Code
 
 **Every contribution must include tests for:**
@@ -154,6 +162,7 @@ Keep this directory updated whenever a new module or integration boundary is add
 ## Testing Checklist (before committing)
 
 - [ ] All new code has test coverage
+- [ ] `npm run unused` passes or intentional test-only exports are marked `@internal`
 - [ ] `npm run verify` passes (lint + typecheck + build + coverage)
 - [ ] No coverage thresholds lowered
 - [ ] Test names clearly describe what's being tested

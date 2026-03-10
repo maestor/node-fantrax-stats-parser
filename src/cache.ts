@@ -13,6 +13,7 @@ const getHeaderString = (req: IncomingMessage, name: string): string | undefined
   return undefined;
 };
 
+/** @internal Test-only export for cache helper coverage. */
 export const getDeployCacheSalt = (): string => {
   return (
     process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -22,6 +23,7 @@ export const getDeployCacheSalt = (): string => {
   );
 };
 
+/** @internal Test-only export for cache helper coverage. */
 export const normalizeUrlForCacheKey = (rawUrl: string, hostHeader?: string): string => {
   const host = typeof hostHeader === "string" && hostHeader.trim() ? hostHeader : "localhost";
   const url = new URL(rawUrl, `http://${host}`);

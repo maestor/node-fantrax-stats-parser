@@ -52,6 +52,7 @@ const isMissingObjectError = (error: unknown): boolean => {
   );
 };
 
+/** @internal Test-only export for snapshot environment assertions. */
 export const getSnapshotDir = (): string =>
   getEnv("SNAPSHOT_DIR") ?? DEFAULT_SNAPSHOT_DIR;
 
@@ -69,6 +70,7 @@ export const isR2SnapshotConfigAvailable = (): boolean =>
     getEnv("R2_SECRET_ACCESS_KEY"),
   );
 
+/** @internal Test-only export for snapshot environment assertions. */
 export const getSnapshotCacheTtlMs = (): number =>
   parsePositiveInt(getEnv("SNAPSHOT_CACHE_TTL_MS")) ?? DEFAULT_CACHE_TTL_MS;
 
@@ -188,6 +190,7 @@ export const getCombinedSnapshotKey = (
 
 export const getSnapshotManifestKey = (): string => "manifest";
 
+/** @internal Test-only export for clearing snapshot caches between tests. */
 export const resetSnapshotCacheForTests = (): void => {
   snapshotCache.clear();
   snapshotInflight.clear();

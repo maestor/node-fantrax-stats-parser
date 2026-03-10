@@ -15,7 +15,6 @@ import {
   applyGoalieScores,
   availableSeasons,
   getTeamsWithData,
-  listSeasonsForTeam,
   seasonAvailable,
   reportTypeAvailable,
   parseSeasonParam,
@@ -1904,19 +1903,6 @@ describe("helpers", () => {
           expect.objectContaining({ id: "28", name: "seattle" }),
           expect.objectContaining({ id: "32", name: "vegas" }),
         ]),
-      );
-    });
-  });
-
-  describe("listSeasonsForTeam", () => {
-    test("delegates to getAvailableSeasonsFromDb", async () => {
-      mockGetAvailableSeasonsFromDb.mockResolvedValue([2023, 2024]);
-
-      const result = await listSeasonsForTeam("1", "regular");
-      expect(result).toEqual([2023, 2024]);
-      expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
-        "1",
-        "regular",
       );
     });
   });
