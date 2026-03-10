@@ -53,6 +53,10 @@ const SCHEMA_SQL = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_players_lookup ON players(team_id, season, report_type)`,
   `CREATE INDEX IF NOT EXISTS idx_goalies_lookup ON goalies(team_id, season, report_type)`,
+  `CREATE INDEX IF NOT EXISTS idx_players_career_id
+    ON players(player_id, season DESC, team_id, report_type)`,
+  `CREATE INDEX IF NOT EXISTS idx_goalies_career_id
+    ON goalies(goalie_id, season DESC, team_id, report_type)`,
   `CREATE INDEX IF NOT EXISTS idx_players_name ON players(name)`,
   `CREATE INDEX IF NOT EXISTS idx_goalies_name ON goalies(name)`,
   `CREATE TABLE IF NOT EXISTS playoff_results (
@@ -92,13 +96,15 @@ const main = async () => {
 
   await db.execute({
     sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
-    args: ["schema_version", "3"],
+    args: ["schema_version", "4"],
   });
 
   console.log("✅ Migration complete!");
-  console.log("   Tables: players, goalies, import_metadata, playoff_results, regular_results");
   console.log(
-    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_name, idx_goalies_name, idx_playoff_results_season, idx_regular_results_season"
+    "   Tables: players, goalies, import_metadata, playoff_results, regular_results",
+  );
+  console.log(
+    "   Indexes: idx_players_lookup, idx_goalies_lookup, idx_players_career_id, idx_goalies_career_id, idx_players_name, idx_goalies_name, idx_playoff_results_season, idx_regular_results_season",
   );
 };
 
