@@ -12,6 +12,7 @@ All new code **must maintain 100% test coverage:**
 **Enforcement:** `npm run verify` must pass before any commit.
 
 **Excluded from coverage:**
+
 - **db/client.ts only**: Thin wrapper around Turso/libSQL client — tested via integration
 
 ---
@@ -27,16 +28,19 @@ All new code **must maintain 100% test coverage:**
 ## Running Tests
 
 ### All tests with coverage
+
 ```bash
 npm run test:coverage
 ```
 
 ### Watch mode (development)
+
 ```bash
 npm run test:watch
 ```
 
 ### Full quality gate
+
 ```bash
 npm run verify  # Runs lint, typecheck, build, and test:coverage
 ```
@@ -51,13 +55,13 @@ Many functions are async (database queries, resolveTeamId, etc.). Always use `aw
 
 ```typescript
 // ❌ Wrong
-test('gets available seasons', () => {
+test("gets available seasons", () => {
   const result = availableSeasons();
   expect(result).toEqual([2023, 2024]);
 });
 
 // ✅ Correct
-test('gets available seasons', async () => {
+test("gets available seasons", async () => {
   const result = await availableSeasons();
   expect(result).toEqual([2023, 2024]);
 });
@@ -114,11 +118,12 @@ src/
     ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
     ├── queries.test.ts   # Database query layer
     ├── routes.test.ts    # API endpoint handlers
+    ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── services.test.ts  # Business logic (DB → scored data)
     └── fixtures.ts       # Shared test data
 ```
 
-**Total: 224 tests across 7 test suites**
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches.
 
 ---
 
@@ -133,12 +138,14 @@ src/
 5. **Async operations** - Test promise resolution and rejection
 
 **If you can't test something:**
+
 - Don't exclude it from coverage without discussion
 - Don't lower coverage thresholds (100% is required)
 - Do propose mocking strategies
 - Do document why it's difficult and seek guidance
 
 **For external SDK integrations:**
+
 - Mock at the module boundary (e.g., mock `../db/client`, not the libSQL SDK)
 - Test your wrapper code through the mocked dependency
 - Only exclude the thinnest possible adapter layer (e.g., `db/client.ts`)

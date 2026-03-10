@@ -19,6 +19,7 @@ console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
 
 import { readFileSync } from "fs";
 import path from "path";
+import { spawnSync } from "child_process";
 import { getDbClient } from "../src/db/client";
 
 const PLAYOFFS_PATH = path.resolve(
@@ -51,7 +52,7 @@ const main = async () => {
   } catch {
     console.error(
       `❌  Could not read ${PLAYOFFS_PATH}.\n` +
-      `   Run npm run playwright:sync:playoffs first to generate it.`,
+        `   Run npm run playwright:sync:playoffs first to generate it.`,
     );
     process.exit(1);
   }
@@ -64,7 +65,7 @@ const main = async () => {
   ) {
     console.error(
       `❌  Unsupported schema version (${file.schemaVersion ?? "unknown"}).\n` +
-      `   Expected schemaVersion 2 or 3. Re-run npm run playwright:sync:playoffs.`,
+        `   Expected schemaVersion 2 or 3. Re-run npm run playwright:sync:playoffs.`,
     );
     process.exit(1);
   }
@@ -89,8 +90,22 @@ const main = async () => {
     }
   }
 
+  await db.execute({
+    sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
+    args: ["last_modified", new Date().toISOString()],
+  });
+
   console.log(`✅  Imported playoff results from ${PLAYOFFS_PATH}`);
   console.log(`   Upserted: ${upserted}  Skipped (no round data): ${skipped}`);
+
+  console.log("📸  Regenerating API snapshots...");
+  const snapshotRun = spawnSync("npm", ["run", "snapshot:generate"], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (snapshotRun.status !== 0) {
+    throw new Error("Snapshot generation failed after playoff results import");
+  }
 };
 
 main().catch((error) => {

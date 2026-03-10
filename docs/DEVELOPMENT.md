@@ -23,6 +23,7 @@ npm run verify
 ```
 
 This should:
+
 - ✅ Pass ESLint checks (no warnings)
 - ✅ Pass TypeScript compilation
 - ✅ Build successfully to lib/
@@ -35,8 +36,9 @@ This should:
 ### Daily Development Loop
 
 1. **Create feature branch**
+
    ```bash
-   git checkout -b feat/your-feature-name
+   git checkout -b feature/your-feature-name
    ```
 
 2. **Make changes incrementally**
@@ -45,14 +47,16 @@ This should:
    - Run tests in watch mode: `npm run test:watch`
 
 3. **Before committing**
+
    ```bash
    npm run verify  # Must pass - runs all quality gates
    ```
 
 4. **Commit with descriptive message**
+
    ```bash
    git add .
-   git commit -m "feat: add XYZ functionality"
+   git commit -m "Feature: Add XYZ functionality"
    ```
 
 5. **Push and create PR** (if working with others)
@@ -66,6 +70,7 @@ npm run verify
 ```
 
 **What it runs:**
+
 1. `npm run lint:check` - ESLint with 0 warnings allowed
 2. `npm run typecheck` - TypeScript compilation check
 3. `npm run build` - Production build (outputs to lib/)
@@ -78,23 +83,27 @@ npm run verify
 ## npm Scripts Reference
 
 ### Development
+
 - `npm run dev` - Start development server with hot reload (nodemon)
 - `npm start` - Start production server
 - `npm run build` - Build for production (TypeScript → JavaScript)
 
 ### Code Quality
+
 - `npm run lint:check` - Run ESLint (read-only)
 - `npm run lint:fix` - Run ESLint with auto-fix
 - `npm run typecheck` - TypeScript type checking without build
 - `npm run format` - Format code with Prettier
 
 ### Testing
+
 - `npm test` - Run all tests once
 - `npm run test:watch` - Run tests in watch mode (development)
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run verify` - **Full quality gate** (lint + typecheck + build + coverage)
 
 ### CSV Data Import
+
 - `npm run playwright:install` - Installs or refreshes Playwright's Chromium browser binaries
 - `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
 - `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Use `--import-db` to upsert results into the local database after syncing.
@@ -116,27 +125,31 @@ npm run verify
 - Rows with `0` games are imported into the database, but player/goalie API queries currently filter them out.
 
 ### Database (Turso/SQLite)
-- `npm run db:migrate` - Create/update database schema
+
+- `npm run db:migrate` - Create/update database schema and performance indexes, including career lookup indexes on `player_id` and `goalie_id`
 - `npm run db:pull:remote` - Replace `local.db` by pulling full schema + data from remote Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`); creates timestamped backup in `.backups/`
 - `npm run db:backups:clean` - Remove all files under `.backups/`
-- `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
-- `npm run db:import:stats -- --season=YYYY` - Import only one season into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote)
-- `npm run db:import:stats:current` - Import only current season into database
-- `npm run db:import:stats -- --report-type=regular|playoffs` - Import only one report type into database
-- `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso)
-- `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso.
+- `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Regenerates API snapshots after a successful import.
+- `npm run db:import:stats -- --season=YYYY` - Import only one season into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Regenerates API snapshots after a successful import.
+- `npm run db:import:stats:current` - Import only current season into database. Regenerates API snapshots after a successful import.
+- `npm run db:import:stats -- --report-type=regular|playoffs` - Import only one report type into database. Regenerates API snapshots after a successful import.
+- `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso). Regenerates API snapshots after a successful import.
+- `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso. Regenerates API snapshots after a successful import.
+- `npm run snapshot:generate` - Generate JSON snapshots for historical endpoints and default combined responses into `generated/snapshots/`. If `USE_R2_SNAPSHOTS=true`, uploads them to R2 too.
 
-### R2 Storage (CSV backup)
+### R2 Storage (CSV backup + optional API snapshots)
+
 - `npm run r2:upload` - Upload all CSV files to R2
 - `npm run r2:upload -- --season=YYYY` - Upload only one season to R2
 - `npm run r2:upload:current` - Upload only current season to R2
 - `npm run r2:upload -- --report-type=regular|playoffs` - Upload only one report type to R2
-- `npm run r2:download` - Download CSV files from R2
+- `npm run r2:download` - Download CSV files from R2. Snapshot objects under the configured snapshot prefix are ignored.
 - `npm run r2:upload:raw` - Force-upload raw `csv/temp/*.csv` to `rawFiles/<teamId>/...` and remove uploaded temp files
 - `npm run r2:download:raw` - Download all `rawFiles/` objects from R2 into `csv/temp/` (force overwrite)
 - `npm run parseAndUploadRawCsv` - Post-import raw pipeline: upload `csv/temp` to `rawFiles/` and clean uploaded temp files
 
 ### Utilities
+
 - `npm run clean` - Remove lib/ directory
 
 ---
@@ -149,12 +162,12 @@ The frontend generates TypeScript types from this file using `openapi-typescript
 
 ### When to update the spec
 
-| Change | Required spec update |
-|--------|----------------------|
-| New endpoint | Add path block with all parameters and response schemas |
-| Changed response shape | Update the matching `components/schemas` entry |
-| Deleted endpoint | Remove the path block |
-| Changed parameter | Update `components/parameters` or the path-level param definition |
+| Change                 | Required spec update                                              |
+| ---------------------- | ----------------------------------------------------------------- |
+| New endpoint           | Add path block with all parameters and response schemas           |
+| Changed response shape | Update the matching `components/schemas` entry                    |
+| Deleted endpoint       | Remove the path block                                             |
+| Changed parameter      | Update `components/parameters` or the path-level param definition |
 
 ### How to verify locally
 
@@ -200,6 +213,11 @@ USE_REMOTE_DB=false
 # R2_SECRET_ACCESS_KEY=your_secret_access_key
 # R2_BUCKET_NAME=ffhl-stats-csv
 # USE_R2_STORAGE=true               # Enables R2 upload in import pipeline
+# USE_R2_SNAPSHOTS=false            # Upload/read generated API snapshots via R2
+# R2_SNAPSHOT_BUCKET_NAME=          # Optional; defaults to R2_BUCKET_NAME
+# R2_SNAPSHOT_PREFIX=snapshots      # Optional object prefix for snapshot JSONs
+# SNAPSHOT_DIR=generated/snapshots  # Optional local snapshot directory
+# SNAPSHOT_CACHE_TTL_MS=60000       # Optional in-memory snapshot cache ttl
 # RAW_UPLOAD=false
 #   Optional Playwright post-import toggle when --out=csv/temp
 #   true  -> run parseAndUploadRawCsv (upload raw csv/temp to R2 rawFiles/ + cleanup)
@@ -220,16 +238,19 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 ## Code Style
 
 ### Enforced by Tooling
+
 - **ESLint**: TypeScript ESLint rules, no warnings allowed (`--max-warnings 0`)
 - **Prettier**: Auto-formatting on save (recommended VSCode settings)
 - **TypeScript**: Strict mode enabled
 
 #### Console output rules (ESLint `no-console`)
+
 `src/playwright/**/*.ts` files are CLI utilities and have a strict rule: only `console.info` and `console.error` are allowed — `console.log` and `console.warn` are ESLint **errors**. The rest of `src/` has `no-console: warn`, which also fails `lint:check` due to `--max-warnings 0`.
 
 **Rule of thumb for any `src/` file:** use `console.info` for informational output and `console.error` for errors. Never use `console.log` or `console.warn`.
 
 ### Conventions
+
 - Use `async/await` over promise chains
 - Prefer explicit types over `any`
 - Extract magic numbers to constants
@@ -240,9 +261,14 @@ Set these in Vercel Dashboard → Project Settings → Environment Variables:
 ### TypeScript patterns
 
 **Derive types from constants — don't duplicate them:**
+
 ```ts
 // ✅ Single source of truth
-export const REPORT_TYPES = ["playoffs", "regular", "both"] as const satisfies readonly Report[];
+export const REPORT_TYPES = [
+  "playoffs",
+  "regular",
+  "both",
+] as const satisfies readonly Report[];
 export type Report = (typeof REPORT_TYPES)[number];
 
 // ❌ Two things to keep in sync
@@ -251,21 +277,29 @@ export const REPORT_TYPES: Report[] = ["playoffs", "regular", "both"];
 ```
 
 **Use `satisfies` to validate constant shapes without widening types:**
+
 ```ts
 // ✅ Validates all values are numbers; literal types are preserved
-export const HTTP_STATUS = { OK: 200, BAD_REQUEST: 400 } as const satisfies Record<string, number>;
+export const HTTP_STATUS = {
+  OK: 200,
+  BAD_REQUEST: 400,
+} as const satisfies Record<string, number>;
 ```
 
 **Add `readonly` to array parameters that are not mutated:**
+
 ```ts
 // ✅ Communicates intent; callers can pass as-const arrays without a type error
 const getMaxByField = <T, K>(items: readonly T[], fields: readonly K[]) => { ... };
 ```
 
 **Cast DB rows through a named helper — don't scatter double-casts:**
+
 ```ts
 // ✅ Single trust boundary, one place to update if the DB client improves
-function castRows<T>(rows: unknown[]): T[] { return rows as T[]; }
+function castRows<T>(rows: unknown[]): T[] {
+  return rows as T[];
+}
 return castRows<PlayerRow>(result.rows).map(mapPlayerRow);
 
 // ❌ Noisy, intent unclear
@@ -273,17 +307,23 @@ return (result.rows as unknown as PlayerRow[]).map(mapPlayerRow);
 ```
 
 **Validate before casting union types — use existing guards:**
+
 ```ts
 // ✅ Cast only happens in the valid branch
-if (!reportTypeAvailable(req.params.reportType as Report)) { return 400; }
+if (!reportTypeAvailable(req.params.reportType as Report)) {
+  return 400;
+}
 const report = req.params.reportType as Report;
 
 // ❌ Cast before validation
 const report = req.params.reportType as Report;
-if (!reportTypeAvailable(report)) { return 400; }
+if (!reportTypeAvailable(report)) {
+  return 400;
+}
 ```
 
 ### File Organization
+
 - Source code: `src/`
 - Tests: `src/__tests__/`
 - Database layer: `src/db/`
