@@ -1752,76 +1752,61 @@ describe("helpers", () => {
   });
 
   describe("resolveTeamId", () => {
-    test("defaults to DEFAULT_TEAM_ID for non-string values", async () => {
-      expect(await resolveTeamId(123 as unknown)).toBe("1");
+    test("normalizes invalid inputs to the default team", () => {
+      expect(resolveTeamId(123 as unknown)).toBe("1");
+      expect(resolveTeamId("   ")).toBe("1");
+      expect(resolveTeamId("999")).toBe("1");
     });
 
-    test("defaults to DEFAULT_TEAM_ID for empty string", async () => {
-      expect(await resolveTeamId("   ")).toBe("1");
-    });
-
-    test("defaults to DEFAULT_TEAM_ID for unknown team", async () => {
-      expect(await resolveTeamId("999")).toBe("1");
-    });
-
-    test("keeps configured team id when the team exists in constants", async () => {
-      expect(await resolveTeamId("2")).toBe("2");
-    });
-
-    test("trims a valid configured team id", async () => {
-      expect(await resolveTeamId(" 28 ")).toBe("28");
+    test("keeps configured team ids and trims valid input", () => {
+      expect(resolveTeamId("2")).toBe("2");
+      expect(resolveTeamId(" 28 ")).toBe("28");
     });
   });
 
   describe("availableSeasons", () => {
-    test("returns computed regular seasons for the default team", async () => {
-      const result = await availableSeasons();
-      expect(result[0]).toBe(2012);
-      expect(result.at(-1)).toBe(CURRENT_SEASON);
-      expect(result).toHaveLength(CURRENT_SEASON - 2012 + 1);
+    test("returns computed regular-era ranges without DB lookups", async () => {
+      const defaultRegular = await availableSeasons();
+      const teamBoth = await availableSeasons("28", "both");
+
+      expect(defaultRegular[0]).toBe(2012);
+      expect(defaultRegular.at(-1)).toBe(CURRENT_SEASON);
+      expect(defaultRegular).toHaveLength(CURRENT_SEASON - 2012 + 1);
+
+      expect(teamBoth[0]).toBe(2021);
+      expect(teamBoth.at(-1)).toBe(CURRENT_SEASON);
+      expect(teamBoth).toHaveLength(CURRENT_SEASON - 2021 + 1);
       expect(mockGetAvailableSeasonsFromDb).not.toHaveBeenCalled();
     });
 
-    test("when reportType is both, returns the team's regular era range", async () => {
-      const result = await availableSeasons("28", "both");
-      expect(result[0]).toBe(2021);
-      expect(result.at(-1)).toBe(CURRENT_SEASON);
-      expect(result).toHaveLength(CURRENT_SEASON - 2021 + 1);
-      expect(mockGetAvailableSeasonsFromDb).not.toHaveBeenCalled();
-    });
-
-    test("delegates playoff seasons to the DB", async () => {
-      mockGetAvailableSeasonsFromDb.mockResolvedValue([2023, 2024]);
+    test("delegates playoff seasons to the DB for both populated and empty results", async () => {
+      mockGetAvailableSeasonsFromDb
+        .mockResolvedValueOnce([2023, 2024])
+        .mockResolvedValueOnce([]);
 
       const result = await availableSeasons("2", "playoffs");
+      const emptyResult = await availableSeasons("1", "playoffs");
+
       expect(result).toEqual([2023, 2024]);
+      expect(emptyResult).toEqual([]);
       expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
         "2",
         "playoffs",
       );
-    });
-
-    test("returns empty array when playoffs have no seasons", async () => {
-      mockGetAvailableSeasonsFromDb.mockResolvedValue([]);
-
-      const result = await availableSeasons("1", "playoffs");
-      expect(result).toEqual([]);
+      expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
+        "1",
+        "playoffs",
+      );
     });
   });
 
   describe("seasonAvailable", () => {
-    test("returns true for an available regular season", async () => {
+    test("handles undefined and regular-season membership checks", async () => {
+      expect(await seasonAvailable(undefined)).toBe(true);
       expect(await seasonAvailable(2012)).toBe(true);
       expect(await seasonAvailable(CURRENT_SEASON)).toBe(true);
-    });
-
-    test("returns false for an unavailable regular season", async () => {
       expect(await seasonAvailable(2000)).toBe(false);
       expect(await seasonAvailable(2020, "28", "regular")).toBe(false);
-    });
-
-    test("returns true for undefined season", async () => {
-      expect(await seasonAvailable(undefined)).toBe(true);
     });
 
     test("uses DB-backed seasons for playoffs", async () => {
@@ -1837,67 +1822,34 @@ describe("helpers", () => {
   });
 
   describe("reportTypeAvailable", () => {
-    test("returns true for regular", () => {
+    test("accepts supported report types and rejects invalid values", () => {
       expect(reportTypeAvailable("regular")).toBe(true);
-    });
-
-    test("returns true for playoffs", () => {
       expect(reportTypeAvailable("playoffs")).toBe(true);
-    });
-
-    test("returns true for both", () => {
       expect(reportTypeAvailable("both")).toBe(true);
-    });
-
-    test("returns false for invalid report type", () => {
       expect(reportTypeAvailable("invalid" as Report)).toBe(false);
-    });
-
-    test("returns false for undefined", () => {
       expect(reportTypeAvailable(undefined)).toBe(false);
     });
   });
 
   describe("parseSeasonParam", () => {
-    test("returns number for valid numeric string", () => {
+    test("parses numeric values and rejects missing or invalid ones", () => {
       expect(parseSeasonParam("2024")).toBe(2024);
       expect(parseSeasonParam("2012")).toBe(2012);
-    });
-
-    test("returns undefined for undefined", () => {
-      expect(parseSeasonParam(undefined)).toBe(undefined);
-    });
-
-    test("returns undefined for empty string", () => {
-      expect(parseSeasonParam("")).toBe(undefined);
-    });
-
-    test("returns undefined for null", () => {
-      expect(parseSeasonParam(null)).toBe(undefined);
-    });
-
-    test("returns undefined for non-numeric string", () => {
-      expect(parseSeasonParam("abc")).toBe(undefined);
-    });
-
-    test("returns undefined for NaN", () => {
-      expect(parseSeasonParam(NaN)).toBe(undefined);
-    });
-
-    test("handles number input correctly", () => {
       expect(parseSeasonParam(2024)).toBe(2024);
+      expect(parseSeasonParam(undefined)).toBe(undefined);
+      expect(parseSeasonParam("")).toBe(undefined);
+      expect(parseSeasonParam(null)).toBe(undefined);
+      expect(parseSeasonParam("abc")).toBe(undefined);
+      expect(parseSeasonParam(NaN)).toBe(undefined);
     });
   });
 
   describe("getTeamsWithData", () => {
-    test("returns all configured teams", () => {
+    test("returns all configured teams including expansion teams", () => {
       const teams = getTeamsWithData();
+
       expect(teams).toHaveLength(TEAMS.length);
       expect(teams[0]).toMatchObject({ id: "1", name: "colorado" });
-    });
-
-    test("includes expansion teams from constants", () => {
-      const teams = getTeamsWithData();
       expect(teams).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: "28", name: "seattle" }),
