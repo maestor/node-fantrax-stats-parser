@@ -64,16 +64,21 @@ jest.mock("../snapshots", () => ({
 
 type RouteReq = Parameters<typeof getSeasons>[0];
 const asRouteReq = (req: unknown): RouteReq => req as RouteReq;
+type RouteHandler = typeof getSeasons;
+
+const primeRouteMocks = (): void => {
+  resetRouteCachesForTests();
+  (loadSnapshot as jest.Mock).mockResolvedValue(null);
+  (resolveTeamId as jest.Mock).mockReturnValue("1");
+  (reportTypeAvailable as jest.Mock).mockReturnValue(true);
+  (seasonAvailable as jest.Mock).mockResolvedValue(true);
+  (parseSeasonParam as jest.Mock).mockReturnValue(undefined);
+};
 
 describe("routes", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    resetRouteCachesForTests();
-    (loadSnapshot as jest.Mock).mockResolvedValue(null);
-    (resolveTeamId as jest.Mock).mockReturnValue("1");
-    (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-    (seasonAvailable as jest.Mock).mockResolvedValue(true);
-    (parseSeasonParam as jest.Mock).mockReturnValue(undefined);
+    primeRouteMocks();
   });
 
   describe("getHealthcheck", () => {
@@ -96,40 +101,6 @@ describe("routes", () => {
   });
 
   describe("getSeasons", () => {
-    test("returns 500 on service error", async () => {
-      const error = new Error("DB error");
-      (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
-
-      const req = createRequest();
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        error,
-      );
-    });
-
-    test("returns 400 for invalid report type path param", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-
-      const req = createRequest({
-        url: "/seasons/invalid",
-        params: { reportType: "invalid" },
-      });
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
     test("handles request with non-string url (defaults query params)", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
@@ -200,6 +171,137 @@ describe("routes", () => {
       );
     });
 
+  });
+
+  describe("route guards and generic service errors", () => {
+    test("returns 400 for invalid report type across guarded routes", async () => {
+      const cases: Array<{ handler: RouteHandler; req: ReturnType<typeof createRequest> }> = [
+        {
+          handler: getSeasons,
+          req: createRequest({
+            url: "/seasons/invalid",
+            params: { reportType: "invalid" },
+          }),
+        },
+        {
+          handler: getPlayersSeason,
+          req: createRequest({ params: { reportType: "invalid" } }),
+        },
+        {
+          handler: getPlayersCombined,
+          req: createRequest({ params: { reportType: "invalid" } }),
+        },
+        {
+          handler: getGoaliesSeason,
+          req: createRequest({ params: { reportType: "invalid" } }),
+        },
+        {
+          handler: getGoaliesCombined,
+          req: createRequest({ params: { reportType: "invalid" } }),
+        },
+      ];
+
+      for (const routeCase of cases) {
+        jest.clearAllMocks();
+        primeRouteMocks();
+        (reportTypeAvailable as jest.Mock).mockReturnValue(false);
+
+        const res = createResponse();
+        await routeCase.handler(asRouteReq(routeCase.req), res as never);
+
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenLastCalledWith(
+          res,
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_MESSAGES.INVALID_REPORT_TYPE,
+        );
+      }
+    });
+
+    test("returns 500 when underlying services reject across route handlers", async () => {
+      const cases: Array<{
+        handler: RouteHandler;
+        req: ReturnType<typeof createRequest>;
+        arrange: (error: Error) => void;
+      }> = [
+        {
+          handler: getSeasons,
+          req: createRequest(),
+          arrange: (error) => {
+            (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getPlayersSeason,
+          req: createRequest({
+            params: { reportType: "regular", season: "2024" },
+          }),
+          arrange: (error) => {
+            (getPlayersStatsSeason as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getPlayersCombined,
+          req: createRequest({ params: { reportType: "regular" } }),
+          arrange: (error) => {
+            (getPlayersStatsCombined as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getGoaliesSeason,
+          req: createRequest({
+            params: { reportType: "regular", season: "2024" },
+          }),
+          arrange: (error) => {
+            (getGoaliesStatsSeason as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getGoaliesCombined,
+          req: createRequest({ params: { reportType: "regular" } }),
+          arrange: (error) => {
+            (getGoaliesStatsCombined as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getPlayoffsLeaderboard,
+          req: createRequest({
+            method: "GET",
+            url: "/leaderboard/playoffs",
+          }),
+          arrange: (error) => {
+            (getPlayoffLeaderboardData as jest.Mock).mockRejectedValue(error);
+          },
+        },
+        {
+          handler: getRegularLeaderboard,
+          req: createRequest({
+            method: "GET",
+            url: "/leaderboard/regular",
+          }),
+          arrange: (error) => {
+            (getRegularLeaderboardData as jest.Mock).mockRejectedValue(error);
+          },
+        },
+      ];
+
+      for (const routeCase of cases) {
+        jest.clearAllMocks();
+        primeRouteMocks();
+        const error = new Error("Service error");
+        routeCase.arrange(error);
+
+        const res = createResponse();
+        await routeCase.handler(asRouteReq(routeCase.req), res as never);
+
+        expect(send).toHaveBeenCalledTimes(1);
+        expect(send).toHaveBeenLastCalledWith(
+          res,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          error,
+        );
+      }
+    });
   });
 
   describe("getTeams", () => {
@@ -324,167 +426,6 @@ describe("routes", () => {
     });
   });
 
-  describe("getPlayersSeason", () => {
-    test("returns 400 for invalid report type", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-      (seasonAvailable as jest.Mock).mockResolvedValue(true);
-
-      const req = createRequest({
-        params: { reportType: "invalid" },
-      });
-      const res = createResponse();
-
-      await getPlayersSeason(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
-    test("returns 500 on service error", async () => {
-      const error = new Error("Service error");
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockResolvedValue(true);
-      (getPlayersStatsSeason as jest.Mock).mockRejectedValue(error);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2024" },
-      });
-      const res = createResponse();
-
-      await getPlayersSeason(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        error,
-      );
-    });
-  });
-
-  describe("getPlayersCombined", () => {
-    test("returns 400 for invalid report type", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-
-      const req = createRequest({
-        params: { reportType: "invalid" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
-    test("returns 500 on service error", async () => {
-      const error = new Error("Service error");
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockRejectedValue(error);
-      (loadSnapshot as jest.Mock).mockRejectedValue(
-        new Error("snapshot unavailable"),
-      );
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        error,
-      );
-    });
-
-  });
-
-  describe("getGoaliesSeason", () => {
-    test("returns 400 for invalid report type", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-      (seasonAvailable as jest.Mock).mockResolvedValue(true);
-
-      const req = createRequest({
-        params: { reportType: "invalid" },
-      });
-      const res = createResponse();
-
-      await getGoaliesSeason(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
-    test("returns 500 on service error", async () => {
-      const error = new Error("Service error");
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockResolvedValue(true);
-      (getGoaliesStatsSeason as jest.Mock).mockRejectedValue(error);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2024" },
-      });
-      const res = createResponse();
-
-      await getGoaliesSeason(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        error,
-      );
-    });
-  });
-
-  describe("getGoaliesCombined", () => {
-    test("returns 400 for invalid report type", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(false);
-
-      const req = createRequest({
-        params: { reportType: "invalid" },
-      });
-      const res = createResponse();
-
-      await getGoaliesCombined(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
-    test("returns 500 on service error", async () => {
-      const error = new Error("Service error");
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getGoaliesStatsCombined as jest.Mock).mockRejectedValue(error);
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getGoaliesCombined(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        error,
-      );
-    });
-
-  });
-
   describe("getLastModified", () => {
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
@@ -519,47 +460,6 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
       });
-    });
-  });
-
-  describe("getPlayoffsLeaderboard", () => {
-    test("handles service error", async () => {
-      (getPlayoffLeaderboardData as jest.Mock).mockRejectedValue(
-        new Error("DB error"),
-      );
-
-      const req = createRequest({
-        method: "GET",
-        url: "/leaderboard/playoffs",
-      });
-      const res = createResponse();
-
-      await getPlayoffsLeaderboard(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        expect.any(Error),
-      );
-    });
-  });
-
-  describe("getRegularLeaderboard", () => {
-    test("handles service error", async () => {
-      (getRegularLeaderboardData as jest.Mock).mockRejectedValue(
-        new Error("DB error"),
-      );
-
-      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
-      const res = createResponse();
-
-      await getRegularLeaderboard(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        expect.any(Error),
-      );
     });
   });
 
