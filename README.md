@@ -489,8 +489,8 @@ Currently snapshotted response families are:
 - `/career/goalies`
 - `/leaderboard/regular`
 - `/leaderboard/playoffs`
-- `/players/combined/{reportType}?teamId=<id>` when `startFrom` is omitted
-- `/goalies/combined/{reportType}?teamId=<id>` when `startFrom` is omitted
+- `/players/combined/{reportType}?teamId=<id>` when `startFrom` is omitted or matches the team's default start season
+- `/goalies/combined/{reportType}?teamId=<id>` when `startFrom` is omitted or matches the team's default start season
 
 Behavior:
 

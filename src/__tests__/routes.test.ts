@@ -584,6 +584,29 @@ describe("routes", () => {
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotPlayers);
     });
 
+    test("uses snapshot when startFrom matches the default league start season", async () => {
+      const snapshotPlayers = [
+        { name: "Default Window Player", goals: 88, seasons: [] },
+      ];
+      (loadSnapshot as jest.Mock).mockResolvedValue(snapshotPlayers);
+      (parseSeasonParam as jest.Mock).mockReturnValue(2012);
+
+      const req = createRequest({
+        url: "/players/combined/regular?startFrom=2012",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(asRouteReq(req), res);
+
+      expect(loadSnapshot).toHaveBeenCalledWith(
+        "players/combined/regular/team-1",
+      );
+      expect(getPlayersStatsCombined).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotPlayers);
+    });
+
     test("returns 400 for invalid report type", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(false);
 
@@ -790,6 +813,30 @@ describe("routes", () => {
 
       expect(loadSnapshot).toHaveBeenCalledWith(
         "goalies/combined/regular/team-1",
+      );
+      expect(getGoaliesStatsCombined).not.toHaveBeenCalled();
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotGoalies);
+    });
+
+    test("uses snapshot when startFrom matches the team's first season", async () => {
+      const snapshotGoalies = [
+        { name: "Seattle Window Goalie", wins: 33, seasons: [] },
+      ];
+      (loadSnapshot as jest.Mock).mockResolvedValue(snapshotGoalies);
+      (resolveTeamId as jest.Mock).mockResolvedValue("28");
+      (parseSeasonParam as jest.Mock).mockReturnValue(2021);
+
+      const req = createRequest({
+        url: "/goalies/combined/regular?teamId=28&startFrom=2021",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(asRouteReq(req), res);
+
+      expect(loadSnapshot).toHaveBeenCalledWith(
+        "goalies/combined/regular/team-28",
       );
       expect(getGoaliesStatsCombined).not.toHaveBeenCalled();
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotGoalies);
