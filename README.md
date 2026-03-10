@@ -25,7 +25,7 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 8. Go to endpoints mentioned below
 ```
 
-**Note:** The API reads all data from the database. CSV files are only needed as the import source.
+**Note:** CSV files are only the import source. The API reads live data from Turso and can also serve generated JSON snapshots for read-mostly endpoints.
 
 ## Endpoints
 
@@ -48,6 +48,7 @@ The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code
 3. Restart the dev server and visit `/api-docs` to preview the changes
 
 **Key files:**
+
 - `openapi.yaml` — the spec source
 - `src/openapi.ts` — route handlers that serve `/openapi.json` and `/api-docs`
 - `src/index.ts` — registers the two public routes
@@ -292,7 +293,7 @@ It will:
   - `csv/<teamId>/{regular|playoffs}-YYYY-YYYY.csv`
 - Create `csv/<teamId>/` if it doesn't exist
 - Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
-- Import into database (`npm run db:import:stats`)
+- Import into database (`npm run db:import:stats`) and regenerate API snapshots
 - Clean up temp files after successful DB import, unless `--keep-temp` is used
 - If `--season` is omitted, all matched seasons are uploaded/imported
 - If `--report-type` is omitted, `both` is the default and all matched report types are uploaded/imported
@@ -354,7 +355,7 @@ Required environment variables: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, and AP
 
 **Local development:** The API reads from a local SQLite file (`local.db`), created by running `npm run db:migrate` and `npm run db:import:stats`.
 
-**CSV files** are the import source. They can be stored locally in `csv/<teamId>/` and optionally backed up to Cloudflare R2. CSV files are NOT used at runtime by the API.
+**CSV files** are the import source. They can be stored locally in `csv/<teamId>/` and optionally backed up to Cloudflare R2. Runtime responses come from Turso or generated JSON snapshots, not from CSV files.
 
 Multi-team CSV layout (local or R2):
 
@@ -408,7 +409,10 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
 
 ## Cloud Storage (Cloudflare R2)
 
-CSV files can be backed up to Cloudflare R2 for team sharing and archival. R2 is **not** used at runtime by the API — it's purely for managing CSV files.
+Cloudflare R2 can be used for two separate purposes:
+
+- CSV backup and sharing
+- generated API snapshot storage for read-mostly endpoints
 
 ### Configuration (environment variables for R2 scripts)
 
@@ -417,6 +421,11 @@ R2_ENDPOINT=https://[account-id].r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=your_access_key_id
 R2_SECRET_ACCESS_KEY=your_secret_access_key
 R2_BUCKET_NAME=ffhl-stats-csv
+USE_R2_SNAPSHOTS=false
+# R2_SNAPSHOT_BUCKET_NAME=ffhl-stats-snapshots  # Optional; defaults to R2_BUCKET_NAME
+# R2_SNAPSHOT_PREFIX=snapshots                  # Optional object prefix
+# SNAPSHOT_DIR=generated/snapshots              # Optional local snapshot directory
+# SNAPSHOT_CACHE_TTL_MS=60000                   # Optional in-memory snapshot cache ttl
 ```
 
 ### Managing R2 Data
@@ -451,6 +460,8 @@ npm run r2:download -- --team=1       # Download only team 1
 npm run r2:download -- --force        # Force overwrite existing files
 ```
 
+`npm run r2:download` skips runtime snapshot objects under the configured snapshot prefix.
+
 **Download raw temp CSV files from `rawFiles/` in R2 to `csv/temp/`:**
 
 ```bash
@@ -466,6 +477,32 @@ When `USE_R2_STORAGE=true`, the import pipeline automatically uploads to R2 and 
 ```bash
 npm run parseAndUploadCsv  # Loads .env, cleans CSVs, uploads to R2, imports to DB
 npm run parseAndUploadRawCsv # Loads .env, uploads raw csv/temp files to rawFiles/, removes uploaded temp files
+```
+
+## API snapshots
+
+Read-mostly endpoints can be served from generated JSON snapshots. This is intended to cut Turso traffic and reduce response time for historical payloads.
+
+Currently snapshotted response families are:
+
+- `/career/players`
+- `/career/goalies`
+- `/leaderboard/regular`
+- `/leaderboard/playoffs`
+- `/players/combined/{reportType}?teamId=<id>` when `startFrom` is omitted
+- `/goalies/combined/{reportType}?teamId=<id>` when `startFrom` is omitted
+
+Behavior:
+
+- Successful `db:import:*` scripts refresh `import_metadata.last_modified` and then run `npm run snapshot:generate`
+- snapshots are written locally to `generated/snapshots/`
+- if `USE_R2_SNAPSHOTS=true`, the same generation step also uploads JSON snapshots to R2
+- at runtime the API tries local snapshots first, then R2, and finally falls back to live DB queries
+
+Manual generation:
+
+```bash
+npm run snapshot:generate
 ```
 
 ## Database (Turso/SQLite)
@@ -512,6 +549,8 @@ npm run db:import:stats:current # Import only current season into remote Turso
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into remote Turso
 npm run db:import:stats -- --season=2018 --report-type=regular # Import only regular from one season
 ```
+
+All successful `db:import:*` commands regenerate API snapshots after the database update completes.
 
 Get credentials from the [Turso dashboard](https://turso.tech).
 
@@ -570,13 +609,13 @@ Consumer applications can poll the `/last-modified` endpoint to detect when data
 let lastKnownTimestamp: string | null = null;
 
 async function checkForUpdates() {
-  const response = await fetch('https://your-api.com/last-modified', {
-    headers: { 'X-API-Key': 'your-api-key' }
+  const response = await fetch("https://your-api.com/last-modified", {
+    headers: { "X-API-Key": "your-api-key" },
   });
   const data = await response.json();
 
   if (data.lastModified !== lastKnownTimestamp) {
-    console.log('Data updated! Refetching stats...');
+    console.log("Data updated! Refetching stats...");
     lastKnownTimestamp = data.lastModified;
     await refetchAllStats();
   }
@@ -651,5 +690,6 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
+- Add paging or search-first loading for large career lists to reduce initial payload size further
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

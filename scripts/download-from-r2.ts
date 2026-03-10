@@ -14,10 +14,15 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  ListObjectsV2Command,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
+import { getSnapshotPrefix } from "../src/snapshots";
 
 interface DownloadOptions {
   teamId?: string;
@@ -50,7 +55,9 @@ const getR2Config = () => {
 
   if (!endpoint || !accessKeyId || !secretAccessKey || !bucketName) {
     console.error("❌ Missing R2 environment variables:");
-    console.error("   R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME");
+    console.error(
+      "   R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME",
+    );
     console.error("\nSet these in your .env file or environment.");
     process.exit(1);
   }
@@ -113,6 +120,9 @@ const downloadFiles = async (options: DownloadOptions) => {
     if (obj.Key === "manifest.json" || obj.Key === "last-modified.txt") {
       continue;
     }
+    if (obj.Key.startsWith(`${getSnapshotPrefix()}/`)) {
+      continue;
+    }
 
     const localPath = path.join(process.cwd(), "csv", obj.Key);
     const localDir = path.dirname(localPath);
@@ -164,12 +174,16 @@ const downloadFiles = async (options: DownloadOptions) => {
       console.log(`    ✓ ${action}: ${localPath}`);
       downloaded++;
     } catch (error) {
-      console.error(`    ❌ Failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `    ❌ Failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       skipped++;
     }
   }
 
-  console.log(`\n${options.dryRun ? "Would download" : "Downloaded"} ${downloaded} files`);
+  console.log(
+    `\n${options.dryRun ? "Would download" : "Downloaded"} ${downloaded} files`,
+  );
   if (skipped > 0) {
     console.log(`Skipped ${skipped} files`);
   }
@@ -182,7 +196,10 @@ const main = async () => {
     const options = parseArgs();
     await downloadFiles(options);
   } catch (error) {
-    console.error("\n❌ Error:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "\n❌ Error:",
+      error instanceof Error ? error.message : String(error),
+    );
     process.exit(1);
   }
 };

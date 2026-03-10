@@ -31,6 +31,14 @@ import {
   setNoStoreHeaders,
 } from "./cache";
 import { getLastModifiedFromDb } from "./db/queries";
+import {
+  getCareerGoaliesSnapshotKey,
+  getCareerPlayersSnapshotKey,
+  getCombinedSnapshotKey,
+  getPlayoffsLeaderboardSnapshotKey,
+  getRegularLeaderboardSnapshotKey,
+  loadSnapshot,
+} from "./snapshots";
 
 const responseCache = new Map<string, { etag: string; data: unknown }>();
 
@@ -55,10 +63,14 @@ export const resetRouteCachesForTests = (): void => {
 
 type QueryParamRequest = { url?: unknown; headers?: Record<string, unknown> };
 
-const getQueryParam = (req: QueryParamRequest, key: string): string | undefined => {
+const getQueryParam = (
+  req: QueryParamRequest,
+  key: string,
+): string | undefined => {
   if (typeof req.url !== "string") return undefined;
 
-  const host = typeof req.headers?.host === "string" ? req.headers.host : "localhost";
+  const host =
+    typeof req.headers?.host === "string" ? req.headers.host : "localhost";
   const url = new URL(req.url, `http://${host}`);
   const value = url.searchParams.get(key);
   return value === null ? undefined : value;
@@ -67,7 +79,7 @@ const getQueryParam = (req: QueryParamRequest, key: string): string | undefined 
 const withErrorHandlingCached = async (
   req: IncomingMessage | undefined,
   res: ServerResponse,
-  handler: () => Promise<unknown>
+  handler: () => Promise<unknown>,
 ) => {
   const cacheKey = req ? buildCacheKey(req) : undefined;
   if (cacheKey) {
@@ -103,9 +115,31 @@ const withErrorHandlingCached = async (
   }
 };
 
-const sendNoStore = (res: ServerResponse, status: number, body: unknown): void => {
+const sendNoStore = (
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+): void => {
   setNoStoreHeaders(res);
   send(res, status, body);
+};
+
+const loadSnapshotOrFallback = async <T>(
+  snapshotKey: string | undefined,
+  fallback: () => Promise<T>,
+): Promise<T> => {
+  if (snapshotKey) {
+    try {
+      const snapshot = await loadSnapshot<T>(snapshotKey);
+      if (snapshot !== null) {
+        return snapshot;
+      }
+    } catch {
+      // Fall back to live data when snapshot storage is unavailable or malformed.
+    }
+  }
+
+  return fallback();
 };
 
 export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
@@ -127,86 +161,146 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
 
   const rawReport = req.params.reportType || "regular";
   if (!reportTypeAvailable(rawReport as Report)) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_REPORT_TYPE,
+    );
     return;
   }
   const report = rawReport as Report;
 
-  await withErrorHandlingCached(req, res, () => getAvailableSeasons(teamId, report, startFrom));
+  await withErrorHandlingCached(req, res, () =>
+    getAvailableSeasons(teamId, report, startFrom),
+  );
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_REPORT_TYPE,
+    );
     return;
   }
   const report = req.params.reportType as Report;
 
   if (!(await seasonAvailable(season, teamId, report))) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.SEASON_NOT_AVAILABLE,
+    );
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getPlayersStatsSeason(report, season, teamId));
+  await withErrorHandlingCached(req, res, () =>
+    getPlayersStatsSeason(report, season, teamId),
+  );
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_REPORT_TYPE,
+    );
     return;
   }
   const report = req.params.reportType as Report;
 
-  await withErrorHandlingCached(req, res, () => getPlayersStatsCombined(report, teamId, startFrom));
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(
+      startFrom === undefined
+        ? getCombinedSnapshotKey("players", report, teamId)
+        : undefined,
+      () => getPlayersStatsCombined(report, teamId, startFrom),
+    ),
+  );
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_REPORT_TYPE,
+    );
     return;
   }
   const report = req.params.reportType as Report;
 
   if (!(await seasonAvailable(season, teamId, report))) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.SEASON_NOT_AVAILABLE,
+    );
     return;
   }
 
-  await withErrorHandlingCached(req, res, () => getGoaliesStatsSeason(report, season, teamId));
+  await withErrorHandlingCached(req, res, () =>
+    getGoaliesStatsSeason(report, season, teamId),
+  );
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
   const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
-    sendNoStore(res, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.INVALID_REPORT_TYPE);
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_REPORT_TYPE,
+    );
     return;
   }
   const report = req.params.reportType as Report;
 
-  await withErrorHandlingCached(req, res, () => getGoaliesStatsCombined(report, teamId, startFrom));
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(
+      startFrom === undefined
+        ? getCombinedSnapshotKey("goalies", report, teamId)
+        : undefined,
+      () => getGoaliesStatsCombined(report, teamId, startFrom),
+    ),
+  );
 };
 
 export const getCareerPlayer: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () => getPlayerCareerData(req.params.id));
+  await withErrorHandlingCached(req, res, () =>
+    getPlayerCareerData(req.params.id),
+  );
 };
 
 export const getCareerGoalie: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () => getGoalieCareerData(req.params.id));
+  await withErrorHandlingCached(req, res, () =>
+    getGoalieCareerData(req.params.id),
+  );
 };
 
 export const getCareerPlayers: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () => getCareerPlayersData());
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(getCareerPlayersSnapshotKey(), () =>
+      getCareerPlayersData(),
+    ),
+  );
 };
 
 export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () => getCareerGoaliesData());
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(getCareerGoaliesSnapshotKey(), () =>
+      getCareerGoaliesData(),
+    ),
+  );
 };
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
@@ -220,12 +314,20 @@ export const getPlayoffsLeaderboard: AugmentedRequestHandler = async (
   req,
   res,
 ) => {
-  await withErrorHandlingCached(req, res, () => getPlayoffLeaderboardData());
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(getPlayoffsLeaderboardSnapshotKey(), () =>
+      getPlayoffLeaderboardData(),
+    ),
+  );
 };
 
 export const getRegularLeaderboard: AugmentedRequestHandler = async (
   req,
   res,
 ) => {
-  await withErrorHandlingCached(req, res, () => getRegularLeaderboardData());
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(getRegularLeaderboardSnapshotKey(), () =>
+      getRegularLeaderboardData(),
+    ),
+  );
 };

@@ -46,7 +46,11 @@ const main = async () => {
   const dryRun = args.includes("--dry-run");
 
   const csvDir = path.resolve(process.cwd(), "csv");
-  const csvHandlerScript = path.resolve(process.cwd(), "scripts", "handle-csv.sh");
+  const csvHandlerScript = path.resolve(
+    process.cwd(),
+    "scripts",
+    "handle-csv.sh",
+  );
   const db = getDbClient();
 
   console.log("📥 Starting database import...");
@@ -57,7 +61,7 @@ const main = async () => {
         : onlyCurrentSeason
           ? "Current season only"
           : "All seasons"
-    }`
+    }`,
   );
   console.log(`   Report type: ${reportTypeFilter ?? "all"}`);
   console.log(`   Dry run: ${dryRun}`);
@@ -74,7 +78,9 @@ const main = async () => {
   for (const team of TEAMS) {
     const teamDir = path.join(csvDir, team.id);
     if (!fs.existsSync(teamDir)) {
-      console.log(`⚠️  Team ${team.id} (${team.name}): No CSV directory, skipping`);
+      console.log(
+        `⚠️  Team ${team.id} (${team.name}): No CSV directory, skipping`,
+      );
       continue;
     }
 
@@ -89,23 +95,29 @@ const main = async () => {
       const season = parseInt(startYear, 10);
 
       if (seasonFilter !== null && season !== seasonFilter) continue;
-      if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON) continue;
-      if (reportTypeFilter !== null && reportType !== reportTypeFilter) continue;
+      if (seasonFilter === null && onlyCurrentSeason && season < CURRENT_SEASON)
+        continue;
+      if (reportTypeFilter !== null && reportType !== reportTypeFilter)
+        continue;
 
       const filePath = path.join(teamDir, file);
       const normalizedPath = path.join(
         os.tmpdir(),
-        `ffhl-import-${process.pid}-${team.id}-${Date.now()}-${file}`
+        `ffhl-import-${process.pid}-${team.id}-${Date.now()}-${file}`,
       );
 
       try {
         // Always normalize via handle-csv so DB import works even if csv/<teamId>/ contains raw Fantrax exports.
-        const normalize = spawnSync("bash", [csvHandlerScript, filePath, normalizedPath], {
-          encoding: "utf8",
-        });
+        const normalize = spawnSync(
+          "bash",
+          [csvHandlerScript, filePath, normalizedPath],
+          {
+            encoding: "utf8",
+          },
+        );
         if (normalize.status !== 0) {
           throw new Error(
-            `CSV normalization failed for ${file}: ${normalize.stderr || normalize.stdout || "unknown error"}`
+            `CSV normalization failed for ${file}: ${normalize.stderr || normalize.stdout || "unknown error"}`,
           );
         }
 
@@ -113,8 +125,12 @@ const main = async () => {
         const rawData = await csv().fromFile(normalizedPath);
         const dataWithSeason = rawData.map((item) => ({ ...item, season }));
 
-        const players = mapPlayerData(dataWithSeason, { includeZeroGames: true });
-        const goalies = mapGoalieData(dataWithSeason, { includeZeroGames: true });
+        const players = mapPlayerData(dataWithSeason, {
+          includeZeroGames: true,
+        });
+        const goalies = mapGoalieData(dataWithSeason, {
+          includeZeroGames: true,
+        });
         const playersMissingId = players.filter((p) => !p.id).length;
         const goaliesMissingId = goalies.filter((g) => !g.id).length;
         const playersToImport = players.filter((p) => p.id);
@@ -123,7 +139,7 @@ const main = async () => {
         if (playersMissingId > 0 || goaliesMissingId > 0) {
           missingIdMessages.push(
             `Missing Fantrax IDs in ${file}: players=${playersMissingId}, goalies=${goaliesMissingId}. ` +
-              "All rows must have IDs before DB import."
+              "All rows must have IDs before DB import.",
           );
           skippedPlayersMissingId += playersMissingId;
           skippedGoaliesMissingId += goaliesMissingId;
@@ -131,7 +147,7 @@ const main = async () => {
 
         if (dryRun) {
           console.log(
-            `  🔍 Would import: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`
+            `  🔍 Would import: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`,
           );
         } else {
           // Build batch: delete existing + insert all rows atomically
@@ -201,7 +217,7 @@ const main = async () => {
           await db.batch(statements, "write");
 
           console.log(
-            `  ✅ Imported: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`
+            `  ✅ Imported: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`,
           );
         }
 
@@ -224,6 +240,16 @@ const main = async () => {
       sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
       args: ["last_modified", new Date().toISOString()],
     });
+
+    console.log("");
+    console.log("📸 Regenerating API snapshots...");
+    const snapshotRun = spawnSync("npm", ["run", "snapshot:generate"], {
+      stdio: "inherit",
+      env: process.env,
+    });
+    if (snapshotRun.status !== 0) {
+      throw new Error("Snapshot generation failed after DB import");
+    }
   }
 
   console.log("");
@@ -232,7 +258,9 @@ const main = async () => {
   console.log(`   Players imported: ${totalPlayers}`);
   console.log(`   Goalies imported: ${totalGoalies}`);
   console.log(`   Errors: ${errors}`);
-  console.log(`   Rows skipped (missing IDs): players=${skippedPlayersMissingId}, goalies=${skippedGoaliesMissingId}`);
+  console.log(
+    `   Rows skipped (missing IDs): players=${skippedPlayersMissingId}, goalies=${skippedGoaliesMissingId}`,
+  );
 
   if (missingIdMessages.length > 0) {
     console.log("");

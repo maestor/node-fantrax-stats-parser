@@ -13,6 +13,9 @@ csv/
 # Local-only Fantrax Playwright artifacts
 src/playwright/.fantrax/
 
+# Generated API snapshots
+generated/
+
 # Git worktrees
 .worktrees/
 
