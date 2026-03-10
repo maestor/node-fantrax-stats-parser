@@ -708,74 +708,7 @@ describe("routes", () => {
     });
   });
 
-  describe("getCareerPlayer", () => {
-    test("returns 404 with string body when player is missing", async () => {
-      (getPlayerCareerData as jest.Mock).mockRejectedValue({
-        statusCode: HTTP_STATUS.NOT_FOUND,
-        body: "Player not found",
-      });
-
-      const req = createRequest({
-        method: "GET",
-        url: "/career/player/missing",
-        params: { id: "missing" },
-      });
-      const res = createResponse();
-
-      await getCareerPlayer(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.NOT_FOUND,
-        "Player not found",
-      );
-    });
-  });
-
-  describe("getCareerPlayers", () => {
-  });
-
-  describe("getCareerGoalie", () => {
-    test("returns 404 with string body when goalie is missing", async () => {
-      (getGoalieCareerData as jest.Mock).mockRejectedValue({
-        statusCode: HTTP_STATUS.NOT_FOUND,
-        body: "Goalie not found",
-      });
-
-      const req = createRequest({
-        method: "GET",
-        url: "/career/goalie/missing",
-        params: { id: "missing" },
-      });
-      const res = createResponse();
-
-      await getCareerGoalie(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.NOT_FOUND,
-        "Goalie not found",
-      );
-    });
-  });
-
-  describe("getCareerGoalies", () => {
-  });
-
   describe("getLastModified", () => {
-    test("returns null when no metadata row exists", async () => {
-      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(null);
-
-      const req = createRequest({ url: "/last-modified" });
-      const res = createResponse();
-
-      await getLastModified(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
-        lastModified: null,
-      });
-    });
-
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
       const mockResponse = { lastModified: mockTimestamp };
@@ -813,20 +746,6 @@ describe("routes", () => {
   });
 
   describe("getPlayoffsLeaderboard", () => {
-    test("returns 200 with empty array when no data", async () => {
-      (getPlayoffLeaderboardData as jest.Mock).mockResolvedValue([]);
-
-      const req = createRequest({
-        method: "GET",
-        url: "/leaderboard/playoffs",
-      });
-      const res = createResponse();
-
-      await getPlayoffsLeaderboard(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, []);
-    });
-
     test("handles service error", async () => {
       (getPlayoffLeaderboardData as jest.Mock).mockRejectedValue(
         new Error("DB error"),
@@ -849,51 +768,6 @@ describe("routes", () => {
   });
 
   describe("getRegularLeaderboard", () => {
-    test("returns 200 with empty array when no data", async () => {
-      (getRegularLeaderboardData as jest.Mock).mockResolvedValue([]);
-
-      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
-      const res = createResponse();
-
-      await getRegularLeaderboard(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, []);
-    });
-
-    test("falls back to live data when snapshot loading fails", async () => {
-      const mockData = [
-        {
-          teamId: "1",
-          teamName: "Colorado Avalanche",
-          wins: 355,
-          losses: 79,
-          ties: 46,
-          points: 756,
-          divWins: 86,
-          divLosses: 24,
-          divTies: 10,
-          winPercent: 0.74,
-          divWinPercent: 0.717,
-          pointsPercent: 0.788,
-          regularTrophies: 2,
-          seasons: [],
-          tieRank: false,
-        },
-      ];
-      (loadSnapshot as jest.Mock).mockRejectedValue(
-        new Error("snapshot unavailable"),
-      );
-      (getRegularLeaderboardData as jest.Mock).mockResolvedValue(mockData);
-
-      const req = createRequest({ method: "GET", url: "/leaderboard/regular" });
-      const res = createResponse();
-
-      await getRegularLeaderboard(asRouteReq(req), res);
-
-      expect(getRegularLeaderboardData).toHaveBeenCalledTimes(1);
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockData);
-    });
-
     test("handles service error", async () => {
       (getRegularLeaderboardData as jest.Mock).mockRejectedValue(
         new Error("DB error"),

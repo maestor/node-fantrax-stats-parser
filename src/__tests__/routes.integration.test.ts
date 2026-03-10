@@ -610,6 +610,27 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns 404 for a missing career player from the live DB", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const req = createRequest({
+        method: "GET",
+        url: "/career/player/missing",
+        params: { id: "missing" },
+      });
+      const res = createResponse();
+
+      await getCareerPlayer(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.NOT_FOUND);
+      expect(res._getData()).toBe("Player not found");
+      expect(res.getHeader("cache-control")).toBe("private, no-store");
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("returns career player list data from the live DB", async () => {
     const db = await createIntegrationDb();
 
@@ -756,6 +777,41 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns playoff leaderboard zero-state from the live DB when no results exist", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/playoffs",
+      });
+      const res = createResponse();
+
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      const colorado = body.find((entry) => entry.teamId === "1");
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(colorado).toEqual(
+        expect.objectContaining({
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          appearances: 0,
+          championships: 0,
+          finals: 0,
+          conferenceFinals: 0,
+          secondRound: 0,
+          firstRound: 0,
+          tieRank: false,
+        }),
+      );
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("returns career goalie aggregates from real goalie rows", async () => {
     const db = await createIntegrationDb();
 
@@ -813,6 +869,27 @@ describe("routes integration", () => {
       expect(totals.career.wins).toBe(10);
       expect(totals.regular.games).toBe(12);
       expect(totals.playoffs.games).toBe(4);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("returns 404 for a missing career goalie from the live DB", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalie/missing",
+        params: { id: "missing" },
+      });
+      const res = createResponse();
+
+      await getCareerGoalie(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.NOT_FOUND);
+      expect(res._getData()).toBe("Goalie not found");
+      expect(res.getHeader("cache-control")).toBe("private, no-store");
     } finally {
       await db.cleanup();
     }
@@ -1035,6 +1112,80 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns an empty regular leaderboard from the live DB when no results exist", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/regular",
+      });
+      const res = createResponse();
+
+      await getRegularLeaderboard(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(getJsonBody(res)).toEqual([]);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("falls back to live regular leaderboard data when the snapshot file is malformed", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertRegularResults([
+        {
+          teamId: "1",
+          season: 2024,
+          wins: 10,
+          losses: 5,
+          ties: 1,
+          points: 21,
+          divWins: 4,
+          divLosses: 2,
+          divTies: 0,
+          isRegularChampion: true,
+        },
+      ]);
+
+      const malformedSnapshotPath = path.join(
+        db.snapshotDir,
+        "leaderboard",
+        "regular.json",
+      );
+      await fs.mkdir(path.dirname(malformedSnapshotPath), { recursive: true });
+      await fs.writeFile(malformedSnapshotPath, "{ invalid json", "utf8");
+
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/regular",
+      });
+      const res = createResponse();
+
+      await getRegularLeaderboard(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toEqual([
+        expect.objectContaining({
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          wins: 10,
+          losses: 5,
+          ties: 1,
+          points: 21,
+          regularTrophies: 1,
+        }),
+      ]);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("serves cached last-modified responses with a real ETag/304 flow", async () => {
     const db = await createIntegrationDb();
 
@@ -1068,6 +1219,26 @@ describe("routes integration", () => {
 
       expect(secondRes.statusCode).toBe(304);
       expect(secondRes._getData()).toBe("");
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("returns null last-modified from the live DB when metadata is missing", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const req = createRequest({
+        method: "GET",
+        url: "/last-modified",
+      });
+      const res = createResponse();
+
+      await getLastModified(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(getJsonBody(res)).toEqual({ lastModified: null });
     } finally {
       await db.cleanup();
     }
