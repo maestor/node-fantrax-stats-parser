@@ -102,6 +102,7 @@ npm run verify
 ### Testing
 
 - `npm test` - Run all tests once
+- `npm run test:integration` - Run DB-backed integration tests in-band against a temporary SQLite database
 - `npm run test:watch` - Run tests in watch mode (development)
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run verify` - **Full quality gate** (lint + typecheck + unused exports + build + coverage)
