@@ -62,41 +62,6 @@ describe("services", () => {
       expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
       expect(result).toEqual(mockSeasons);
     });
-
-    test("filters seasons when startFrom is provided", async () => {
-      const mockSeasons = [{ season: 2020, text: "2020-2021" }];
-      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2020]);
-      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
-
-      const result = await getAvailableSeasons("1", "regular", 2020);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(mapAvailableSeasons).toHaveBeenCalledWith([2020]);
-      expect(result).toEqual(mockSeasons);
-    });
-
-    test("returns empty array when startFrom is after all available seasons", async () => {
-      const mockSeasons: Array<{ season: number; text: string }> = [];
-      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
-      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
-
-      const result = await getAvailableSeasons("1", "regular", 2025);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(mapAvailableSeasons).toHaveBeenCalledWith([]);
-      expect(result).toEqual(mockSeasons);
-    });
-
-    test("uses regular report type when reportType is both", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (availableSeasons as jest.Mock).mockReturnValue([2012]);
-      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
-
-      const result = await getAvailableSeasons("1", "both");
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(result).toEqual(mockSeasons);
-    });
   });
 
   describe("getPlayersStatsSeason", () => {

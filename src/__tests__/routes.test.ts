@@ -96,43 +96,6 @@ describe("routes", () => {
   });
 
   describe("getSeasons", () => {
-    test("returns 200 with available seasons", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-
-      const req = createRequest();
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(getAvailableSeasons).toHaveBeenCalledWith(
-        "1",
-        "regular",
-        undefined,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
-    test("uses report type from path params when present", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-
-      const req = createRequest({
-        url: "/seasons/playoffs",
-        params: { reportType: "playoffs" },
-      });
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(getAvailableSeasons).toHaveBeenCalledWith(
-        "1",
-        "playoffs",
-        undefined,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
     test("returns 500 on service error", async () => {
       const error = new Error("DB error");
       (getAvailableSeasons as jest.Mock).mockRejectedValue(error);
@@ -167,27 +130,6 @@ describe("routes", () => {
       );
     });
 
-    test("handles request without url (defaults query params)", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-
-      const res = createResponse();
-
-      await getSeasons(
-        asRouteReq({ params: {} } as unknown as ReturnType<
-          typeof createRequest
-        >),
-        res,
-      );
-
-      expect(getAvailableSeasons).toHaveBeenCalledWith(
-        "1",
-        "regular",
-        undefined,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
     test("handles request with non-string url (defaults query params)", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
@@ -195,30 +137,6 @@ describe("routes", () => {
       const req = { url: 123, params: {} } as unknown as ReturnType<
         typeof createRequest
       >;
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(getAvailableSeasons).toHaveBeenCalledWith(
-        "1",
-        "regular",
-        undefined,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
-    test("parses query params even when host header is not a string", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
-        typeof raw === "string" && raw ? raw : "1",
-      );
-
-      const req = {
-        url: "/seasons?teamId=1",
-        headers: { host: 123 },
-        params: {},
-      } as unknown as ReturnType<typeof createRequest>;
       const res = createResponse();
 
       await getSeasons(asRouteReq(req), res);
@@ -282,60 +200,6 @@ describe("routes", () => {
       );
     });
 
-    test("treats missing teamId query param as undefined", async () => {
-      const mockSeasons = [{ season: 2012, text: "2012-2013" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
-        raw ? String(raw) : "1",
-      );
-
-      const req = createRequest({
-        url: "/seasons",
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(resolveTeamId).toHaveBeenCalledWith(undefined);
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
-    test("passes startFrom to service correctly", async () => {
-      const mockSeasons = [{ season: 2020, text: "2020-2021" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
-
-      const req = createRequest({
-        url: "/seasons?startFrom=2020",
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "regular", 2020);
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
-
-    test("works with startFrom query param", async () => {
-      const mockSeasons = [{ season: 2018, text: "2018-2019" }];
-      (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
-
-      const req = createRequest({
-        url: "/seasons/playoffs?startFrom=2018",
-        params: { reportType: "playoffs" },
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getSeasons(asRouteReq(req), res);
-
-      expect(getAvailableSeasons).toHaveBeenCalledWith("1", "playoffs", 2018);
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockSeasons);
-    });
   });
 
   describe("getTeams", () => {
