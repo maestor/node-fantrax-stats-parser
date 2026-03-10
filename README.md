@@ -364,6 +364,7 @@ Multi-team CSV layout (local or R2):
 
 Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`).
 
+
 ### Example requests
 
 ```
