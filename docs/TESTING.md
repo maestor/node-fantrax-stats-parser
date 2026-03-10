@@ -74,7 +74,6 @@ Mock at the module boundary (`../db/queries` or `../db/client`):
 ```typescript
 jest.mock("../db/queries", () => ({
   getAvailableSeasonsFromDb: jest.fn(),
-  getTeamIdsWithData: jest.fn(),
 }));
 
 import { getAvailableSeasonsFromDb } from "../db/queries";

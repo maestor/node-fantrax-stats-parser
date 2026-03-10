@@ -126,6 +126,7 @@ npm run verify
 
 ### Database (Turso/SQLite)
 
+- `/teams` and `regular` / `both` season availability are derived from `src/constants.ts`, not runtime DB lookups. Only playoff season availability remains DB-backed.
 - `npm run db:migrate` - Create/update database schema and performance indexes, including career lookup indexes on `player_id` and `goalie_id`
 - `npm run db:pull:remote` - Replace `local.db` by pulling full schema + data from remote Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`); creates timestamped backup in `.backups/`
 - `npm run db:backups:clean` - Remove all files under `.backups/`

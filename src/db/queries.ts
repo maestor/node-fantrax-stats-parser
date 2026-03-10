@@ -229,19 +229,6 @@ export const getAvailableSeasonsFromDb = async (
   return castRows<{ season: number }>(result.rows).map((r) => r.season);
 };
 
-export const getTeamIdsWithData = async (): Promise<string[]> => {
-  const db = getDbClient();
-  const result = await db.execute(
-    `SELECT DISTINCT team_id FROM players
-     WHERE games > 0
-     UNION
-     SELECT DISTINCT team_id FROM goalies
-     WHERE games > 0
-     ORDER BY team_id`
-  );
-  return castRows<{ team_id: string }>(result.rows).map((r) => r.team_id);
-};
-
 export const getLastModifiedFromDb = async (): Promise<string | null> => {
   const db = getDbClient();
   const result = await db.execute({

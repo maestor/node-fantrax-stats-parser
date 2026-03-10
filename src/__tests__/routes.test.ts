@@ -71,7 +71,7 @@ describe("routes", () => {
     jest.clearAllMocks();
     resetRouteCachesForTests();
     (loadSnapshot as jest.Mock).mockResolvedValue(null);
-    (resolveTeamId as jest.Mock).mockResolvedValue("1");
+    (resolveTeamId as jest.Mock).mockReturnValue("1");
     (reportTypeAvailable as jest.Mock).mockReturnValue(true);
     (seasonAvailable as jest.Mock).mockResolvedValue(true);
     (parseSeasonParam as jest.Mock).mockReturnValue(undefined);
@@ -211,7 +211,7 @@ describe("routes", () => {
     test("parses query params even when host header is not a string", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) =>
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
         typeof raw === "string" && raw ? raw : "1",
       );
 
@@ -235,7 +235,7 @@ describe("routes", () => {
     test("parses query params with valid url but no headers object", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) =>
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
         typeof raw === "string" && raw ? raw : "1",
       );
 
@@ -286,7 +286,7 @@ describe("routes", () => {
     test("treats missing teamId query param as undefined", async () => {
       const mockSeasons = [{ season: 2012, text: "2012-2013" }];
       (getAvailableSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-      (resolveTeamId as jest.Mock).mockImplementation(async (raw: unknown) =>
+      (resolveTeamId as jest.Mock).mockImplementation((raw: unknown) =>
         raw ? String(raw) : "1",
       );
 
@@ -342,7 +342,7 @@ describe("routes", () => {
   describe("getTeams", () => {
     test("returns 200 with configured teams", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req = createRequest();
       const res = createResponse();
@@ -355,7 +355,7 @@ describe("routes", () => {
 
     test("memoizes successful responses and avoids re-calling the handler", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams" });
       const res1 = createResponse();
@@ -373,7 +373,7 @@ describe("routes", () => {
 
     test("returns 304 for matching If-None-Match", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams", method: "GET" });
       const res1 = createResponse();
@@ -399,7 +399,7 @@ describe("routes", () => {
 
     test("hits cached 304 branch on repeat request", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const primeReq = {
         method: "GET",
@@ -430,7 +430,7 @@ describe("routes", () => {
 
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const etag = makeEtagForJson(filteredTeams);
       const req = {
@@ -451,7 +451,7 @@ describe("routes", () => {
 
     test("works when req is undefined (no caching possible)", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockResolvedValue(filteredTeams);
+      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
 
       const res = createResponse();
       await getTeams(undefined as unknown as RouteReq, res);
@@ -830,7 +830,7 @@ describe("routes", () => {
         { name: "Seattle Window Goalie", wins: 33, seasons: [] },
       ];
       (loadSnapshot as jest.Mock).mockResolvedValue(snapshotGoalies);
-      (resolveTeamId as jest.Mock).mockResolvedValue("28");
+      (resolveTeamId as jest.Mock).mockReturnValue("28");
       (parseSeasonParam as jest.Mock).mockReturnValue(2021);
 
       const req = createRequest({
@@ -1966,7 +1966,7 @@ describe("routes", () => {
     };
 
     test("getTeams response conforms to Team[] schema", async () => {
-      (getTeamsWithData as jest.Mock).mockResolvedValue([validTeam]);
+      (getTeamsWithData as jest.Mock).mockReturnValue([validTeam]);
       const req = createRequest({ url: "/teams" });
       const res = createResponse();
       await getTeams(asRouteReq(req), res);

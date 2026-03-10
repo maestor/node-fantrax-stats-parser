@@ -175,13 +175,13 @@ export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
 
 export const getTeams: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => ({
-    data: await getTeamsWithData(),
+    data: getTeamsWithData(),
     dataSource: "db",
   }));
 };
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
-  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
   const rawReport = req.params.reportType || "regular";
@@ -202,7 +202,7 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
-  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(
@@ -230,7 +230,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
-  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(
@@ -254,7 +254,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
-  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(
@@ -282,7 +282,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
-  const teamId = await resolveTeamId(getQueryParam(req, "teamId"));
+  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
     sendNoStore(
