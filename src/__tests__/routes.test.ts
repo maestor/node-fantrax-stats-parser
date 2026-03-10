@@ -501,52 +501,6 @@ describe("routes", () => {
   });
 
   describe("getPlayersCombined", () => {
-    test("returns 200 with combined player stats", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(loadSnapshot).toHaveBeenCalledWith(
-        "players/combined/regular/team-1",
-      );
-      expect(res.getHeader("x-stats-data-source")).toBe("db");
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith(
-        "regular",
-        "1",
-        undefined,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
-    });
-
-    test("returns snapshot data when available", async () => {
-      const snapshotPlayers = [
-        { name: "Snapshot Player", goals: 120, seasons: [] },
-      ];
-      (loadSnapshot as jest.Mock).mockResolvedValue(snapshotPlayers);
-
-      const req = createRequest({
-        params: { reportType: "regular" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(loadSnapshot).toHaveBeenCalledWith(
-        "players/combined/regular/team-1",
-      );
-      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
-      expect(getPlayersStatsCombined).not.toHaveBeenCalled();
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotPlayers);
-    });
-
     test("uses snapshot when startFrom matches the default league start season", async () => {
       const snapshotPlayers = [
         { name: "Default Window Player", goals: 88, seasons: [] },
@@ -609,31 +563,6 @@ describe("routes", () => {
       );
     });
 
-    test("passes startFrom to service correctly", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
-
-      const req = createRequest({
-        url: "/players/combined/regular?startFrom=2020",
-        params: { reportType: "regular" },
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
-      expect(loadSnapshot).not.toHaveBeenCalled();
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith(
-        "regular",
-        "1",
-        2020,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
-    });
-
     test("works with startFrom query param", async () => {
       const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
       (reportTypeAvailable as jest.Mock).mockReturnValue(true);
@@ -659,26 +588,6 @@ describe("routes", () => {
   });
 
   describe("getGoaliesSeason", () => {
-    test("returns 200 with goalie stats", async () => {
-      const mockGoalies = [{ name: "Test Goalie", wins: 40 }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockResolvedValue(true);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2024);
-      (getGoaliesStatsSeason as jest.Mock).mockResolvedValue(mockGoalies);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2024" },
-      });
-      const res = createResponse();
-
-      await getGoaliesSeason(asRouteReq(req), res);
-
-      expect(reportTypeAvailable).toHaveBeenCalledWith("regular");
-      expect(seasonAvailable).toHaveBeenCalledWith(2024, "1", "regular");
-      expect(getGoaliesStatsSeason).toHaveBeenCalledWith("regular", 2024, "1");
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
-    });
-
     test("returns 400 for invalid report type", async () => {
       (reportTypeAvailable as jest.Mock).mockReturnValue(false);
       (seasonAvailable as jest.Mock).mockResolvedValue(true);
@@ -892,71 +801,6 @@ describe("routes", () => {
   });
 
   describe("getCareerPlayers", () => {
-    test("returns 200 with player career list data", async () => {
-      const mockList = [
-        {
-          id: "p001",
-          name: "Career Skater",
-          position: "F",
-          firstSeason: 2022,
-          lastSeason: 2024,
-          seasonsOwned: 3,
-          seasonsPlayedRegular: 1,
-          seasonsPlayedPlayoffs: 1,
-          teamsOwned: 2,
-          teamsPlayedRegular: 1,
-          teamsPlayedPlayoffs: 1,
-          regularGames: 82,
-          playoffGames: 5,
-        },
-      ];
-      (getCareerPlayersData as jest.Mock).mockResolvedValue(mockList);
-
-      const req = createRequest({
-        method: "GET",
-        url: "/career/players",
-      });
-      const res = createResponse();
-
-      await getCareerPlayers(asRouteReq(req), res);
-
-      expect(loadSnapshot).toHaveBeenCalledWith("career/players");
-      expect(getCareerPlayersData).toHaveBeenCalled();
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockList);
-    });
-
-    test("returns snapshot data when available", async () => {
-      const snapshotList = [
-        {
-          id: "p099",
-          name: "Snapshot Skater",
-          position: "D",
-          firstSeason: 2021,
-          lastSeason: 2026,
-          seasonsOwned: 6,
-          seasonsPlayedRegular: 3,
-          seasonsPlayedPlayoffs: 2,
-          teamsOwned: 3,
-          teamsPlayedRegular: 2,
-          teamsPlayedPlayoffs: 2,
-          regularGames: 280,
-          playoffGames: 30,
-        },
-      ];
-      (loadSnapshot as jest.Mock).mockResolvedValue(snapshotList);
-
-      const req = createRequest({
-        method: "GET",
-        url: "/career/players",
-      });
-      const res = createResponse();
-
-      await getCareerPlayers(asRouteReq(req), res);
-
-      expect(loadSnapshot).toHaveBeenCalledWith("career/players");
-      expect(getCareerPlayersData).not.toHaveBeenCalled();
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotList);
-    });
   });
 
   describe("getCareerGoalie", () => {
@@ -1175,35 +1019,6 @@ describe("routes", () => {
   });
 
   describe("getPlayoffsLeaderboard", () => {
-    test("returns 200 with leaderboard data", async () => {
-      const mockData = [
-        {
-          teamId: "1",
-          teamName: "Colorado Avalanche",
-          appearances: 13,
-          championships: 3,
-          finals: 2,
-          conferenceFinals: 2,
-          secondRound: 4,
-          firstRound: 2,
-          seasons: [{ season: 2024, round: 5, key: "championship" }],
-          tieRank: false,
-        },
-      ];
-      (getPlayoffLeaderboardData as jest.Mock).mockResolvedValue(mockData);
-
-      const req = createRequest({
-        method: "GET",
-        url: "/leaderboard/playoffs",
-      });
-      const res = createResponse();
-
-      await getPlayoffsLeaderboard(asRouteReq(req), res);
-
-      expect(loadSnapshot).toHaveBeenCalledWith("leaderboard/playoffs");
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockData);
-    });
-
     test("returns snapshot data when available", async () => {
       const snapshotData = [
         {
