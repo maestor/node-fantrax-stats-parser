@@ -48,7 +48,7 @@ describe("services", () => {
   });
 
   describe("getAvailableSeasons", () => {
-    test("calls and returns mapAvailableSeasons result", async () => {
+    test("uses default team and report when optional params are omitted", async () => {
       const mockSeasons = [
         { season: 2012, text: "2012-2013" },
         { season: 2013, text: "2013-2014" },
@@ -72,21 +72,6 @@ describe("services", () => {
 
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(mapAvailableSeasons).toHaveBeenCalledWith([2020]);
-      expect(result).toEqual(mockSeasons);
-    });
-
-    test("returns all seasons when startFrom is undefined", async () => {
-      const mockSeasons = [
-        { season: 2012, text: "2012-2013" },
-        { season: 2013, text: "2013-2014" },
-      ];
-      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
-      (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
-
-      const result = await getAvailableSeasons("1", "regular", undefined);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
       expect(result).toEqual(mockSeasons);
     });
 
@@ -206,24 +191,6 @@ describe("services", () => {
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
-    test("fetches player stats for all available seasons", async () => {
-      const result = await getPlayersStatsCombined("regular");
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledTimes(3);
-      expect(mapCombinedPlayerDataFromPlayersWithSeason).toHaveBeenCalled();
-      expect(sortItemsByStatField).toHaveBeenCalledWith([mockPlayer], "players");
-      expect(result).toEqual([mockPlayer]);
-    });
-
-    test("queries DB for each season", async () => {
-      await getPlayersStatsCombined("regular");
-
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2012, "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2013, "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2014, "regular");
-    });
-
     test("returns empty array when no seasons are available", async () => {
       (availableSeasons as jest.Mock).mockReturnValue([]);
       (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([]);
@@ -244,14 +211,6 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(getPlayersFromDb).toHaveBeenCalledTimes(1);
       expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2020, "regular");
-      expect(result).toEqual([mockPlayer]);
-    });
-
-    test("returns all seasons when startFrom is undefined", async () => {
-      const result = await getPlayersStatsCombined("regular", "1", undefined);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledTimes(3);
       expect(result).toEqual([mockPlayer]);
     });
 
@@ -300,6 +259,7 @@ describe("services", () => {
       expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
       expect(result).toEqual([mockPlayer]);
     });
+
   });
 
   describe("getGoaliesStatsCombined", () => {
@@ -311,7 +271,7 @@ describe("services", () => {
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
-    test("uses the default team and all seasons when startFrom is omitted", async () => {
+    test("uses the default team and full season list when startFrom is omitted", async () => {
       const result = await getGoaliesStatsCombined("regular");
 
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");

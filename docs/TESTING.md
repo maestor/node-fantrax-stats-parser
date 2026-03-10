@@ -60,6 +60,7 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - Keep 100% coverage intact for now, but do not add mock-heavy tests just to satisfy the threshold.
 - For changes that cross `routes` + `services` + `db/queries`, prefer a DB-backed integration test before adding more delegation assertions.
 - When a DB-backed integration test already covers a route or service happy path end-to-end, delete the overlapping mocked happy-path test instead of keeping both.
+- In `services.test.ts`, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
 - Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
 - The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
 
