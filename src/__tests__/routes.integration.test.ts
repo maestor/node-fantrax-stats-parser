@@ -3,7 +3,9 @@ import path from "path";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   getCareerPlayer,
+  getCareerGoalie,
   getCareerPlayers,
+  getCareerGoalies,
   getGoaliesSeason,
   getGoaliesCombined,
   getLastModified,
@@ -64,6 +66,60 @@ describe("routes integration", () => {
       expect(res.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
       expect(res._getData()).toBe(ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
       expect(res.getHeader("cache-control")).toBe("private, no-store");
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("returns player season rows from the live DB", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertPlayers([
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          playerId: "p-season",
+          name: "Season Skater",
+          position: "F",
+          games: 12,
+          goals: 5,
+          assists: 7,
+          points: 12,
+          plusMinus: 4,
+          penalties: 3,
+          shots: 24,
+          ppp: 2,
+          hits: 6,
+          blocks: 4,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/players/season/regular/2024?teamId=1",
+        params: { reportType: "regular", season: "2024" },
+      });
+      const res = createResponse();
+
+      await getPlayersSeason(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "p-season",
+          name: "Season Skater",
+          position: "F",
+          games: 12,
+          goals: 5,
+          assists: 7,
+          points: 12,
+        }),
+      );
     } finally {
       await db.cleanup();
     }
@@ -268,6 +324,55 @@ describe("routes integration", () => {
     }
   });
 
+  test("uses player combined snapshots when startFrom matches the default window", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const snapshotPayload = [
+        {
+          id: "p-default-window",
+          name: "Default Window Skater",
+          position: "F",
+          games: 55,
+          goals: 21,
+          assists: 34,
+          points: 55,
+          plusMinus: 9,
+          penalties: 10,
+          shots: 210,
+          ppp: 11,
+          shp: 1,
+          hits: 20,
+          blocks: 18,
+          score: 100,
+          scoreAdjustedByGames: 100,
+          seasons: [],
+        },
+      ];
+      await writeSnapshot(
+        db.snapshotDir,
+        "players/combined/regular/team-1",
+        snapshotPayload,
+      );
+
+      const req = createRequest({
+        method: "GET",
+        url: "/players/combined/regular?startFrom=2012",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+      expect(getJsonBody(res)).toEqual(snapshotPayload);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("returns goalie season rows from the live DB", async () => {
     const db = await createIntegrationDb();
 
@@ -316,6 +421,99 @@ describe("routes integration", () => {
           gaa: "2.15",
         }),
       );
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("serves goalie combined snapshots from local snapshot storage", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const snapshotPayload = [
+        {
+          id: "g-snapshot",
+          name: "Snapshot Goalie",
+          games: 66,
+          wins: 40,
+          saves: 1800,
+          shutouts: 6,
+          goals: 0,
+          assists: 2,
+          points: 2,
+          penalties: 3,
+          ppp: 0,
+          shp: 0,
+          score: 100,
+          scoreAdjustedByGames: 100,
+          seasons: [],
+        },
+      ];
+      await writeSnapshot(
+        db.snapshotDir,
+        "goalies/combined/regular/team-1",
+        snapshotPayload,
+      );
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/combined/regular",
+        params: { reportType: "regular" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+      expect(getJsonBody(res)).toEqual(snapshotPayload);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("uses goalie combined snapshots when startFrom matches the team window", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const snapshotPayload = [
+        {
+          id: "g-window",
+          name: "Window Goalie",
+          games: 44,
+          wins: 27,
+          saves: 1200,
+          shutouts: 4,
+          goals: 0,
+          assists: 1,
+          points: 1,
+          penalties: 1,
+          ppp: 0,
+          shp: 0,
+          score: 100,
+          scoreAdjustedByGames: 100,
+          seasons: [],
+        },
+      ];
+      await writeSnapshot(
+        db.snapshotDir,
+        "goalies/combined/regular/team-28",
+        snapshotPayload,
+      );
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/combined/regular?teamId=28&startFrom=2021",
+        params: { reportType: "regular" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+      expect(getJsonBody(res)).toEqual(snapshotPayload);
     } finally {
       await db.cleanup();
     }
@@ -553,6 +751,207 @@ describe("routes integration", () => {
         round: 5,
         key: "championship",
       });
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("returns career goalie aggregates from real goalie rows", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          goalieId: "g-career",
+          name: "Career Goalie",
+          games: 12,
+          wins: 8,
+          saves: 340,
+          shutouts: 2,
+          assists: 1,
+          points: 1,
+          gaa: 2.15,
+          savePercent: 0.918,
+        },
+        {
+          teamId: "19",
+          season: 2023,
+          reportType: "playoffs",
+          goalieId: "g-career",
+          name: "Career Goalie",
+          games: 4,
+          wins: 2,
+          saves: 110,
+          shutouts: 1,
+          gaa: 2.05,
+          savePercent: 0.925,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalie/g-career",
+        params: { id: "g-career" },
+      });
+      const res = createResponse();
+
+      await getCareerGoalie(asRouteReq(req), res);
+
+      const body = getJsonBody<Record<string, unknown>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(body).toEqual(
+        expect.objectContaining({
+          id: "g-career",
+          name: "Career Goalie",
+        }),
+      );
+      const totals = body.totals as Record<string, Record<string, unknown>>;
+      expect(totals.career.games).toBe(16);
+      expect(totals.career.wins).toBe(10);
+      expect(totals.regular.games).toBe(12);
+      expect(totals.playoffs.games).toBe(4);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("returns career goalie list data from the live DB", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          goalieId: "g-list",
+          name: "List Goalie",
+          games: 10,
+          wins: 7,
+          saves: 280,
+          shutouts: 2,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "playoffs",
+          goalieId: "g-list",
+          name: "List Goalie",
+          games: 3,
+          wins: 1,
+          saves: 75,
+          shutouts: 0,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalies",
+      });
+      const res = createResponse();
+
+      await getCareerGoalies(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toEqual([
+        {
+          id: "g-list",
+          name: "List Goalie",
+          firstSeason: 2024,
+          lastSeason: 2024,
+          seasonsOwned: 1,
+          seasonsPlayedRegular: 1,
+          seasonsPlayedPlayoffs: 1,
+          teamsOwned: 1,
+          teamsPlayedRegular: 1,
+          teamsPlayedPlayoffs: 1,
+          regularGames: 10,
+          playoffGames: 3,
+        },
+      ]);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("serves career goalie list snapshots from local snapshot storage", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const snapshotPayload = [
+        {
+          id: "g-list-snapshot",
+          name: "Snapshot List Goalie",
+          firstSeason: 2021,
+          lastSeason: 2025,
+          seasonsOwned: 5,
+          seasonsPlayedRegular: 4,
+          seasonsPlayedPlayoffs: 2,
+          teamsOwned: 2,
+          teamsPlayedRegular: 2,
+          teamsPlayedPlayoffs: 1,
+          regularGames: 210,
+          playoffGames: 18,
+        },
+      ];
+      await writeSnapshot(db.snapshotDir, "career/goalies", snapshotPayload);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/career/goalies",
+      });
+      const res = createResponse();
+
+      await getCareerGoalies(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+      expect(getJsonBody(res)).toEqual(snapshotPayload);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("serves playoff leaderboard snapshots from local snapshot storage", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      const snapshotPayload = [
+        {
+          teamId: "2",
+          teamName: "Carolina Hurricanes",
+          appearances: 4,
+          championships: 1,
+          finals: 1,
+          conferenceFinals: 0,
+          secondRound: 1,
+          firstRound: 1,
+          seasons: [{ season: 2025, round: 5, key: "championship" }],
+          tieRank: false,
+        },
+      ];
+      await writeSnapshot(
+        db.snapshotDir,
+        "leaderboard/playoffs",
+        snapshotPayload,
+      );
+
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/playoffs",
+      });
+      const res = createResponse();
+
+      await getPlayoffsLeaderboard(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+      expect(getJsonBody(res)).toEqual(snapshotPayload);
     } finally {
       await db.cleanup();
     }
