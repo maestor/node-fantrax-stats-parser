@@ -136,6 +136,7 @@ npm run verify
 - `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso). Regenerates API snapshots after a successful import.
 - `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso. Regenerates API snapshots after a successful import.
 - `npm run snapshot:generate` - Generate JSON snapshots for historical endpoints and default combined responses into `generated/snapshots/`. If `USE_R2_SNAPSHOTS=true`, uploads them to R2 too.
+- Snapshot-backed routes expose `x-stats-data-source: snapshot|db` so you can inspect whether a successful response came from a snapshot or a live DB path.
 
 ### R2 Storage (CSV backup + optional API snapshots)
 

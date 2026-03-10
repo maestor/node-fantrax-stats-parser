@@ -349,6 +349,7 @@ describe("routes", () => {
 
       await getTeams(asRouteReq(req), res);
 
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
 
@@ -366,6 +367,7 @@ describe("routes", () => {
       await getTeams(asRouteReq(req2), res2);
 
       expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(res2.getHeader("x-stats-data-source")).toBe("db");
       expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, filteredTeams);
     });
 
@@ -390,6 +392,7 @@ describe("routes", () => {
 
       expect(getTeamsWithData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
+      expect(res2.getHeader("x-stats-data-source")).toBe("db");
       expect(res2.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
     });
@@ -556,6 +559,7 @@ describe("routes", () => {
       expect(loadSnapshot).toHaveBeenCalledWith(
         "players/combined/regular/team-1",
       );
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
       expect(getPlayersStatsCombined).toHaveBeenCalledWith(
         "regular",
         "1",
@@ -580,6 +584,7 @@ describe("routes", () => {
       expect(loadSnapshot).toHaveBeenCalledWith(
         "players/combined/regular/team-1",
       );
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
       expect(getPlayersStatsCombined).not.toHaveBeenCalled();
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotPlayers);
     });
@@ -790,6 +795,7 @@ describe("routes", () => {
       expect(loadSnapshot).toHaveBeenCalledWith(
         "goalies/combined/regular/team-1",
       );
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
       expect(getGoaliesStatsCombined).toHaveBeenCalledWith(
         "regular",
         "1",
@@ -814,6 +820,7 @@ describe("routes", () => {
       expect(loadSnapshot).toHaveBeenCalledWith(
         "goalies/combined/regular/team-1",
       );
+      expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
       expect(getGoaliesStatsCombined).not.toHaveBeenCalled();
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, snapshotGoalies);
     });

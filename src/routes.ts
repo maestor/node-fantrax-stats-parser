@@ -41,7 +41,19 @@ import {
 } from "./snapshots";
 import { START_SEASON, TEAMS } from "./constants";
 
-const responseCache = new Map<string, { etag: string; data: unknown }>();
+type DataSource = "snapshot" | "db";
+
+type HandlerResult<T = unknown> = {
+  data: T;
+  dataSource: DataSource;
+};
+
+const DATA_SOURCE_HEADER = "x-stats-data-source";
+
+const responseCache = new Map<
+  string,
+  { etag: string; data: unknown; dataSource: DataSource }
+>();
 
 const getStatusCode = (err: unknown): number => {
   if (typeof err === "object" && err !== null && "statusCode" in err) {
@@ -80,13 +92,14 @@ const getQueryParam = (
 const withErrorHandlingCached = async (
   req: IncomingMessage | undefined,
   res: ServerResponse,
-  handler: () => Promise<unknown>,
+  handler: () => Promise<HandlerResult>,
 ) => {
   const cacheKey = req ? buildCacheKey(req) : undefined;
   if (cacheKey) {
     const cached = responseCache.get(cacheKey);
     if (cached) {
       setCachedOkHeaders(res, cached.etag);
+      res.setHeader(DATA_SOURCE_HEADER, cached.dataSource);
       if (isIfNoneMatchHit(req, cached.etag)) {
         res.statusCode = 304;
         res.end();
@@ -98,16 +111,21 @@ const withErrorHandlingCached = async (
   }
 
   try {
-    const data = await handler();
+    const result = await handler();
+    const { data, dataSource } = result;
     if (cacheKey) {
       const etag = makeEtagForJson(data);
-      responseCache.set(cacheKey, { etag, data });
+      responseCache.set(cacheKey, { etag, data, dataSource });
       setCachedOkHeaders(res, etag);
+      res.setHeader(DATA_SOURCE_HEADER, dataSource);
       if (req && isIfNoneMatchHit(req, etag)) {
         res.statusCode = 304;
         res.end();
         return;
       }
+    }
+    if (!cacheKey) {
+      res.setHeader(DATA_SOURCE_HEADER, dataSource);
     }
     send(res, HTTP_STATUS.OK, data);
   } catch (error) {
@@ -128,19 +146,19 @@ const sendNoStore = (
 const loadSnapshotOrFallback = async <T>(
   snapshotKey: string | undefined,
   fallback: () => Promise<T>,
-): Promise<T> => {
+): Promise<HandlerResult<T>> => {
   if (snapshotKey) {
     try {
       const snapshot = await loadSnapshot<T>(snapshotKey);
       if (snapshot !== null) {
-        return snapshot;
+        return { data: snapshot, dataSource: "snapshot" };
       }
     } catch {
       // Fall back to live data when snapshot storage is unavailable or malformed.
     }
   }
 
-  return fallback();
+  return { data: await fallback(), dataSource: "db" };
 };
 
 const getDefaultStartFromForTeam = (teamId: string): number =>
@@ -156,7 +174,10 @@ export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
 };
 
 export const getTeams: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () => getTeamsWithData());
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getTeamsWithData(),
+    dataSource: "db",
+  }));
 };
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
@@ -174,9 +195,10 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   }
   const report = rawReport as Report;
 
-  await withErrorHandlingCached(req, res, () =>
-    getAvailableSeasons(teamId, report, startFrom),
-  );
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getAvailableSeasons(teamId, report, startFrom),
+    dataSource: "db",
+  }));
 };
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
@@ -201,9 +223,10 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  await withErrorHandlingCached(req, res, () =>
-    getPlayersStatsSeason(report, season, teamId),
-  );
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getPlayersStatsSeason(report, season, teamId),
+    dataSource: "db",
+  }));
 };
 
 export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
@@ -252,9 +275,10 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
     return;
   }
 
-  await withErrorHandlingCached(req, res, () =>
-    getGoaliesStatsSeason(report, season, teamId),
-  );
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getGoaliesStatsSeason(report, season, teamId),
+    dataSource: "db",
+  }));
 };
 
 export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
@@ -282,15 +306,17 @@ export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
 };
 
 export const getCareerPlayer: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () =>
-    getPlayerCareerData(req.params.id),
-  );
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getPlayerCareerData(req.params.id),
+    dataSource: "db",
+  }));
 };
 
 export const getCareerGoalie: AugmentedRequestHandler = async (req, res) => {
-  await withErrorHandlingCached(req, res, () =>
-    getGoalieCareerData(req.params.id),
-  );
+  await withErrorHandlingCached(req, res, async () => ({
+    data: await getGoalieCareerData(req.params.id),
+    dataSource: "db",
+  }));
 };
 
 export const getCareerPlayers: AugmentedRequestHandler = async (req, res) => {
@@ -312,7 +338,10 @@ export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => {
     const lastModified = await getLastModifiedFromDb();
-    return { lastModified };
+    return {
+      data: { lastModified },
+      dataSource: "db",
+    };
   });
 };
 

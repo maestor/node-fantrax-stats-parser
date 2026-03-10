@@ -498,6 +498,7 @@ Behavior:
 - snapshots are written locally to `generated/snapshots/`
 - if `USE_R2_SNAPSHOTS=true`, the same generation step also uploads JSON snapshots to R2
 - at runtime the API tries local snapshots first, then R2, and finally falls back to live DB queries
+- successful responses expose `x-stats-data-source: snapshot` or `x-stats-data-source: db`
 
 Manual generation:
 
