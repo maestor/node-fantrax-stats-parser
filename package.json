@@ -56,6 +56,7 @@
     "parseAndUploadRawCsv": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; tsx scripts/upload-raw-to-r2.ts",
     "start": "npm run build && node lib/server.js",
     "test": "jest --watchman=false",
+    "test:integration": "jest --watchman=false --runInBand --testPathPatterns=integration",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --watchman=false",
     "verify": "npm run lint:check && npm run typecheck && npm run unused && npm run build && npm run test:coverage"

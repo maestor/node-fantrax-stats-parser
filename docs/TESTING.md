@@ -13,6 +13,7 @@ All new code **must maintain 100% test coverage:**
 
 **Excluded from coverage:**
 
+- **`src/__tests__/**`**: Test-only fixtures and harness helpers
 - **db/client.ts only**: Thin wrapper around Turso/libSQL client — tested via integration
 
 ---
@@ -22,6 +23,7 @@ All new code **must maintain 100% test coverage:**
 - **Jest** - Unit and integration tests
 - **ts-jest** - TypeScript transformation
 - **node-mocks-http** - HTTP request/response mocking
+- **Temporary SQLite/libSQL file DBs** - Route/service/query integration coverage without production snapshots or mocked DB queries
 
 ---
 
@@ -39,11 +41,26 @@ npm run test:coverage
 npm run test:watch
 ```
 
+### DB-backed integration tests
+
+```bash
+npm run test:integration
+```
+
 ### Full quality gate
 
 ```bash
 npm run verify  # Runs lint, typecheck, unused export check, build, and test:coverage
 ```
+
+---
+
+## Preferred Strategy
+
+- Keep 100% coverage intact for now, but do not add mock-heavy tests just to satisfy the threshold.
+- For changes that cross `routes` + `services` + `db/queries`, prefer a DB-backed integration test before adding more delegation assertions.
+- Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
+- The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
 
 ---
 
@@ -68,6 +85,8 @@ test("gets available seasons", async () => {
 ```
 
 ### Mocking the Database Layer
+
+Use this for narrow unit tests only. If the behavior under change spans routes/services/query composition, prefer the temporary SQLite integration harness instead.
 
 Mock at the module boundary (`../db/queries` or `../db/client`):
 
@@ -114,15 +133,17 @@ src/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
     ├── helpers.test.ts   # Core utilities, scoring, DB-backed helpers
+    ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
     ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
     ├── queries.test.ts   # Database query layer
+    ├── routes.integration.test.ts # Real route/service/query integration via temp SQLite
     ├── routes.test.ts    # API endpoint handlers
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── services.test.ts  # Business logic (DB → scored data)
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, and route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking.
 
 ---
 
@@ -140,21 +161,23 @@ Keep this directory updated whenever a new module or integration boundary is add
 
 1. **All new functions** - Unit tests covering happy path + edge cases
 2. **Modified functions** - Update existing tests, add new cases for new behavior
-3. **New API endpoints** - Route handler tests + integration tests
-4. **Error handling** - Test error cases explicitly
-5. **Async operations** - Test promise resolution and rejection
+3. **Route/service/db behavior changes** - Prefer DB-backed integration tests when the logic crosses module boundaries
+4. **New API endpoints** - Route handler tests + integration tests
+5. **Error handling** - Test error cases explicitly
+6. **Async operations** - Test promise resolution and rejection
 
 **If you can't test something:**
 
 - Don't exclude it from coverage without discussion
 - Don't lower coverage thresholds (100% is required)
-- Do propose mocking strategies
+- Do propose integration or mocking strategies
 - Do document why it's difficult and seek guidance
 
 **For external SDK integrations:**
 
 - Mock at the module boundary (e.g., mock `../db/client`, not the libSQL SDK)
-- Test your wrapper code through the mocked dependency
+- Test your thin wrapper code through the mocked dependency
+- Test higher-level DB behavior through the temp SQLite integration harness when possible
 - Only exclude the thinnest possible adapter layer (e.g., `db/client.ts`)
 
 ---

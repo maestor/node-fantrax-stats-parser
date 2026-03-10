@@ -5,6 +5,7 @@ module.exports = {
   testMatch: ["**/__tests__/**/*.test.ts"],
   collectCoverageFrom: [
     "src/**/*.ts",
+    "!src/__tests__/**",
     "!src/playwright/**",
     "!src/types.ts",
     "!src/index.ts",
