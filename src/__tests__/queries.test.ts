@@ -14,7 +14,6 @@ import {
   getAllPlayerCareerRowsFromDb,
   getAllGoalieCareerRowsFromDb,
   getAvailableSeasonsFromDb,
-  getTeamIdsWithData,
   getLastModifiedFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
@@ -521,25 +520,6 @@ describe("db/queries", () => {
     test("returns empty array when no seasons", async () => {
       mockExecute.mockResolvedValue({ rows: [] });
       const result = await getAvailableSeasonsFromDb("1", "regular");
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("getTeamIdsWithData", () => {
-    test("returns distinct team IDs from both tables", async () => {
-      mockExecute.mockResolvedValue({
-        rows: [{ team_id: "1" }, { team_id: "2" }, { team_id: "3" }],
-      });
-
-      const result = await getTeamIdsWithData();
-
-      expect(mockExecute).toHaveBeenCalledWith(expect.stringContaining("games > 0"));
-      expect(result).toEqual(["1", "2", "3"]);
-    });
-
-    test("returns empty array when no data", async () => {
-      mockExecute.mockResolvedValue({ rows: [] });
-      const result = await getTeamIdsWithData();
       expect(result).toEqual([]);
     });
   });

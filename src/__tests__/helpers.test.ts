@@ -1,6 +1,5 @@
 jest.mock("../db/queries", () => ({
   getAvailableSeasonsFromDb: jest.fn(),
-  getTeamIdsWithData: jest.fn(),
 }));
 
 import {
