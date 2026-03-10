@@ -530,6 +530,43 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns 400 for unavailable goalie season using the real DB season lookup", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "playoffs",
+          goalieId: "g-playoff",
+          name: "Playoff Goalie",
+          games: 4,
+          wins: 2,
+          saves: 100,
+          shutouts: 1,
+          gaa: 2.1,
+          savePercent: 0.925,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/season/playoffs/2023?teamId=1",
+        params: { reportType: "playoffs", season: "2023" },
+      });
+      const res = createResponse();
+
+      await getGoaliesSeason(asRouteReq(req), res);
+
+      expect(res.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+      expect(res._getData()).toBe(ERROR_MESSAGES.SEASON_NOT_AVAILABLE);
+      expect(res.getHeader("cache-control")).toBe("private, no-store");
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("serves goalie combined snapshots from local snapshot storage", async () => {
     const db = await createIntegrationDb();
 

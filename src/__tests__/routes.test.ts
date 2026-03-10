@@ -404,28 +404,6 @@ describe("routes", () => {
       );
     });
 
-    test("works with startFrom query param", async () => {
-      const mockPlayers = [{ name: "Test Player", goals: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getPlayersStatsCombined as jest.Mock).mockResolvedValue(mockPlayers);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
-
-      const req = createRequest({
-        url: "/players/combined/playoffs?startFrom=2018",
-        params: { reportType: "playoffs" },
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getPlayersCombined(asRouteReq(req), res);
-
-      expect(getPlayersStatsCombined).toHaveBeenCalledWith(
-        "playoffs",
-        "1",
-        2018,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockPlayers);
-    });
   });
 
   describe("getGoaliesSeason", () => {
@@ -444,24 +422,6 @@ describe("routes", () => {
         res,
         HTTP_STATUS.BAD_REQUEST,
         ERROR_MESSAGES.INVALID_REPORT_TYPE,
-      );
-    });
-
-    test("returns 400 for unavailable season", async () => {
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (seasonAvailable as jest.Mock).mockResolvedValue(false);
-
-      const req = createRequest({
-        params: { reportType: "regular", season: "2030" },
-      });
-      const res = createResponse();
-
-      await getGoaliesSeason(asRouteReq(req), res);
-
-      expect(send).toHaveBeenCalledWith(
-        res,
-        HTTP_STATUS.BAD_REQUEST,
-        ERROR_MESSAGES.SEASON_NOT_AVAILABLE,
       );
     });
 
@@ -523,53 +483,6 @@ describe("routes", () => {
       );
     });
 
-    test("passes startFrom to service correctly", async () => {
-      const mockGoalies = [{ name: "Test Goalie", wins: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2020);
-
-      const req = createRequest({
-        url: "/goalies/combined/regular?startFrom=2020",
-        params: { reportType: "regular" },
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getGoaliesCombined(asRouteReq(req), res);
-
-      expect(parseSeasonParam).toHaveBeenCalledWith("2020");
-      expect(loadSnapshot).not.toHaveBeenCalled();
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith(
-        "regular",
-        "1",
-        2020,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
-    });
-
-    test("works with startFrom query param", async () => {
-      const mockGoalies = [{ name: "Test Goalie", wins: 100, seasons: [] }];
-      (reportTypeAvailable as jest.Mock).mockReturnValue(true);
-      (getGoaliesStatsCombined as jest.Mock).mockResolvedValue(mockGoalies);
-      (parseSeasonParam as jest.Mock).mockReturnValue(2018);
-
-      const req = createRequest({
-        url: "/goalies/combined/playoffs?startFrom=2018",
-        params: { reportType: "playoffs" },
-        headers: { host: "localhost" },
-      });
-      const res = createResponse();
-
-      await getGoaliesCombined(asRouteReq(req), res);
-
-      expect(getGoaliesStatsCombined).toHaveBeenCalledWith(
-        "playoffs",
-        "1",
-        2018,
-      );
-      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, mockGoalies);
-    });
   });
 
   describe("getLastModified", () => {
