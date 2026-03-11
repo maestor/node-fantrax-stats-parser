@@ -27,7 +27,13 @@ import {
   CareerTeamCountHighlightItem,
   CareerSameTeamHighlightItem,
 } from "./types";
-import { CURRENT_SEASON, DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "./constants";
+import {
+  CAREER_HIGHLIGHT_CONFIG,
+  CURRENT_SEASON,
+  DEFAULT_TEAM_ID,
+  START_SEASON,
+  TEAMS,
+} from "./constants";
 import {
   getPlayersFromDb,
   getGoaliesFromDb,
@@ -614,10 +620,11 @@ const buildCareerHighlightTeams = (
 const buildCareerTeamCountHighlightItem = (
   rows: readonly CareerHighlightRow[],
   playedOnly: boolean,
+  minTeamCount: number,
 ): CareerTeamCountHighlightItem | null => {
   const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
   const teams = buildCareerHighlightTeams(countedRows);
-  if (teams.length < 3) {
+  if (teams.length < minTeamCount) {
     return null;
   }
 
@@ -633,6 +640,7 @@ const buildCareerTeamCountHighlightItem = (
 const buildCareerSameTeamHighlightItems = (
   rows: readonly CareerHighlightRow[],
   playedOnly: boolean,
+  minSeasonCount: number,
 ): CareerSameTeamHighlightItem[] => {
   const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
   const seasonsByTeam = new Map<string, Set<number>>();
@@ -650,7 +658,7 @@ const buildCareerSameTeamHighlightItems = (
     0,
     ...[...seasonsByTeam.values()].map((seasons) => seasons.size),
   );
-  if (maxSeasonCount < 5) {
+  if (maxSeasonCount < minSeasonCount) {
     return [];
   }
 
@@ -906,11 +914,18 @@ export const getCareerHighlightsData = async (
     ...mapGoalieCareerHighlightRows(goalieRows),
   ]);
 
-  if (type === "most-teams-played" || type === "most-teams-owned") {
-    const playedOnly = type === "most-teams-played";
+  const config = CAREER_HIGHLIGHT_CONFIG[type];
+
+  if (config.kind === "team-count") {
     return sortCareerTeamCountHighlightItems(
       [...grouped.values()]
-        .map((rows) => buildCareerTeamCountHighlightItem(rows, playedOnly))
+        .map((rows) =>
+          buildCareerTeamCountHighlightItem(
+            rows,
+            config.playedOnly,
+            config.minCount,
+          ),
+        )
         .filter(
           (
             item,
@@ -919,10 +934,13 @@ export const getCareerHighlightsData = async (
     );
   }
 
-  const playedOnly = type === "same-team-seasons-played";
   return sortCareerSameTeamHighlightItems(
     [...grouped.values()].flatMap((rows) =>
-      buildCareerSameTeamHighlightItems(rows, playedOnly),
+      buildCareerSameTeamHighlightItems(
+        rows,
+        config.playedOnly,
+        config.minCount,
+      ),
     ),
   );
 };

@@ -1388,6 +1388,9 @@ paths:
         Returns a paged mixed skater + goalie career highlights leaderboard.
         `most-teams-played` and `most-teams-owned` return team-count rows.
         `same-team-seasons-played` and `same-team-seasons-owned` return one row per top team, so the same person can appear multiple times on tied same-team results.
+        Minimum cutoffs are 4 teams for `most-teams-played`, 5 teams for `most-teams-owned`,
+        8 same-team seasons for `same-team-seasons-played`, and 10 same-team seasons for
+        `same-team-seasons-owned`.
       parameters:
         - name: type
           in: path

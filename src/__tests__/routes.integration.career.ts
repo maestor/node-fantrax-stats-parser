@@ -455,7 +455,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
             season: 2024,
             reportType: "regular",
             playerId: "p-three",
-            name: "Three Team Skater",
+            name: "Four Team Skater",
             position: "F",
             games: 10,
           },
@@ -464,7 +464,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
             season: 2023,
             reportType: "regular",
             playerId: "p-three",
-            name: "Three Team Skater",
+            name: "Four Team Skater",
             position: "F",
             games: 6,
           },
@@ -473,7 +473,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
             season: 2022,
             reportType: "playoffs",
             playerId: "p-three",
-            name: "Three Team Skater",
+            name: "Four Team Skater",
             position: "F",
             games: 2,
           },
@@ -482,9 +482,9 @@ export const registerCareerRouteIntegrationTests = (): void => {
             season: 2021,
             reportType: "regular",
             playerId: "p-three",
-            name: "Three Team Skater",
+            name: "Four Team Skater",
             position: "F",
-            games: 0,
+            games: 3,
           },
           {
             teamId: "1",
@@ -584,6 +584,24 @@ export const registerCareerRouteIntegrationTests = (): void => {
       try {
         await db.insertPlayers([
           {
+            teamId: "4",
+            season: 2020,
+            reportType: "regular",
+            playerId: "p-owned",
+            name: "Owned Skater",
+            position: "D",
+            games: 0,
+          },
+          {
+            teamId: "3",
+            season: 2021,
+            reportType: "playoffs",
+            playerId: "p-owned",
+            name: "Owned Skater",
+            position: "D",
+            games: 0,
+          },
+          {
             teamId: "1",
             season: 2024,
             reportType: "regular",
@@ -651,8 +669,10 @@ export const registerCareerRouteIntegrationTests = (): void => {
               id: "p-owned",
               name: "Owned Skater",
               position: "D",
-              teamCount: 3,
+              teamCount: 5,
               teams: [
+                { id: "4", name: "Vancouver Canucks" },
+                { id: "3", name: "Calgary Flames" },
                 { id: "2", name: "Carolina Hurricanes" },
                 { id: "19", name: "Toronto Maple Leafs" },
                 { id: "1", name: "Colorado Avalanche" },
@@ -671,147 +691,48 @@ export const registerCareerRouteIntegrationTests = (): void => {
 
       try {
         await db.insertPlayers([
-          {
+          ...Array.from({ length: 8 }, (_, index) => ({
             teamId: "7",
-            season: 2020,
-            reportType: "regular",
+            season: 2017 + index,
+            reportType: (index % 2 === 0 ? "regular" : "playoffs") as
+              | "regular"
+              | "playoffs",
             playerId: "p-tie",
             name: "Tie Skater",
             position: "D",
             games: 1,
-          },
-          {
-            teamId: "7",
-            season: 2021,
-            reportType: "regular",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
-            teamId: "7",
-            season: 2022,
-            reportType: "regular",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
-            teamId: "7",
-            season: 2023,
-            reportType: "regular",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
-            teamId: "7",
-            season: 2024,
-            reportType: "regular",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
+          })),
+          ...Array.from({ length: 8 }, (_, index) => ({
             teamId: "19",
-            season: 2020,
-            reportType: "playoffs",
+            season: 2017 + index,
+            reportType: (index % 2 === 0 ? "playoffs" : "regular") as
+              | "regular"
+              | "playoffs",
             playerId: "p-tie",
             name: "Tie Skater",
             position: "D",
             games: 1,
-          },
-          {
-            teamId: "19",
-            season: 2021,
-            reportType: "playoffs",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
-            teamId: "19",
-            season: 2022,
-            reportType: "playoffs",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
-          {
-            teamId: "19",
-            season: 2023,
-            reportType: "playoffs",
-            playerId: "p-tie",
-            name: "Tie Skater",
-            position: "D",
-            games: 1,
-          },
+          })),
           {
             teamId: "19",
             season: 2024,
-            reportType: "playoffs",
+            reportType: "regular" as const,
             playerId: "p-tie",
             name: "Tie Skater",
             position: "D",
             games: 1,
           },
         ]);
-        await db.insertGoalies([
-          {
+        await db.insertGoalies(
+          Array.from({ length: 9 }, (_, index) => ({
             teamId: "3",
-            season: 2020,
-            reportType: "regular",
+            season: 2017 + index,
+            reportType: "regular" as const,
             goalieId: "g-six",
-            name: "Six Season Goalie",
+            name: "Nine Season Goalie",
             games: 1,
-          },
-          {
-            teamId: "3",
-            season: 2021,
-            reportType: "regular",
-            goalieId: "g-six",
-            name: "Six Season Goalie",
-            games: 1,
-          },
-          {
-            teamId: "3",
-            season: 2022,
-            reportType: "regular",
-            goalieId: "g-six",
-            name: "Six Season Goalie",
-            games: 1,
-          },
-          {
-            teamId: "3",
-            season: 2023,
-            reportType: "regular",
-            goalieId: "g-six",
-            name: "Six Season Goalie",
-            games: 1,
-          },
-          {
-            teamId: "3",
-            season: 2024,
-            reportType: "regular",
-            goalieId: "g-six",
-            name: "Six Season Goalie",
-            games: 1,
-          },
-          {
-            teamId: "3",
-            season: 2025,
-            reportType: "regular",
-            goalieId: "g-six",
-            name: "Six Season Goalie",
-            games: 1,
-          },
-        ]);
+          })),
+        );
 
         const req = createRequest({
           method: "GET",
@@ -832,23 +753,23 @@ export const registerCareerRouteIntegrationTests = (): void => {
           items: [
             {
               id: "g-six",
-              name: "Six Season Goalie",
+              name: "Nine Season Goalie",
               position: "G",
-              seasonCount: 6,
+              seasonCount: 9,
               team: { id: "3", name: "Calgary Flames" },
             },
             {
               id: "p-tie",
               name: "Tie Skater",
               position: "D",
-              seasonCount: 5,
+              seasonCount: 8,
               team: { id: "7", name: "Edmonton Oilers" },
             },
             {
               id: "p-tie",
               name: "Tie Skater",
               position: "D",
-              seasonCount: 5,
+              seasonCount: 8,
               team: { id: "19", name: "Toronto Maple Leafs" },
             },
           ],
@@ -863,53 +784,18 @@ export const registerCareerRouteIntegrationTests = (): void => {
       const db = await createIntegrationDb();
 
       try {
-        await db.insertPlayers([
-          {
+        await db.insertPlayers(
+          Array.from({ length: 10 }, (_, index) => ({
             teamId: "8",
-            season: 2020,
-            reportType: "regular",
+            season: 2015 + index,
+            reportType:
+              index === 2 || index === 7 ? ("playoffs" as const) : ("regular" as const),
             playerId: "p-owned-seasons",
             name: "Owned Seasons Skater",
             position: "F",
             games: 0,
-          },
-          {
-            teamId: "8",
-            season: 2021,
-            reportType: "regular",
-            playerId: "p-owned-seasons",
-            name: "Owned Seasons Skater",
-            position: "F",
-            games: 0,
-          },
-          {
-            teamId: "8",
-            season: 2022,
-            reportType: "playoffs",
-            playerId: "p-owned-seasons",
-            name: "Owned Seasons Skater",
-            position: "F",
-            games: 0,
-          },
-          {
-            teamId: "8",
-            season: 2023,
-            reportType: "regular",
-            playerId: "p-owned-seasons",
-            name: "Owned Seasons Skater",
-            position: "F",
-            games: 0,
-          },
-          {
-            teamId: "8",
-            season: 2024,
-            reportType: "regular",
-            playerId: "p-owned-seasons",
-            name: "Owned Seasons Skater",
-            position: "F",
-            games: 0,
-          },
-        ]);
+          })),
+        );
 
         const req = createRequest({
           method: "GET",
@@ -932,7 +818,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
               id: "p-owned-seasons",
               name: "Owned Seasons Skater",
               position: "F",
-              seasonCount: 5,
+              seasonCount: 10,
               team: { id: "8", name: "San Jose Sharks" },
             },
           ],
