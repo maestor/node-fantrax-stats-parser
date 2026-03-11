@@ -62,6 +62,7 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - When a DB-backed integration test already covers a route or service happy path end-to-end, delete the overlapping mocked happy-path test instead of keeping both.
 - In `services.test.ts`, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
 - Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
+- For OpenAPI schema conformance, prefer validating real route responses, using the integration suite for DB-backed endpoints and only lightweight route tests for non-DB cases.
 - The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
 
 ---
@@ -137,9 +138,10 @@ src/
     ├── helpers.test.ts   # Core utilities, scoring, DB-backed helpers
     ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
     ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
+    ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
     ├── queries.test.ts   # Database query layer
-    ├── routes.integration.test.ts # Real route/service/query integration via temp SQLite
-    ├── routes.test.ts    # API endpoint handlers
+    ├── routes.integration.test.ts # Real route/service/query integration via temp SQLite + schema checks
+    ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── services.test.ts  # Business logic (DB → scored data)
     └── fixtures.ts       # Shared test data

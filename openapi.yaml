@@ -589,22 +589,144 @@ components:
             type: number
 
     PlayerSeasonData:
-      allOf:
-        - $ref: "#/components/schemas/Player"
-        - type: object
-          required: [season]
-          properties:
-            season:
-              type: integer
+      type: object
+      description: Per-season row nested under `CombinedPlayer.seasons`. Omits `name` because the combined root object already includes it.
+      required:
+        - season
+        - id
+        - games
+        - goals
+        - assists
+        - points
+        - plusMinus
+        - penalties
+        - shots
+        - ppp
+        - shp
+        - hits
+        - blocks
+        - score
+        - scoreAdjustedByGames
+      properties:
+        season:
+          type: integer
+        id:
+          type: string
+          description: Fantrax player identifier extracted from `*id*` in CSV name field.
+        position:
+          type: string
+        games:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        plusMinus:
+          type: number
+        penalties:
+          type: number
+        shots:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+        hits:
+          type: number
+        blocks:
+          type: number
+        score:
+          type: number
+        scoreAdjustedByGames:
+          type: number
+          description: Stabilized per-game pace score.
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+          description: Per-stat score breakdown.
+        scoreByPosition:
+          type: number
+        scoreByPositionAdjustedByGames:
+          type: number
+          description: Stabilized per-game pace score compared to the same position only.
+        scoresByPosition:
+          type: object
+          additionalProperties:
+            type: number
 
     GoalieSeasonData:
-      allOf:
-        - $ref: "#/components/schemas/Goalie"
-        - type: object
-          required: [season]
-          properties:
-            season:
-              type: integer
+      type: object
+      description: Per-season row nested under `CombinedGoalie.seasons`. Omits `name` because the combined root object already includes it.
+      required:
+        - season
+        - id
+        - games
+        - goals
+        - assists
+        - points
+        - penalties
+        - ppp
+        - shp
+        - wins
+        - saves
+        - shutouts
+        - score
+        - scoreAdjustedByGames
+      properties:
+        season:
+          type: integer
+        id:
+          type: string
+          description: Fantrax goalie identifier extracted from `*id*` in CSV name field.
+        position:
+          type: string
+        games:
+          type: number
+        goals:
+          type: number
+        assists:
+          type: number
+        points:
+          type: number
+        penalties:
+          type: number
+        ppp:
+          type: number
+        shp:
+          type: number
+        wins:
+          type: number
+        saves:
+          type: number
+        shutouts:
+          type: number
+        gaa:
+          type: string
+          description: Goals against average. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+        savePercent:
+          type: string
+          description: Save percentage. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+        score:
+          type: number
+        scoreAdjustedByGames:
+          type: number
+          description: Stabilized per-game pace score.
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+        scoreByPosition:
+          type: number
+        scoreByPositionAdjustedByGames:
+          type: number
+          description: Stabilized per-game pace score compared to the same position only.
+        scoresByPosition:
+          type: object
+          additionalProperties:
+            type: number
 
     CombinedPlayer:
       allOf:

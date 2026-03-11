@@ -17,6 +17,7 @@ import {
 } from "../routes";
 import { ERROR_MESSAGES, HTTP_STATUS } from "../constants";
 import { createIntegrationDb } from "./integration-db";
+import { expectArraySchema, expectObjectSchema } from "./openapi-schema";
 
 type RouteReq = Parameters<typeof getPlayersSeason>[0];
 type MockResponse = ReturnType<typeof createResponse>;
@@ -53,6 +54,7 @@ describe("routes integration", () => {
       expect(res.getHeader("x-stats-data-source")).toBe("db");
       expect(body[0]).toEqual({ season: 2012, text: "2012-2013" });
       expect(body.at(-1)).toEqual({ season: 2025, text: "2025-2026" });
+      expectArraySchema("Season", body);
     } finally {
       await db.cleanup();
     }
@@ -83,6 +85,7 @@ describe("routes integration", () => {
         { season: 2024, text: "2024-2025" },
         { season: 2025, text: "2025-2026" },
       ]);
+      expectArraySchema("Season", body);
     } finally {
       await db.cleanup();
     }
@@ -224,6 +227,7 @@ describe("routes integration", () => {
           points: 12,
         }),
       );
+      expectArraySchema("Player", body);
     } finally {
       await db.cleanup();
     }
@@ -295,6 +299,7 @@ describe("routes integration", () => {
       );
       expect(body[0]).not.toHaveProperty("gaa");
       expect(body[0]).not.toHaveProperty("savePercent");
+      expectArraySchema("CombinedGoalie", body);
     } finally {
       await db.cleanup();
     }
@@ -375,6 +380,7 @@ describe("routes integration", () => {
           points: 11,
         }),
       ]);
+      expectArraySchema("CombinedPlayer", body);
     } finally {
       await db.cleanup();
     }
@@ -525,6 +531,7 @@ describe("routes integration", () => {
           gaa: "2.15",
         }),
       );
+      expectArraySchema("Goalie", body);
     } finally {
       await db.cleanup();
     }
@@ -746,6 +753,7 @@ describe("routes integration", () => {
         "2024-1-playoffs",
         "2023-19-regular",
       ]);
+      expectObjectSchema("CareerPlayer", body);
     } finally {
       await db.cleanup();
     }
@@ -831,6 +839,7 @@ describe("routes integration", () => {
           playoffGames: 2,
         },
       ]);
+      expectArraySchema("CareerPlayerListItem", body);
     } finally {
       await db.cleanup();
     }
@@ -913,6 +922,7 @@ describe("routes integration", () => {
         round: 5,
         key: "championship",
       });
+      expectArraySchema("PlayoffLeaderboardEntry", body);
     } finally {
       await db.cleanup();
     }
@@ -1010,6 +1020,7 @@ describe("routes integration", () => {
       expect(totals.career.wins).toBe(10);
       expect(totals.regular.games).toBe(12);
       expect(totals.playoffs.games).toBe(4);
+      expectObjectSchema("CareerGoalie", body);
     } finally {
       await db.cleanup();
     }
@@ -1092,6 +1103,7 @@ describe("routes integration", () => {
           playoffGames: 3,
         },
       ]);
+      expectArraySchema("CareerGoalieListItem", body);
     } finally {
       await db.cleanup();
     }
@@ -1248,6 +1260,7 @@ describe("routes integration", () => {
           pointsPercent: 0.656,
         },
       ]);
+      expectArraySchema("RegularLeaderboardEntry", body);
     } finally {
       await db.cleanup();
     }
