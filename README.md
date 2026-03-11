@@ -35,6 +35,7 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
 The highlights route supports `skip` / `take` paging and the four route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, and `same-team-seasons-owned`.
+Current highlight minimums are stricter than before: `most-teams-played` requires 4 played teams, `most-teams-owned` requires 5 owned teams, `same-team-seasons-played` requires 8 played seasons with one team, and `same-team-seasons-owned` requires 10 owned seasons with one team.
 
 ### Viewing docs locally
 

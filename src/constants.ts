@@ -22,6 +22,35 @@ export const CAREER_HIGHLIGHT_TYPES = [
 export const DEFAULT_CAREER_HIGHLIGHT_SKIP = 0;
 export const DEFAULT_CAREER_HIGHLIGHT_TAKE = 10;
 export const MAX_CAREER_HIGHLIGHT_TAKE = 100;
+export const CAREER_HIGHLIGHT_CONFIG = {
+  "most-teams-played": {
+    kind: "team-count",
+    playedOnly: true,
+    minCount: 4,
+  },
+  "most-teams-owned": {
+    kind: "team-count",
+    playedOnly: false,
+    minCount: 5,
+  },
+  "same-team-seasons-played": {
+    kind: "same-team-season-count",
+    playedOnly: true,
+    minCount: 8,
+  },
+  "same-team-seasons-owned": {
+    kind: "same-team-season-count",
+    playedOnly: false,
+    minCount: 10,
+  },
+} as const satisfies Record<
+  CareerHighlightType,
+  {
+    kind: "team-count" | "same-team-season-count";
+    playedOnly: boolean;
+    minCount: number;
+  }
+>;
 
 export const HTTP_STATUS = {
   OK: 200,
