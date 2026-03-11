@@ -147,12 +147,13 @@ src/
     ├── routes.integration.test.ts # Entry point for the categorized route integration suites
     ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
     ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
+    ├── services.career.fixtures.ts # Shared career-service row builders
+    ├── services.*.test.ts # Domain-focused service unit suites (season/combined, career detail/list, leaderboard)
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
-    ├── services.test.ts  # Business logic (DB → scored data)
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, and helper scoring coverage is split by skaters/goalies so large numeric edge-case suites stay readable.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies, and service-unit coverage is now split by season/combined, career, and leaderboard behavior so large numeric and aggregation-heavy suites stay readable.
 
 ---
 
