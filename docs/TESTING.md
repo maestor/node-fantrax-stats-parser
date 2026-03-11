@@ -60,7 +60,7 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - Keep 100% coverage intact for now, but do not add mock-heavy tests just to satisfy the threshold.
 - For changes that cross `routes` + `services` + `db/queries`, prefer a DB-backed integration test before adding more delegation assertions.
 - When a DB-backed integration test already covers a route or service happy path end-to-end, delete the overlapping mocked happy-path test instead of keeping both.
-- In `services.test.ts`, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
+- In the service-unit suites, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
 - Treat omitted-season selection and combined default-window behavior as route-integration territory, not mocked service wiring.
 - Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
 - For OpenAPI schema conformance, prefer validating real route responses, using the integration suite for DB-backed endpoints and only lightweight route tests for non-DB cases.
@@ -140,9 +140,9 @@ src/
     ├── helpers.players.test.ts # Player scoring helpers
     ├── helpers.test.ts   # Shared helper utilities and DB-backed helper lookups
     ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
-    ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
+    ├── mappings.*.test.ts # Data transformation suites (players, goalies, season labels)
     ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
-    ├── queries.test.ts   # Database query layer
+    ├── queries.*.test.ts # Database query suites (roster stats, career rows, results/metadata)
     ├── routes.integration.helpers.ts # Shared helpers for route integration suites
     ├── routes.integration.test.ts # Entry point for the categorized route integration suites
     ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
@@ -153,7 +153,7 @@ src/
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies, and service-unit coverage is now split by season/combined, career, and leaderboard behavior so large numeric and aggregation-heavy suites stay readable.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage is split by player/goalie/season-label responsibilities, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable.
 
 ---
 

@@ -69,7 +69,7 @@ npm run unused        # Detect unused production exports
 npm run verify        # Full quality gate (lint + typecheck + unused exports + build + coverage)
 ```
 
-Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, Knip export analysis, production build, and Jest with enforced 100% global coverage thresholds. For route/service/database behavior, the suite now also includes DB-backed integration tests that run against a temporary SQLite database with isolated snapshot storage, so behavior can be validated with less internal mocking. OpenAPI schema conformance is also checked against live route responses for the DB-backed endpoints instead of relying only on handcrafted mocked payloads, and the larger helper/service unit suites are split into focused files so the 100%-coverage surface stays readable.
+Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, Knip export analysis, production build, and Jest with enforced 100% global coverage thresholds. For route/service/database behavior, the suite now also includes DB-backed integration tests that run against a temporary SQLite database with isolated snapshot storage, so behavior can be validated with less internal mocking. OpenAPI schema conformance is also checked against live route responses for the DB-backed endpoints instead of relying only on handcrafted mocked payloads, and the larger helper/service/mapping/query unit suites are split into focused files so the 100%-coverage surface stays readable.
 
 ## CI
 
