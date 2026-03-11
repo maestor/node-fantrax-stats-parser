@@ -105,6 +105,52 @@ export const registerPlayerRouteIntegrationTests = (): void => {
       }
     });
 
+    test("omits null player positions from the live DB response", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-no-position",
+            name: "Positionless Skater",
+            position: null,
+            games: 7,
+            goals: 2,
+            assists: 3,
+            points: 5,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/players/season/regular/2024?teamId=1",
+          params: { reportType: "regular", season: "2024" },
+        });
+        const res = createResponse();
+
+        await getPlayersSeason(asRouteReq<SeasonRouteReq>(req), res);
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toHaveLength(1);
+        expect(body[0]).toEqual(
+          expect.objectContaining({
+            id: "p-no-position",
+            name: "Positionless Skater",
+            games: 7,
+            points: 5,
+          }),
+        );
+        expect(body[0]).not.toHaveProperty("position");
+        expectArraySchema("Player", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
     test("returns the current configured player season when the season param is omitted", async () => {
       const db = await createIntegrationDb();
 

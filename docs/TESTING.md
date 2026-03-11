@@ -62,7 +62,8 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - When a DB-backed integration test already covers a route or service happy path end-to-end, delete the overlapping mocked happy-path test instead of keeping both.
 - In the service-unit suites, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
 - Treat omitted-season selection and combined default-window behavior as route-integration territory, not mocked service wiring.
-- Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
+- Keep focused unit tests for pure scoring logic, CSV-import mapping, auth parsing, cache normalization, and snapshot cache behavior.
+- Once season selection, season-label formatting, or row-normalization behavior is already asserted through a live route response, prefer the integration suite over duplicating the same expectation in a thin helper/query happy-path test.
 - For OpenAPI schema conformance, prefer validating real route responses, using the integration suite for DB-backed endpoints and only lightweight route tests for non-DB cases.
 - The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
 
@@ -138,9 +139,10 @@ src/
     ├── cache.test.ts     # Response caching & ETags
     ├── helpers.goalies.test.ts # Goalie scoring helpers
     ├── helpers.players.test.ts # Player scoring helpers
-    ├── helpers.test.ts   # Shared helper utilities and DB-backed helper lookups
+    ├── helpers.test.ts   # Shared helper utilities
     ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
-    ├── mappings.*.test.ts # Data transformation suites (players, goalies, season labels)
+    ├── mappings.players.test.ts # CSV-to-player transformation coverage
+    ├── mappings.goalies.test.ts # CSV-to-goalie transformation coverage
     ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
     ├── queries.*.test.ts # Database query suites (roster stats, career rows, results/metadata)
     ├── routes.integration.helpers.ts # Shared helpers for route integration suites
@@ -153,7 +155,7 @@ src/
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage is split by player/goalie/season-label responsibilities, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
 
 ---
 

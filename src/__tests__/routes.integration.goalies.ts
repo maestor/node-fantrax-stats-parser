@@ -140,6 +140,80 @@ export const registerGoalieRouteIntegrationTests = (): void => {
       }
     });
 
+    test("omits placeholder goalie rate fields from the live DB response", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertGoalies([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "g-zero-rates",
+            name: "Zero Rates Goalie",
+            games: 6,
+            wins: 3,
+            saves: 150,
+            gaa: 0,
+            savePercent: 0,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "g-null-rates",
+            name: "Null Rates Goalie",
+            games: 5,
+            wins: 2,
+            saves: 120,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/goalies/season/regular/2024?teamId=1",
+          params: { reportType: "regular", season: "2024" },
+        });
+        const res = createResponse();
+
+        await getGoaliesSeason(asRouteReq<SeasonRouteReq>(req), res);
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toHaveLength(2);
+
+        const zeroRates = body.find((entry) => entry.id === "g-zero-rates");
+        const nullRates = body.find((entry) => entry.id === "g-null-rates");
+
+        expect(zeroRates).toEqual(
+          expect.objectContaining({
+            id: "g-zero-rates",
+            name: "Zero Rates Goalie",
+            games: 6,
+            wins: 3,
+            saves: 150,
+          }),
+        );
+        expect(zeroRates).not.toHaveProperty("gaa");
+        expect(zeroRates).not.toHaveProperty("savePercent");
+
+        expect(nullRates).toEqual(
+          expect.objectContaining({
+            id: "g-null-rates",
+            name: "Null Rates Goalie",
+            games: 5,
+            wins: 2,
+            saves: 120,
+          }),
+        );
+        expect(nullRates).not.toHaveProperty("gaa");
+        expect(nullRates).not.toHaveProperty("savePercent");
+        expectArraySchema("Goalie", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
     test("returns the current configured goalie season when the season param is omitted", async () => {
       const db = await createIntegrationDb();
 

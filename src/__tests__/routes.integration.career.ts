@@ -67,6 +67,15 @@ export const registerCareerRouteIntegrationTests = (): void => {
             plusMinus: 1,
             shots: 11,
           },
+          {
+            teamId: "2",
+            season: 2022,
+            reportType: "regular",
+            playerId: "p-career",
+            name: "Career Skater",
+            position: "F",
+            games: 0,
+          },
         ]);
 
         const req = createRequest({
@@ -89,10 +98,10 @@ export const registerCareerRouteIntegrationTests = (): void => {
         );
 
         const summary = body.summary as Record<string, unknown>;
-        expect(summary.firstSeason).toBe(2023);
+        expect(summary.firstSeason).toBe(2022);
         expect(summary.lastSeason).toBe(2024);
-        expect(summary.seasonCount).toEqual({ owned: 2, played: 2 });
-        expect(summary.teamCount).toEqual({ owned: 2, played: 2 });
+        expect(summary.seasonCount).toEqual({ owned: 3, played: 2 });
+        expect(summary.teamCount).toEqual({ owned: 3, played: 2 });
 
         const totals = body.totals as Record<string, Record<string, unknown>>;
         expect(totals.career.games).toBe(17);
@@ -101,10 +110,15 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(totals.playoffs.games).toBe(2);
 
         const seasons = body.seasons as Array<Record<string, unknown>>;
-        expect(seasons).toHaveLength(3);
+        expect(seasons).toHaveLength(4);
         expect(
           seasons.map((season) => `${season.season}-${season.teamId}-${season.reportType}`),
-        ).toEqual(["2024-1-regular", "2024-1-playoffs", "2023-19-regular"]);
+        ).toEqual([
+          "2024-1-regular",
+          "2024-1-playoffs",
+          "2023-19-regular",
+          "2022-2-regular",
+        ]);
         expectObjectSchema("CareerPlayer", body);
       } finally {
         await db.cleanup();
@@ -161,6 +175,15 @@ export const registerCareerRouteIntegrationTests = (): void => {
             assists: 1,
             points: 2,
           },
+          {
+            teamId: "19",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-list",
+            name: "List Skater",
+            position: "F",
+            games: 0,
+          },
         ]);
 
         const req = createRequest({
@@ -179,12 +202,12 @@ export const registerCareerRouteIntegrationTests = (): void => {
             id: "p-list",
             name: "List Skater",
             position: "F",
-            firstSeason: 2024,
+            firstSeason: 2023,
             lastSeason: 2024,
-            seasonsOwned: 1,
+            seasonsOwned: 2,
             seasonsPlayedRegular: 1,
             seasonsPlayedPlayoffs: 1,
-            teamsOwned: 1,
+            teamsOwned: 2,
             teamsPlayedRegular: 1,
             teamsPlayedPlayoffs: 1,
             regularGames: 10,

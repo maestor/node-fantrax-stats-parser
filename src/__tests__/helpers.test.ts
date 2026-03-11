@@ -1,9 +1,4 @@
-jest.mock("../db/queries", () => ({
-  getAvailableSeasonsFromDb: jest.fn(),
-}));
-
 import { CURRENT_SEASON, TEAMS } from "../constants";
-import { getAvailableSeasonsFromDb } from "../db/queries";
 import {
   availableSeasons,
   getTeamsWithData,
@@ -16,16 +11,7 @@ import {
 import { createGoalie, createPlayer } from "./fixtures";
 import { Goalie, Player, Report } from "../types";
 
-const mockGetAvailableSeasonsFromDb =
-  getAvailableSeasonsFromDb as jest.MockedFunction<
-    typeof getAvailableSeasonsFromDb
-  >;
-
 describe("helpers utilities", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe("sortItemsByStatField", () => {
     test("sorts players by score, then points, then goals", () => {
       const players = [
@@ -85,66 +71,18 @@ describe("helpers utilities", () => {
     });
   });
 
-  describe("availableSeasons", () => {
-    test("returns computed regular-era ranges without DB lookups", async () => {
-      const defaultRegular = await availableSeasons();
-      const teamBoth = await availableSeasons("28", "both");
+  describe("season defaults", () => {
+    test("uses the default team and report when availableSeasons is called without args", async () => {
+      const seasons = await availableSeasons();
 
-      expect(defaultRegular[0]).toBe(2012);
-      expect(defaultRegular.at(-1)).toBe(CURRENT_SEASON);
-      expect(defaultRegular).toHaveLength(CURRENT_SEASON - 2012 + 1);
-
-      expect(teamBoth[0]).toBe(2021);
-      expect(teamBoth.at(-1)).toBe(CURRENT_SEASON);
-      expect(teamBoth).toHaveLength(CURRENT_SEASON - 2021 + 1);
-      expect(mockGetAvailableSeasonsFromDb).not.toHaveBeenCalled();
+      expect(seasons[0]).toBe(2012);
+      expect(seasons.at(-1)).toBe(CURRENT_SEASON);
     });
 
-    test("delegates playoff seasons to the DB", async () => {
-      mockGetAvailableSeasonsFromDb
-        .mockResolvedValueOnce([2023, 2024])
-        .mockResolvedValueOnce([]);
-
-      await expect(availableSeasons("2", "playoffs")).resolves.toEqual([
-        2023,
-        2024,
-      ]);
-      await expect(availableSeasons("1", "playoffs")).resolves.toEqual([]);
-
-      expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
-        "2",
-        "playoffs",
-      );
-      expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
-        "1",
-        "playoffs",
-      );
-    });
-  });
-
-  describe("seasonAvailable", () => {
-    test("handles undefined and regular-season membership checks", async () => {
+    test("uses the default team and report when seasonAvailable is called without optional args", async () => {
       await expect(seasonAvailable(undefined)).resolves.toBe(true);
       await expect(seasonAvailable(2012)).resolves.toBe(true);
-      await expect(seasonAvailable(CURRENT_SEASON)).resolves.toBe(true);
       await expect(seasonAvailable(2000)).resolves.toBe(false);
-      await expect(seasonAvailable(2020, "28", "regular")).resolves.toBe(
-        false,
-      );
-    });
-
-    test("uses DB-backed seasons for playoffs", async () => {
-      mockGetAvailableSeasonsFromDb.mockResolvedValue([2023, 2024]);
-
-      await expect(seasonAvailable(2024, "1", "playoffs")).resolves.toBe(true);
-      await expect(seasonAvailable(2022, "1", "playoffs")).resolves.toBe(
-        false,
-      );
-
-      expect(mockGetAvailableSeasonsFromDb).toHaveBeenCalledWith(
-        "1",
-        "playoffs",
-      );
     });
   });
 
