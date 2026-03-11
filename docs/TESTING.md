@@ -141,7 +141,9 @@ src/
     ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
     ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
     ├── queries.test.ts   # Database query layer
-    ├── routes.integration.test.ts # Real route/service/query integration via temp SQLite + schema checks
+    ├── routes.integration.helpers.ts # Shared helpers for route integration suites
+    ├── routes.integration.test.ts # Entry point for the categorized route integration suites
+    ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
     ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── services.test.ts  # Business logic (DB → scored data)
