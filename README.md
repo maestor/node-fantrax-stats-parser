@@ -656,17 +656,20 @@ Scoring is calculated in three steps:
    - All other positive `score` values are scaled proportionally relative to that best score, preserving ordering (for example, if one player originally scored 80 and the best scored 90, they end up at roughly 88.89 after normalization).
 
 4. **Games‑adjusted score (`scoreAdjustedByGames`)**
-   - `scoreAdjustedByGames` uses the same scoring fields and weights as the main `score`, but works on per‑game values instead of totals (for example, `goalsPerGame = goals / games`).
-   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 1) always get `scoreAdjustedByGames = 0` to avoid one‑game outliers appearing at the top.
-   - For eligible players, per‑game values for each stat are normalized in the same way as totals (including per‑game plusMinus), then averaged into a 0–100 score.
-   - For eligible goalies, only per‑game `wins`, `saves`, and `shutouts` are used; advanced stats (`gaa`, `savePercent`) do not contribute to `scoreAdjustedByGames`.
-   - Finally, among all eligible players or goalies in the result set, the best `scoreAdjustedByGames` is normalized to exactly 100, and all other positive `scoreAdjustedByGames` values are scaled proportionally relative to that best per‑game score. Items below the minimum games threshold always remain at 0.
+   - `scoreAdjustedByGames` is a pace metric. It uses per-game values instead of totals.
+   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 1) still get `scoreAdjustedByGames = 0`.
+   - To avoid one-game spikes dominating rare categories, each eligible per-game stat is stabilized toward the pool-average rate for that category before scoring. The pool-average rate is weighted by total games in the current result set.
+   - Stabilization strength is controlled by category-specific prior-game constants in `src/constants.ts`:
+     `PLAYER_ADJUSTED_SCORE_PRIOR_GAMES` for skaters and `GOALIE_ADJUSTED_SCORE_PRIOR_GAMES` for goalies.
+   - Rare stats such as `shp` use a stronger prior than common stats such as `shots`, so short-sample spikes are dampened more aggressively while real pace over larger samples still shows through.
+   - For players, stabilized per-game values are normalized using the same stat rules as the main score (including `plusMinus` range scoring). For goalies, `scoreAdjustedByGames` uses stabilized per-game `wins`, `saves`, and `shutouts`; advanced stats (`gaa`, `savePercent`) still do not contribute.
+   - Finally, among all eligible players or goalies in the result set, the best stabilized `scoreAdjustedByGames` is normalized to exactly 100, and all other positive adjusted scores are scaled proportionally relative to that best stabilized pace score. Items below the minimum games threshold always remain at 0.
 
 5. **Position‑based scoring (players only)**
    - In addition to the overall `score`, players also receive position-based scores where they are compared only against players of the same position (Forward "F" or Defenseman "D").
    - `position`: The player's position ("F" or "D").
    - `scoreByPosition`: Overall score compared to same position only (0–100 scale).
-   - `scoreByPositionAdjustedByGames`: Per-game adjusted score compared to same position only.
+   - `scoreByPositionAdjustedByGames`: Stabilized per-game pace score compared to the same position only.
    - `scoresByPosition`: Per-stat breakdown (e.g., `scoresByPosition.goals`) compared to same position only.
    - This allows fairer comparisons since forwards and defensemen typically have different stat profiles.
    - Position-based scores are included in both single-season and combined endpoints, including each entry in the `seasons` array for combined data.

@@ -174,6 +174,27 @@ export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850
 // Minimum games required for games-adjusted scoring (players and goalies)
 export const MIN_GAMES_FOR_ADJUSTED_SCORE = 1;
 
+// Games-adjusted scores use stabilized per-game pace. Higher values pull short
+// samples more strongly toward the pool-average rate for that category.
+export const PLAYER_ADJUSTED_SCORE_PRIOR_GAMES: Record<PlayerScoreField, number> = {
+  goals: 8,
+  assists: 8,
+  points: 8,
+  plusMinus: 12,
+  penalties: 6,
+  shots: 5,
+  ppp: 12,
+  shp: 30,
+  hits: 6,
+  blocks: 6,
+};
+
+export const GOALIE_ADJUSTED_SCORE_PRIOR_GAMES: Record<GoalieScoreField, number> = {
+  wins: 8,
+  saves: 5,
+  shutouts: 30,
+};
+
 // Default CSV directory for Playwright imports
 export const DEFAULT_CSV_OUT_DIR = "./csv/temp/";
 
