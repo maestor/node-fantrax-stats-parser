@@ -2,6 +2,7 @@ import { createRequest, createResponse } from "node-mocks-http";
 import {
   getCareerGoalie,
   getCareerGoalies,
+  getCareerHighlights,
   getCareerPlayer,
   getCareerPlayers,
 } from "../routes";
@@ -18,6 +19,7 @@ type CareerPlayerReq = Parameters<typeof getCareerPlayer>[0];
 type CareerGoalieReq = Parameters<typeof getCareerGoalie>[0];
 type CareerPlayersReq = Parameters<typeof getCareerPlayers>[0];
 type CareerGoaliesReq = Parameters<typeof getCareerGoalies>[0];
+type CareerHighlightsReq = Parameters<typeof getCareerHighlights>[0];
 
 export const registerCareerRouteIntegrationTests = (): void => {
   describe("career routes", () => {
@@ -438,6 +440,637 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
         expect(getJsonBody(res)).toEqual(snapshotPayload);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns paged most-teams-played highlights from the live DB", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-three",
+            name: "Three Team Skater",
+            position: "F",
+            games: 10,
+          },
+          {
+            teamId: "19",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-three",
+            name: "Three Team Skater",
+            position: "F",
+            games: 6,
+          },
+          {
+            teamId: "2",
+            season: 2022,
+            reportType: "playoffs",
+            playerId: "p-three",
+            name: "Three Team Skater",
+            position: "F",
+            games: 2,
+          },
+          {
+            teamId: "3",
+            season: 2021,
+            reportType: "regular",
+            playerId: "p-three",
+            name: "Three Team Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-two",
+            name: "Two Team Skater",
+            position: "D",
+            games: 9,
+          },
+          {
+            teamId: "2",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-two",
+            name: "Two Team Skater",
+            position: "D",
+            games: 7,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "6",
+            season: 2022,
+            reportType: "regular",
+            goalieId: "g-four",
+            name: "Four Team Goalie",
+            games: 4,
+          },
+          {
+            teamId: "5",
+            season: 2023,
+            reportType: "regular",
+            goalieId: "g-four",
+            name: "Four Team Goalie",
+            games: 5,
+          },
+          {
+            teamId: "4",
+            season: 2024,
+            reportType: "playoffs",
+            goalieId: "g-four",
+            name: "Four Team Goalie",
+            games: 2,
+          },
+          {
+            teamId: "3",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "g-four",
+            name: "Four Team Goalie",
+            games: 8,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-played?skip=0&take=1",
+          params: { type: "most-teams-played" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("db");
+        expect(body).toEqual({
+          type: "most-teams-played",
+          skip: 0,
+          take: 1,
+          total: 2,
+          items: [
+            {
+              id: "g-four",
+              name: "Four Team Goalie",
+              position: "G",
+              teamCount: 4,
+              teams: [
+                { id: "6", name: "Detroit Red Wings" },
+                { id: "5", name: "Montreal Canadiens" },
+                { id: "4", name: "Vancouver Canucks" },
+                { id: "3", name: "Calgary Flames" },
+              ],
+            },
+          ],
+        });
+        expectObjectSchema("CareerTeamCountHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("counts zero-game rows for most-teams-owned highlights", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-owned",
+            name: "Owned Skater",
+            position: "D",
+            games: 0,
+          },
+          {
+            teamId: "19",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-owned",
+            name: "Owned Skater",
+            position: "D",
+            games: 0,
+          },
+          {
+            teamId: "2",
+            season: 2022,
+            reportType: "playoffs",
+            playerId: "p-owned",
+            name: "Owned Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-miss",
+            name: "Missed Cut",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "4",
+            season: 2023,
+            reportType: "playoffs",
+            playerId: "p-miss",
+            name: "Missed Cut",
+            position: "F",
+            games: 0,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-owned",
+          params: { type: "most-teams-owned" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "most-teams-owned",
+          skip: 0,
+          take: 10,
+          total: 1,
+          items: [
+            {
+              id: "p-owned",
+              name: "Owned Skater",
+              position: "D",
+              teamCount: 3,
+              teams: [
+                { id: "2", name: "Carolina Hurricanes" },
+                { id: "19", name: "Toronto Maple Leafs" },
+                { id: "1", name: "Colorado Avalanche" },
+              ],
+            },
+          ],
+        });
+        expectObjectSchema("CareerTeamCountHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns duplicate top-team rows for same-team-seasons-played ties", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "7",
+            season: 2020,
+            reportType: "regular",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "7",
+            season: 2021,
+            reportType: "regular",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "7",
+            season: 2022,
+            reportType: "regular",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "7",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "7",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "19",
+            season: 2020,
+            reportType: "playoffs",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "19",
+            season: 2021,
+            reportType: "playoffs",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "19",
+            season: 2022,
+            reportType: "playoffs",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "19",
+            season: 2023,
+            reportType: "playoffs",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+          {
+            teamId: "19",
+            season: 2024,
+            reportType: "playoffs",
+            playerId: "p-tie",
+            name: "Tie Skater",
+            position: "D",
+            games: 1,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "3",
+            season: 2020,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2021,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2022,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2023,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+          {
+            teamId: "3",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "g-six",
+            name: "Six Season Goalie",
+            games: 1,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/same-team-seasons-played",
+          params: { type: "same-team-seasons-played" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "same-team-seasons-played",
+          skip: 0,
+          take: 10,
+          total: 3,
+          items: [
+            {
+              id: "g-six",
+              name: "Six Season Goalie",
+              position: "G",
+              seasonCount: 6,
+              team: { id: "3", name: "Calgary Flames" },
+            },
+            {
+              id: "p-tie",
+              name: "Tie Skater",
+              position: "D",
+              seasonCount: 5,
+              team: { id: "7", name: "Edmonton Oilers" },
+            },
+            {
+              id: "p-tie",
+              name: "Tie Skater",
+              position: "D",
+              seasonCount: 5,
+              team: { id: "19", name: "Toronto Maple Leafs" },
+            },
+          ],
+        });
+        expectObjectSchema("CareerSameTeamHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("counts zero-game seasons for same-team-seasons-owned highlights", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "8",
+            season: 2020,
+            reportType: "regular",
+            playerId: "p-owned-seasons",
+            name: "Owned Seasons Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "8",
+            season: 2021,
+            reportType: "regular",
+            playerId: "p-owned-seasons",
+            name: "Owned Seasons Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "8",
+            season: 2022,
+            reportType: "playoffs",
+            playerId: "p-owned-seasons",
+            name: "Owned Seasons Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "8",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-owned-seasons",
+            name: "Owned Seasons Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "8",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-owned-seasons",
+            name: "Owned Seasons Skater",
+            position: "F",
+            games: 0,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/same-team-seasons-owned",
+          params: { type: "same-team-seasons-owned" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "same-team-seasons-owned",
+          skip: 0,
+          take: 10,
+          total: 1,
+          items: [
+            {
+              id: "p-owned-seasons",
+              name: "Owned Seasons Skater",
+              position: "F",
+              seasonCount: 5,
+              team: { id: "8", name: "San Jose Sharks" },
+            },
+          ],
+        });
+        expectObjectSchema("CareerSameTeamHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("serves career highlight snapshots and applies paging after loading the snapshot", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        const snapshotPayload = [
+          {
+            id: "g-snapshot",
+            name: "Snapshot Goalie",
+            position: "G",
+            teamCount: 5,
+            teams: [
+              { id: "1", name: "Colorado Avalanche" },
+              { id: "2", name: "Carolina Hurricanes" },
+              { id: "3", name: "Calgary Flames" },
+              { id: "4", name: "Vancouver Canucks" },
+              { id: "5", name: "Montreal Canadiens" },
+            ],
+          },
+          {
+            id: "p-snapshot",
+            name: "Snapshot Skater",
+            position: "F",
+            teamCount: 4,
+            teams: [
+              { id: "6", name: "Detroit Red Wings" },
+              { id: "7", name: "Edmonton Oilers" },
+              { id: "8", name: "San Jose Sharks" },
+              { id: "9", name: "New York Rangers" },
+            ],
+          },
+        ];
+        await writeSnapshot(
+          db.snapshotDir,
+          "career/highlights/most-teams-played",
+          snapshotPayload,
+        );
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-played?skip=1&take=1",
+          params: { type: "most-teams-played" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+        expect(getJsonBody(res)).toEqual({
+          type: "most-teams-played",
+          skip: 1,
+          take: 1,
+          total: 2,
+          items: [snapshotPayload[1]],
+        });
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns 400 for invalid career highlight paging params", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        const badTakeReq = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-played?take=101",
+          params: { type: "most-teams-played" },
+        });
+        const badTakeRes = createResponse();
+
+        await getCareerHighlights(
+          asRouteReq<CareerHighlightsReq>(badTakeReq),
+          badTakeRes,
+        );
+
+        expect(badTakeRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(badTakeRes._getData()).toBe("Invalid paging params");
+
+        const badSkipReq = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-played?skip=-1",
+          params: { type: "most-teams-played" },
+        });
+        const badSkipRes = createResponse();
+
+        await getCareerHighlights(
+          asRouteReq<CareerHighlightsReq>(badSkipReq),
+          badSkipRes,
+        );
+
+        expect(badSkipRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(badSkipRes._getData()).toBe("Invalid paging params");
+
+        const hugeSkipReq = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-teams-played?skip=9007199254740992",
+          params: { type: "most-teams-played" },
+        });
+        const hugeSkipRes = createResponse();
+
+        await getCareerHighlights(
+          asRouteReq<CareerHighlightsReq>(hugeSkipReq),
+          hugeSkipRes,
+        );
+
+        expect(hugeSkipRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(hugeSkipRes._getData()).toBe("Invalid paging params");
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns 400 for an unknown career highlight type", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/not-a-real-type",
+          params: { type: "not-a-real-type" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        expect(res.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(res._getData()).toBe("Invalid career highlight type");
       } finally {
         await db.cleanup();
       }

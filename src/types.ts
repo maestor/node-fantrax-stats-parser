@@ -239,6 +239,53 @@ export type CareerGoalieListItem = {
   playoffGames: number;
 };
 
+export type CareerHighlightType =
+  | "most-teams-played"
+  | "most-teams-owned"
+  | "same-team-seasons-played"
+  | "same-team-seasons-owned";
+
+export type CareerHighlightTeam = {
+  id: string;
+  name: string;
+};
+
+export type CareerTeamCountHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  teamCount: number;
+  teams: CareerHighlightTeam[];
+};
+
+export type CareerSameTeamHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  seasonCount: number;
+  team: CareerHighlightTeam;
+};
+
+export type CareerTeamCountHighlightPage = {
+  type: "most-teams-played" | "most-teams-owned";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerTeamCountHighlightItem[];
+};
+
+export type CareerSameTeamHighlightPage = {
+  type: "same-team-seasons-played" | "same-team-seasons-owned";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerSameTeamHighlightItem[];
+};
+
+export type CareerHighlightsPage =
+  | CareerTeamCountHighlightPage
+  | CareerSameTeamHighlightPage;
+
 export type PlayerFields =
   | "name"
   | "games"

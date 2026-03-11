@@ -59,6 +59,25 @@ components:
         type: integer
         example: 2020
 
+    skip:
+      name: skip
+      in: query
+      description: Number of rows to skip from the start of the sorted highlight list. Defaults to `0`.
+      schema:
+        type: integer
+        minimum: 0
+        example: 0
+
+    take:
+      name: take
+      in: query
+      description: Number of rows to return from the sorted highlight list. Defaults to `10`. Maximum `100`.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 100
+        example: 10
+
     careerId:
       name: id
       in: path
@@ -423,6 +442,91 @@ components:
           type: integer
         playoffGames:
           type: integer
+
+    CareerHighlightType:
+      type: string
+      enum:
+        - most-teams-played
+        - most-teams-owned
+        - same-team-seasons-played
+        - same-team-seasons-owned
+
+    CareerHighlightTeam:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    CareerTeamCountHighlightItem:
+      type: object
+      required: [id, name, position, teamCount, teams]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        teamCount:
+          type: integer
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerHighlightTeam"
+
+    CareerSameTeamHighlightItem:
+      type: object
+      required: [id, name, position, seasonCount, team]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        seasonCount:
+          type: integer
+        team:
+          $ref: "#/components/schemas/CareerHighlightTeam"
+
+    CareerTeamCountHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [most-teams-played, most-teams-owned]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerTeamCountHighlightItem"
+
+    CareerSameTeamHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [same-team-seasons-played, same-team-seasons-owned]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerSameTeamHighlightItem"
 
     CareerGoalie:
       type: object
@@ -1274,6 +1378,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CareerGoalieListItem"
+        "401":
+          description: Missing or invalid API key.
+
+  /career/highlights/{type}:
+    get:
+      summary: Career highlights leaderboard
+      description: |
+        Returns a paged mixed skater + goalie career highlights leaderboard.
+        `most-teams-played` and `most-teams-owned` return team-count rows.
+        `same-team-seasons-played` and `same-team-seasons-owned` return one row per top team, so the same person can appear multiple times on tied same-team results.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: Career highlight leaderboard type.
+          schema:
+            $ref: "#/components/schemas/CareerHighlightType"
+        - $ref: "#/components/parameters/skip"
+        - $ref: "#/components/parameters/take"
+      responses:
+        "200":
+          description: Paged career highlight results.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/CareerTeamCountHighlightPage"
+                  - $ref: "#/components/schemas/CareerSameTeamHighlightPage"
+        "400":
+          description: Invalid highlight type or paging params.
         "401":
           description: Missing or invalid API key.
 

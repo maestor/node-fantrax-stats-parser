@@ -32,8 +32,9 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 See [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs) for the interactive API reference (Swagger UI).
 The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json).
 
-The API includes team-scoped season/combined leaderboards plus career endpoints for both list and single-resource lookups:
-`/career/players`, `/career/goalies`, `/career/player/{id}`, and `/career/goalie/{id}`.
+The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
+`/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
+The highlights route supports `skip` / `take` paging and the four route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, and `same-team-seasons-owned`.
 
 ### Viewing docs locally
 
@@ -270,6 +271,7 @@ What it does:
 - Keeps first-column `ID` values when present (e.g. `*00qs7*`) and removes only empty placeholder first columns used in section marker rows
 - Removes the `Age` column
 - Converts section headers into the format the parser expects (`"Skaters"`, `"Goalies"`)
+- Forces known malformed goalie row `*06mqq*` to normalized goalie position `G` when it appears inside the `Goalies` section
 
 ID behavior:
 
@@ -490,6 +492,7 @@ Currently snapshotted response families are:
 
 - `/career/players`
 - `/career/goalies`
+- `/career/highlights/{type}` for all four supported highlight types
 - `/leaderboard/regular`
 - `/leaderboard/playoffs`
 - `/players/combined/{reportType}?teamId=<id>` when `startFrom` is omitted or matches the team's default start season

@@ -4,6 +4,7 @@ import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import {
   createSnapshotR2Client,
   getCareerGoaliesSnapshotKey,
+  getCareerHighlightsSnapshotKey,
   getCareerPlayersSnapshotKey,
   getCombinedSnapshotKey,
   getPlayoffsLeaderboardSnapshotKey,
@@ -95,6 +96,9 @@ describe("snapshots", () => {
     );
     expect(getCareerPlayersSnapshotKey()).toBe("career/players");
     expect(getCareerGoaliesSnapshotKey()).toBe("career/goalies");
+    expect(getCareerHighlightsSnapshotKey("most-teams-played")).toBe(
+      "career/highlights/most-teams-played",
+    );
     expect(getRegularLeaderboardSnapshotKey()).toBe("leaderboard/regular");
     expect(getPlayoffsLeaderboardSnapshotKey()).toBe("leaderboard/playoffs");
     expect(getCombinedSnapshotKey("players", "both", "7")).toBe(

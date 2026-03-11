@@ -5,12 +5,23 @@ import {
   PlayerScoreWeights,
   GoalieScoreWeights,
   Team,
+  CareerHighlightType,
 } from "./types";
 
 export const START_SEASON = 2012;
 export const CURRENT_SEASON = 2025;
 
 export const REPORT_TYPES = ["playoffs", "regular", "both"] as const satisfies readonly Report[];
+export const CAREER_HIGHLIGHT_TYPES = [
+  "most-teams-played",
+  "most-teams-owned",
+  "same-team-seasons-played",
+  "same-team-seasons-owned",
+] as const satisfies readonly CareerHighlightType[];
+
+export const DEFAULT_CAREER_HIGHLIGHT_SKIP = 0;
+export const DEFAULT_CAREER_HIGHLIGHT_TAKE = 10;
+export const MAX_CAREER_HIGHLIGHT_TAKE = 100;
 
 export const HTTP_STATUS = {
   OK: 200,
@@ -22,6 +33,8 @@ export const HTTP_STATUS = {
 
 export const ERROR_MESSAGES = {
   INVALID_REPORT_TYPE: "Invalid report type",
+  INVALID_CAREER_HIGHLIGHT_TYPE: "Invalid career highlight type",
+  INVALID_PAGING_PARAMS: "Invalid paging params",
   SEASON_NOT_AVAILABLE: "Stats for given season are not available",
   PLAYER_NOT_FOUND: "Player not found",
   GOALIE_NOT_FOUND: "Goalie not found",

@@ -11,9 +11,10 @@ if (process.env.USE_REMOTE_DB !== "true") {
 import fs from "fs";
 import path from "path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { TEAMS } from "../src/constants";
+import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/constants";
 import {
   getCareerGoaliesData,
+  getCareerHighlightsData,
   getCareerPlayersData,
   getGoaliesStatsCombined,
   getPlayoffLeaderboardData,
@@ -23,6 +24,7 @@ import {
 import {
   createSnapshotR2Client,
   getCareerGoaliesSnapshotKey,
+  getCareerHighlightsSnapshotKey,
   getCareerPlayersSnapshotKey,
   getCombinedSnapshotKey,
   getPlayoffsLeaderboardSnapshotKey,
@@ -104,6 +106,13 @@ const buildSnapshotEntries = async (): Promise<SnapshotEntry[]> => {
     data: await getCareerGoaliesData(),
     bytes: 0,
   });
+  for (const type of CAREER_HIGHLIGHT_TYPES) {
+    entries.push({
+      key: getCareerHighlightsSnapshotKey(type),
+      data: await getCareerHighlightsData(type),
+      bytes: 0,
+    });
+  }
   entries.push({
     key: getRegularLeaderboardSnapshotKey(),
     data: await getRegularLeaderboardData(),

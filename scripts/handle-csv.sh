@@ -72,6 +72,11 @@ awk -F',' '
         out_n++; out[out_n]=col[i]
       }
     }
+
+    if (section=="goalies" && out_n >= 2 && strip_quotes(out[1])=="*06mqq*" && strip_quotes(out[2])!="G") {
+      out[2]="\"G\""
+    }
+
     # Print joined output columns
     if (out_n > 0) {
       for (i=1; i<=out_n; i++) {
