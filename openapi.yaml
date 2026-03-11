@@ -502,7 +502,7 @@ components:
           description: Composite score (0-100 range).
         scoreAdjustedByGames:
           type: number
-          description: Score adjusted by games played.
+          description: Stabilized per-game pace score.
         scores:
           type: object
           additionalProperties:
@@ -512,6 +512,7 @@ components:
           type: number
         scoreByPositionAdjustedByGames:
           type: number
+          description: Stabilized per-game pace score compared to the same position only.
         scoresByPosition:
           type: object
           additionalProperties:
@@ -572,6 +573,7 @@ components:
           type: number
         scoreAdjustedByGames:
           type: number
+          description: Stabilized per-game pace score.
         scores:
           type: object
           additionalProperties:
@@ -580,6 +582,7 @@ components:
           type: number
         scoreByPositionAdjustedByGames:
           type: number
+          description: Stabilized per-game pace score compared to the same position only.
         scoresByPosition:
           type: object
           additionalProperties:

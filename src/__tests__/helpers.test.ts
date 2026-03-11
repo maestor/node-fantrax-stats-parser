@@ -339,6 +339,52 @@ describe("helpers", () => {
       expect(result.every((p) => p.scoreAdjustedByGames === 0)).toBe(true);
     });
 
+    test("keeps pace scoring for lower-game players with better rates", () => {
+      const testPlayers: Player[] = [
+        {
+          id: "id",
+          name: "Higher Pace",
+          games: 20,
+          goals: 10,
+          assists: 14,
+          points: 24,
+          plusMinus: 6,
+          penalties: 20,
+          shots: 70,
+          ppp: 6,
+          shp: 0,
+          hits: 20,
+          blocks: 14,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          id: "id",
+          name: "Higher Totals",
+          games: 40,
+          goals: 14,
+          assists: 18,
+          points: 32,
+          plusMinus: 8,
+          penalties: 24,
+          shots: 100,
+          ppp: 8,
+          shp: 0,
+          hits: 28,
+          blocks: 20,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [higherPace, higherTotals] = applyPlayerScores(testPlayers);
+
+      expect(higherPace.score).toBeLessThan(higherTotals.score);
+      expect(higherPace.scoreAdjustedByGames).toBeGreaterThan(
+        higherTotals.scoreAdjustedByGames,
+      );
+    });
+
     test("uses 0 baseline for always-positive stats", () => {
       const testPlayers: Player[] = [
         {
@@ -568,7 +614,7 @@ describe("helpers", () => {
       expect(result[1].score).toBeDefined();
     });
 
-    test("uses per-game plusMinus in scoreAdjustedByGames", () => {
+    test("uses stabilized per-game plusMinus in scoreAdjustedByGames", () => {
       const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
 
       const testPlayers: Player[] = [
@@ -645,7 +691,69 @@ describe("helpers", () => {
       expect(bestAdj).toBe(100);
     });
 
-    test("keeps scoreAdjustedByGames at 0 when all per-game stats are zero", () => {
+    test("dampens one-game SHP spikes in scoreAdjustedByGames", () => {
+      const testPlayers: Player[] = [
+        {
+          id: "id",
+          name: "One Game Hero",
+          games: 1,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 1,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          id: "id",
+          name: "Steady Producer",
+          games: 20,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 2,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          id: "id",
+          name: "No SHP",
+          games: 20,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [oneGameHero, steadyProducer, noShp] = applyPlayerScores(testPlayers);
+
+      expect(oneGameHero.scoreAdjustedByGames).toBe(100);
+      expect(steadyProducer.scoreAdjustedByGames).toBeGreaterThan(50);
+      expect(noShp.scoreAdjustedByGames).toBe(0);
+    });
+
+    test("keeps scoreAdjustedByGames at 0 when all base stats are zero", () => {
       const minGames = MIN_GAMES_FOR_ADJUSTED_SCORE;
 
       const testPlayers: Player[] = [
@@ -896,6 +1004,56 @@ describe("helpers", () => {
       );
     });
 
+    test("keeps pace scoring within the same position group", () => {
+      const testPlayers: Player[] = [
+        {
+          id: "id",
+          name: "Higher Pace Forward",
+          position: "F",
+          games: 20,
+          goals: 10,
+          assists: 14,
+          points: 24,
+          plusMinus: 6,
+          penalties: 20,
+          shots: 70,
+          ppp: 6,
+          shp: 0,
+          hits: 20,
+          blocks: 14,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          id: "id",
+          name: "Higher Totals Forward",
+          position: "F",
+          games: 40,
+          goals: 14,
+          assists: 18,
+          points: 32,
+          plusMinus: 8,
+          penalties: 24,
+          shots: 100,
+          ppp: 8,
+          shp: 0,
+          hits: 28,
+          blocks: 20,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [higherPace, higherTotals] = applyPlayerScoresByPosition(testPlayers);
+
+      expect(higherPace.scoreByPosition).toBeLessThan(
+        higherTotals.scoreByPosition as number,
+      );
+      expect(higherPace.scoreByPositionAdjustedByGames).toBeGreaterThan(
+        higherTotals.scoreByPositionAdjustedByGames as number,
+      );
+    });
+
     test("handles all players below minimum games in position group", () => {
       const belowMinGames = Math.max(MIN_GAMES_FOR_ADJUSTED_SCORE - 1, 0);
 
@@ -1037,7 +1195,7 @@ describe("helpers", () => {
       expect((result[0].scoreByPosition as number) >= 0).toBe(true);
     });
 
-    test("handles negative plusMinus per game in position scoring", () => {
+    test("handles negative plusMinus in games-adjusted position scoring", () => {
       const testPlayers: Player[] = [
         {
           id: "id",
@@ -1199,8 +1357,6 @@ describe("helpers", () => {
     });
 
     test("sets scoreAdjustedByGames to 0 for eligible goalie with all-zero base stats", () => {
-      // When all eligible goalies have 0 for every base field, maxPerGameByField[field] = 0
-      // so the if (max > 0) branch is never taken and scoreAdjustedByGames stays 0
       const testGoalies: Goalie[] = [
         {
           id: "id",
@@ -1268,6 +1424,50 @@ describe("helpers", () => {
 
       expect(fewGames.scoreAdjustedByGames).toBe(0);
       expect(eligible.scoreAdjustedByGames).toBeGreaterThan(0);
+    });
+
+    test("keeps pace scoring for goalies with better per-game results", () => {
+      const testGoalies: Goalie[] = [
+        {
+          id: "id",
+          name: "Higher Pace Goalie",
+          games: 20,
+          wins: 10,
+          saves: 600,
+          shutouts: 2,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+        {
+          id: "id",
+          name: "Higher Totals Goalie",
+          games: 40,
+          wins: 14,
+          saves: 1000,
+          shutouts: 3,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          penalties: 0,
+          ppp: 0,
+          shp: 0,
+          score: 0,
+          scoreAdjustedByGames: 0,
+        },
+      ];
+
+      const [higherPace, higherTotals] = applyGoalieScores(testGoalies);
+
+      expect(higherPace.score).toBeLessThan(higherTotals.score);
+      expect(higherPace.scoreAdjustedByGames).toBeGreaterThan(
+        higherTotals.scoreAdjustedByGames,
+      );
     });
 
     test("sets scoreAdjustedByGames to 0 when no goalies meet minimum games", () => {

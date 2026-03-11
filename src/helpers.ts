@@ -1,6 +1,5 @@
 import {
   Player,
-  PlayerFields,
   Goalie,
   Report,
   CsvReport,
@@ -16,6 +15,8 @@ import {
   GOALIE_SAVE_PERCENT_BASELINE,
   GOALIE_SCORING_DAMPENING_EXPONENT,
   MIN_GAMES_FOR_ADJUSTED_SCORE,
+  PLAYER_ADJUSTED_SCORE_PRIOR_GAMES,
+  GOALIE_ADJUSTED_SCORE_PRIOR_GAMES,
   CURRENT_SEASON,
   DEFAULT_TEAM_ID,
   START_SEASON,
@@ -144,12 +145,13 @@ const applyScoresInternal = <
   items: T[],
   fields: K[],
   weights: Record<K, number>,
-): T[] => {
-  if (!items.length) return items;
+): number[] => {
+  if (!items.length) return [];
 
   const maxByField = getMaxByField(items, fields);
   const minByField = getMinByField(items, fields);
   const fieldCount = fields.length;
+  const rawScores: number[] = [];
 
   for (const item of items) {
     let total = 0;
@@ -185,10 +187,206 @@ const applyScoresInternal = <
 
     const average = total / fieldCount;
     item.score = toTwoDecimals(Math.min(Math.max(average, 0), 100));
+    rawScores.push(item.score);
   }
 
   normalizeFieldToBest(items, "score");
-  return items;
+  return rawScores;
+};
+
+const getStabilizedRate = (
+  value: number,
+  games: number,
+  priorRate: number,
+  priorGames: number,
+): number => {
+  return (value + priorRate * priorGames) / (games + priorGames);
+};
+
+const getAdjustedObservedRate = (
+  value: number,
+  games: number,
+  priorRate: number,
+  priorGames: number,
+): number => {
+  if (value === 0) return 0;
+  return getStabilizedRate(value, games, priorRate, priorGames);
+};
+
+const getPriorRatesByField = <
+  T extends { games: number } & Record<K, number>,
+  K extends keyof T & string,
+>(
+  items: readonly T[],
+  fields: readonly K[],
+  negativeField?: K,
+): Record<K, number> => {
+  const totals = fields.reduce(
+    (acc, field) => {
+      acc[field] = 0;
+      return acc;
+    },
+    {} as Record<K, number>,
+  );
+  let totalGames = 0;
+
+  for (const item of items) {
+    const games = item.games;
+    totalGames += games;
+
+    for (const field of fields) {
+      const raw = Number(item[field]);
+      const safeRaw = Number.isFinite(raw) ? raw : 0;
+      totals[field] +=
+        field === negativeField ? safeRaw : Math.max(0, safeRaw);
+    }
+  }
+
+  return fields.reduce(
+    (acc, field) => {
+      acc[field] = totals[field] / totalGames;
+      return acc;
+    },
+    {} as Record<K, number>,
+  );
+};
+
+const getStabilizedRateBounds = <
+  T extends { games: number } & Record<K, number>,
+  K extends keyof T & string,
+>(
+  items: readonly T[],
+  fields: readonly K[],
+  priorRates: Record<K, number>,
+  priorGamesByField: Record<K, number>,
+  negativeField?: K,
+): { maxByField: Record<K, number>; minByField: Record<K, number> } => {
+  const maxByField = fields.reduce(
+    (acc, field) => {
+      acc[field] = 0;
+      return acc;
+    },
+    {} as Record<K, number>,
+  );
+  const minByField = fields.reduce(
+    (acc, field) => {
+      acc[field] = 0;
+      return acc;
+    },
+    {} as Record<K, number>,
+  );
+
+  for (const item of items) {
+    const games = item.games;
+
+    for (const field of fields) {
+      const raw = Number(item[field]);
+      const safeRaw = Number.isFinite(raw) ? raw : 0;
+      const value =
+        field === negativeField ? safeRaw : Math.max(0, safeRaw);
+      const stabilizedRate = getAdjustedObservedRate(
+        value,
+        games,
+        priorRates[field],
+        priorGamesByField[field],
+      );
+
+      if (field === negativeField) {
+        if (stabilizedRate > maxByField[field]) {
+          maxByField[field] = stabilizedRate;
+        }
+        if (stabilizedRate < minByField[field]) {
+          minByField[field] = stabilizedRate;
+        }
+      } else if (stabilizedRate > maxByField[field]) {
+        maxByField[field] = stabilizedRate;
+      }
+    }
+  }
+
+  return { maxByField, minByField };
+};
+
+const applyStabilizedAdjustedScores = <
+  T extends { games: number } & Record<K, number> & Partial<Record<S, number>>,
+  K extends keyof T & string,
+  S extends keyof T & string,
+>(
+  items: T[],
+  fields: readonly K[],
+  weights: Record<K, number>,
+  priorGamesByField: Record<K, number>,
+  outputField: S,
+  negativeField?: K,
+): void => {
+  if (!items.length) return;
+
+  const eligible = items.filter(
+    (item) => item.games >= MIN_GAMES_FOR_ADJUSTED_SCORE,
+  );
+
+  if (!eligible.length) {
+    for (const item of items) {
+      item[outputField] = 0 as T[S];
+    }
+    return;
+  }
+
+  const priorRates = getPriorRatesByField(eligible, fields, negativeField);
+  const { maxByField, minByField } = getStabilizedRateBounds(
+    eligible,
+    fields,
+    priorRates,
+    priorGamesByField,
+    negativeField,
+  );
+  const fieldCount = fields.length;
+
+  for (const item of items) {
+    if (item.games < MIN_GAMES_FOR_ADJUSTED_SCORE) {
+      item[outputField] = 0 as T[S];
+      continue;
+    }
+
+    const games = item.games;
+    let total = 0;
+
+    for (const field of fields) {
+      const raw = Number(item[field]);
+      const safeRaw = Number.isFinite(raw) ? raw : 0;
+      const value =
+        field === negativeField ? safeRaw : Math.max(0, safeRaw);
+      const stabilizedRate = getAdjustedObservedRate(
+        value,
+        games,
+        priorRates[field],
+        priorGamesByField[field],
+      );
+
+      let relative = 0;
+
+      if (field === negativeField) {
+        const range = maxByField[field] - minByField[field];
+        if (range > 0) {
+          relative =
+            ((stabilizedRate - minByField[field]) / range) * 100;
+        }
+      } else {
+        const max = maxByField[field];
+        if (max > 0) {
+          relative = (Math.max(0, stabilizedRate) / max) * 100;
+        }
+      }
+
+      total += relative * weights[field];
+    }
+
+    item[outputField] = toTwoDecimals(
+      Math.min(Math.max(total / fieldCount, 0), 100),
+    ) as T[S];
+  }
+
+  normalizeFieldToBest(items, outputField);
 };
 
 export const sortItemsByStatField = (
@@ -204,88 +402,14 @@ export const sortItemsByStatField = (
 };
 
 const applyPlayerScoresByGames = (players: Player[]): void => {
-  if (!players.length) return;
-
-  const eligible = players.filter(
-    (player) => player.games >= MIN_GAMES_FOR_ADJUSTED_SCORE,
+  applyStabilizedAdjustedScores(
+    players,
+    PLAYER_SCORE_FIELDS,
+    PLAYER_SCORE_WEIGHTS,
+    PLAYER_ADJUSTED_SCORE_PRIOR_GAMES,
+    "scoreAdjustedByGames",
+    "plusMinus",
   );
-
-  if (!eligible.length) {
-    for (const player of players) {
-      player.scoreAdjustedByGames = 0;
-    }
-    return;
-  }
-
-  const fieldCount = PLAYER_SCORE_FIELDS.length;
-  const maxPerGameByField = PLAYER_SCORE_FIELDS.reduce(
-    (acc, field) => {
-      acc[field as PlayerFields] = 0;
-      return acc;
-    },
-    {} as Record<PlayerFields, number>,
-  );
-
-  let minPlusMinusPerGame = 0;
-  let maxPlusMinusPerGame = 0;
-
-  for (const player of eligible) {
-    const games = player.games;
-
-    for (const field of PLAYER_SCORE_FIELDS) {
-      const raw = Number(player[field]);
-      const perGame = raw / games;
-
-      if (field === "plusMinus") {
-        if (perGame > maxPlusMinusPerGame) maxPlusMinusPerGame = perGame;
-        if (perGame < minPlusMinusPerGame) minPlusMinusPerGame = perGame;
-      } else {
-        const value = Math.max(0, perGame);
-        if (value > maxPerGameByField[field]) {
-          maxPerGameByField[field] = value;
-        }
-      }
-    }
-  }
-
-  for (const player of players) {
-    if (player.games < MIN_GAMES_FOR_ADJUSTED_SCORE) {
-      player.scoreAdjustedByGames = 0;
-      continue;
-    }
-
-    const games = player.games;
-    let total = 0;
-
-    for (const field of PLAYER_SCORE_FIELDS) {
-      const raw = Number(player[field]);
-      const perGame = raw / games;
-      let relative = 0;
-
-      if (field === "plusMinus") {
-        const range = maxPlusMinusPerGame - minPlusMinusPerGame;
-        if (range > 0) {
-          relative = ((perGame - minPlusMinusPerGame) / range) * 100;
-        }
-      } else {
-        const max = maxPerGameByField[field];
-        if (max > 0) {
-          const value = Math.max(0, perGame);
-          relative = (value / max) * 100;
-        }
-      }
-
-      const weight = PLAYER_SCORE_WEIGHTS[field];
-      total += relative * weight;
-    }
-
-    const average = total / fieldCount;
-    player.scoreAdjustedByGames = toTwoDecimals(
-      Math.min(Math.max(average, 0), 100),
-    );
-  }
-
-  normalizeFieldToBest(players, "scoreAdjustedByGames");
 };
 
 export const applyPlayerScores = (players: Player[]): Player[] => {
@@ -344,83 +468,14 @@ const applyPositionScoresForGroup = (players: Player[]): void => {
   }
 
   normalizeFieldToBest(players, "scoreByPosition");
-
-  // Calculate scoreByPositionAdjustedByGames
-  const eligible = players.filter(
-    (p) => p.games >= MIN_GAMES_FOR_ADJUSTED_SCORE,
+  applyStabilizedAdjustedScores(
+    players,
+    fields,
+    weights,
+    PLAYER_ADJUSTED_SCORE_PRIOR_GAMES,
+    "scoreByPositionAdjustedByGames",
+    "plusMinus",
   );
-
-  if (!eligible.length) {
-    for (const player of players) {
-      player.scoreByPositionAdjustedByGames = 0;
-    }
-    return;
-  }
-
-  const maxPerGameByField: Record<string, number> = {};
-  let minPlusMinusPerGame = 0;
-  let maxPlusMinusPerGame = 0;
-
-  for (const field of fields) {
-    maxPerGameByField[field] = 0;
-  }
-
-  for (const player of eligible) {
-    const games = player.games;
-    for (const field of fields) {
-      const raw = Number(player[field]);
-      const perGame = raw / games;
-
-      if (field === "plusMinus") {
-        if (perGame > maxPlusMinusPerGame) maxPlusMinusPerGame = perGame;
-        if (perGame < minPlusMinusPerGame) minPlusMinusPerGame = perGame;
-      } else {
-        const value = Math.max(0, perGame);
-        if (value > maxPerGameByField[field]) {
-          maxPerGameByField[field] = value;
-        }
-      }
-    }
-  }
-
-  for (const player of players) {
-    if (player.games < MIN_GAMES_FOR_ADJUSTED_SCORE) {
-      player.scoreByPositionAdjustedByGames = 0;
-      continue;
-    }
-
-    const games = player.games;
-    let total = 0;
-
-    for (const field of fields) {
-      const raw = Number(player[field]);
-      const perGame = raw / games;
-      let relative = 0;
-
-      if (field === "plusMinus") {
-        const range = maxPlusMinusPerGame - minPlusMinusPerGame;
-        if (range > 0) {
-          relative = ((perGame - minPlusMinusPerGame) / range) * 100;
-        }
-      } else {
-        const max = maxPerGameByField[field];
-        if (max > 0) {
-          const value = Math.max(0, perGame);
-          relative = (value / max) * 100;
-        }
-      }
-
-      const weight = weights[field];
-      total += relative * weight;
-    }
-
-    const average = total / fieldCount;
-    player.scoreByPositionAdjustedByGames = toTwoDecimals(
-      Math.min(Math.max(average, 0), 100),
-    );
-  }
-
-  normalizeFieldToBest(players, "scoreByPositionAdjustedByGames");
 };
 
 export const applyPlayerScoresByPosition = (players: Player[]): Player[] => {
@@ -554,66 +609,13 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   }
 
   normalizeFieldToBest(goalies, "score");
-  const eligible = goalies.filter(
-    (goalie) => goalie.games >= MIN_GAMES_FOR_ADJUSTED_SCORE,
+  applyStabilizedAdjustedScores(
+    goalies,
+    baseFields,
+    GOALIE_SCORE_WEIGHTS,
+    GOALIE_ADJUSTED_SCORE_PRIOR_GAMES,
+    "scoreAdjustedByGames",
   );
-
-  if (!eligible.length) {
-    for (const goalie of goalies) {
-      goalie.scoreAdjustedByGames = 0;
-    }
-    return goalies;
-  }
-
-  const fieldCount = baseFields.length;
-  const maxPerGameByField = baseFields.reduce(
-    (acc, field) => {
-      acc[field] = 0;
-      return acc;
-    },
-    {} as Record<GoalieScoreField, number>,
-  );
-
-  for (const goalie of eligible) {
-    const games = goalie.games;
-    for (const field of baseFields) {
-      const raw = Number(goalie[field]);
-      const perGame = raw / games;
-      const value = Math.max(0, perGame);
-      if (value > maxPerGameByField[field]) {
-        maxPerGameByField[field] = value;
-      }
-    }
-  }
-
-  for (const goalie of goalies) {
-    if (goalie.games < MIN_GAMES_FOR_ADJUSTED_SCORE) {
-      goalie.scoreAdjustedByGames = 0;
-      continue;
-    }
-
-    const games = goalie.games;
-    let total = 0;
-
-    for (const field of baseFields) {
-      const max = maxPerGameByField[field];
-      if (max > 0) {
-        const raw = Number(goalie[field]);
-        const perGame = raw / games;
-        const value = Math.max(0, perGame);
-        const relative = (value / max) * 100;
-        const weight = GOALIE_SCORE_WEIGHTS[field];
-        total += relative * weight;
-      }
-    }
-
-    const average = total / fieldCount;
-    goalie.scoreAdjustedByGames = toTwoDecimals(
-      Math.min(Math.max(average, 0), 100),
-    );
-  }
-
-  normalizeFieldToBest(goalies, "scoreAdjustedByGames");
 
   return goalies;
 };
