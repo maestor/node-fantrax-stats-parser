@@ -187,7 +187,7 @@ The frontend generates TypeScript types from this file using `openapi-typescript
 Two test suites in `src/__tests__/` enforce spec accuracy:
 
 - **Route coverage test** (`openapi.test.ts`): Compares registered routes in `src/index.ts` against `paths` in `openapi.yaml`. Fails if any route is undocumented or if the spec has a stale path with no matching route.
-- **Schema conformance tests** (`routes.test.ts`): Validates that route handler responses match the response schemas declared in `openapi.yaml` using ajv. Fails if a response shape diverges from the spec.
+- **Schema conformance tests** (`routes.integration.test.ts` plus lightweight checks in `routes.test.ts`): Validate that route handler responses match the response schemas declared in `openapi.yaml` using a shared ajv helper. Most endpoints are checked through live DB-backed responses instead of handcrafted mocked payloads.
 
 When a test fails after your change, update `openapi.yaml` to match the new route/shape before committing.
 

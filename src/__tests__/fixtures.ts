@@ -237,8 +237,45 @@ export const mockRawDataZeroGames: RawData = {
   field19: "",
 };
 
+export const createPlayer = (overrides: Partial<Player> = {}): Player => ({
+  id: "id",
+  name: "Player",
+  games: 0,
+  goals: 0,
+  assists: 0,
+  points: 0,
+  plusMinus: 0,
+  penalties: 0,
+  shots: 0,
+  ppp: 0,
+  shp: 0,
+  hits: 0,
+  blocks: 0,
+  score: 0,
+  scoreAdjustedByGames: 0,
+  ...overrides,
+});
+
+export const createGoalie = (overrides: Partial<Goalie> = {}): Goalie => ({
+  id: "id",
+  name: "Goalie",
+  games: 0,
+  wins: 0,
+  saves: 0,
+  shutouts: 0,
+  goals: 0,
+  assists: 0,
+  points: 0,
+  penalties: 0,
+  ppp: 0,
+  shp: 0,
+  score: 0,
+  scoreAdjustedByGames: 0,
+  ...overrides,
+});
+
 // Typed player and goalie fixtures
-export const mockPlayer: Player = {
+export const mockPlayer: Player = createPlayer({
   id: "p100",
   name: "Test Player",
   position: "F",
@@ -253,16 +290,14 @@ export const mockPlayer: Player = {
   shp: 5,
   hits: 30,
   blocks: 25,
-  score: 0,
-  scoreAdjustedByGames: 0,
-};
+});
 
 export const mockPlayerWithSeason: PlayerWithSeason = {
   ...mockPlayer,
   season: 2024,
 };
 
-export const mockGoalie: Goalie = {
+export const mockGoalie: Goalie = createGoalie({
   id: "g100",
   name: "Test Goalie",
   games: 70,
@@ -277,9 +312,7 @@ export const mockGoalie: Goalie = {
   shp: 1,
   gaa: "2.50",
   savePercent: "0.920",
-  score: 0,
-  scoreAdjustedByGames: 0,
-};
+});
 
 export const mockGoalieWithSeason: GoalieWithSeason = {
   ...mockGoalie,

@@ -69,7 +69,7 @@ npm run unused        # Detect unused production exports
 npm run verify        # Full quality gate (lint + typecheck + unused exports + build + coverage)
 ```
 
-Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, Knip export analysis, production build, and Jest with enforced 100% global coverage thresholds. For route/service/database behavior, the suite now also includes DB-backed integration tests that run against a temporary SQLite database with isolated snapshot storage, so behavior can be validated with less internal mocking.
+Coverage reports are generated in the `coverage/` directory. The `npm run verify` command runs ESLint, TypeScript compilation, Knip export analysis, production build, and Jest with enforced 100% global coverage thresholds. For route/service/database behavior, the suite now also includes DB-backed integration tests that run against a temporary SQLite database with isolated snapshot storage, so behavior can be validated with less internal mocking. OpenAPI schema conformance is also checked against live route responses for the DB-backed endpoints instead of relying only on handcrafted mocked payloads, and the larger helper/service/mapping/query unit suites are split into focused files so the 100%-coverage surface stays readable. Season selection, season-label formatting, and route-visible row normalization now lean on those live route responses instead of duplicating the same happy-path expectations in thin helper/query unit tests.
 
 ## CI
 
@@ -698,6 +698,5 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
-- Continue migrating route/service coverage toward DB-backed contract/integration tests and remove overlapping mock-heavy tests
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
