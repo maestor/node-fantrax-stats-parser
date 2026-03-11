@@ -136,7 +136,9 @@ src/
 └── __tests__/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
-    ├── helpers.test.ts   # Core utilities, scoring, DB-backed helpers
+    ├── helpers.goalies.test.ts # Goalie scoring helpers
+    ├── helpers.players.test.ts # Player scoring helpers
+    ├── helpers.test.ts   # Shared helper utilities and DB-backed helper lookups
     ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
     ├── mappings.test.ts  # Data transformation (CSV parsing for import, combined data mapping)
     ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
@@ -150,7 +152,7 @@ src/
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, and route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, and helper scoring coverage is split by skaters/goalies so large numeric edge-case suites stay readable.
 
 ---
 
