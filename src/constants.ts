@@ -17,6 +17,10 @@ export const CAREER_HIGHLIGHT_TYPES = [
   "most-teams-owned",
   "same-team-seasons-played",
   "same-team-seasons-owned",
+  "most-stanley-cups",
+  "reunion-king",
+  "stash-king",
+  "regular-grinder-without-playoffs",
 ] as const satisfies readonly CareerHighlightType[];
 
 export const DEFAULT_CAREER_HIGHLIGHT_SKIP = 0;
@@ -43,13 +47,37 @@ export const CAREER_HIGHLIGHT_CONFIG = {
     playedOnly: false,
     minCount: 10,
   },
+  "most-stanley-cups": {
+    kind: "stanley-cups",
+    minCount: 2,
+  },
+  "reunion-king": {
+    kind: "reunion-count",
+    minCount: 2,
+  },
+  "stash-king": {
+    kind: "stash-count",
+    minCount: 10,
+  },
+  "regular-grinder-without-playoffs": {
+    kind: "regular-games-without-playoffs",
+    minCount: 60,
+  },
 } as const satisfies Record<
   CareerHighlightType,
-  {
-    kind: "team-count" | "same-team-season-count";
-    playedOnly: boolean;
-    minCount: number;
-  }
+  | {
+      kind: "team-count" | "same-team-season-count";
+      playedOnly: boolean;
+      minCount: number;
+    }
+  | {
+      kind:
+        | "stanley-cups"
+        | "reunion-count"
+        | "stash-count"
+        | "regular-games-without-playoffs";
+      minCount: number;
+    }
 >;
 
 export const HTTP_STATUS = {

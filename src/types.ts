@@ -243,7 +243,11 @@ export type CareerHighlightType =
   | "most-teams-played"
   | "most-teams-owned"
   | "same-team-seasons-played"
-  | "same-team-seasons-owned";
+  | "same-team-seasons-owned"
+  | "most-stanley-cups"
+  | "reunion-king"
+  | "stash-king"
+  | "regular-grinder-without-playoffs";
 
 export type CareerHighlightTeam = {
   id: string;
@@ -266,6 +270,48 @@ export type CareerSameTeamHighlightItem = {
   team: CareerHighlightTeam;
 };
 
+export type CareerStanleyCupHighlightCup = {
+  season: number;
+  team: CareerHighlightTeam;
+};
+
+export type CareerStanleyCupHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  cupCount: number;
+  cups: CareerStanleyCupHighlightCup[];
+};
+
+export type CareerReunionHighlightStint = {
+  fromSeason: number;
+  toSeason: number;
+};
+
+export type CareerReunionHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  reunionCount: number;
+  team: CareerHighlightTeam;
+  stints: CareerReunionHighlightStint[];
+};
+
+export type CareerStashHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  seasonCount: number;
+  team: CareerHighlightTeam;
+};
+
+export type CareerRegularGrinderHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  regularGames: number;
+};
+
 export type CareerTeamCountHighlightPage = {
   type: "most-teams-played" | "most-teams-owned";
   skip: number;
@@ -282,9 +328,45 @@ export type CareerSameTeamHighlightPage = {
   items: CareerSameTeamHighlightItem[];
 };
 
+export type CareerStanleyCupHighlightPage = {
+  type: "most-stanley-cups";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerStanleyCupHighlightItem[];
+};
+
+export type CareerReunionHighlightPage = {
+  type: "reunion-king";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerReunionHighlightItem[];
+};
+
+export type CareerStashHighlightPage = {
+  type: "stash-king";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerStashHighlightItem[];
+};
+
+export type CareerRegularGrinderHighlightPage = {
+  type: "regular-grinder-without-playoffs";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerRegularGrinderHighlightItem[];
+};
+
 export type CareerHighlightsPage =
   | CareerTeamCountHighlightPage
-  | CareerSameTeamHighlightPage;
+  | CareerSameTeamHighlightPage
+  | CareerStanleyCupHighlightPage
+  | CareerReunionHighlightPage
+  | CareerStashHighlightPage
+  | CareerRegularGrinderHighlightPage;
 
 export type PlayerFields =
   | "name"

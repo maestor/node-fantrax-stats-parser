@@ -6,6 +6,7 @@ import {
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
+  getPlayoffSeasons,
 } from "../db/queries";
 import {
   createGoalieCareerRow,
@@ -256,6 +257,8 @@ describe("services", () => {
         getAllGoalieCareerRowsFromDb as jest.MockedFunction<
           typeof getAllGoalieCareerRowsFromDb
         >;
+      const mockGetPlayoffSeasons =
+        getPlayoffSeasons as jest.MockedFunction<typeof getPlayoffSeasons>;
 
       test("builds most-teams-played highlights with mixed skater and goalie entries", async () => {
         mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
@@ -839,6 +842,496 @@ describe("services", () => {
             position: "F",
             seasonCount: 10,
             team: { id: "1", name: "Colorado Avalanche" },
+          },
+        ]);
+      });
+
+      test("builds most-stanley-cups highlights with fantasy team and season info", async () => {
+        mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
+          createPlayerCareerRow({
+            player_id: "p-alpha-cups",
+            name: "Alpha Cup Skater",
+            position: "D",
+            team_id: "1",
+            season: 2023,
+            report_type: "playoffs",
+            games: 6,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-alpha-cups",
+            name: "Alpha Cup Skater",
+            position: "D",
+            team_id: "2",
+            season: 2023,
+            report_type: "playoffs",
+            games: 4,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-alpha-cups",
+            name: "Alpha Cup Skater",
+            position: "D",
+            team_id: "9",
+            season: 2023,
+            report_type: "regular",
+            games: 82,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-cups",
+            name: "Cup Skater",
+            position: "F",
+            team_id: "1",
+            season: 2021,
+            report_type: "playoffs",
+            games: 8,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-cups",
+            name: "Cup Skater",
+            position: "F",
+            team_id: "2",
+            season: 2023,
+            report_type: "playoffs",
+            games: 12,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-one",
+            name: "One Cup Skater",
+            position: "D",
+            team_id: "4",
+            season: 2024,
+            report_type: "playoffs",
+            games: 6,
+          }),
+        ]);
+        mockGetAllGoalieCareerRowsFromDb.mockResolvedValue([
+          createGoalieCareerRow({
+            goalie_id: "g-cups",
+            name: "Cup Goalie",
+            team_id: "3",
+            season: 2020,
+            report_type: "playoffs",
+            games: 4,
+          }),
+          createGoalieCareerRow({
+            goalie_id: "g-cups",
+            name: "Cup Goalie",
+            team_id: "3",
+            season: 2022,
+            report_type: "playoffs",
+            games: 4,
+          }),
+          createGoalieCareerRow({
+            goalie_id: "g-cups",
+            name: "Cup Goalie",
+            team_id: "3",
+            season: 2024,
+            report_type: "playoffs",
+            games: 5,
+          }),
+        ]);
+        mockGetPlayoffSeasons.mockResolvedValue([
+          { teamId: "3", season: 2020, round: 5 },
+          { teamId: "1", season: 2021, round: 5 },
+          { teamId: "3", season: 2022, round: 5 },
+          { teamId: "1", season: 2023, round: 5 },
+          { teamId: "2", season: 2023, round: 5 },
+          { teamId: "3", season: 2024, round: 5 },
+          { teamId: "4", season: 2024, round: 4 },
+        ]);
+
+        const result = await getCareerHighlightsData("most-stanley-cups");
+
+        expect(result).toEqual([
+          {
+            id: "g-cups",
+            name: "Cup Goalie",
+            position: "G",
+            cupCount: 3,
+            cups: [
+              {
+                season: 2020,
+                team: { id: "3", name: "Calgary Flames" },
+              },
+              {
+                season: 2022,
+                team: { id: "3", name: "Calgary Flames" },
+              },
+              {
+                season: 2024,
+                team: { id: "3", name: "Calgary Flames" },
+              },
+            ],
+          },
+          {
+            id: "p-alpha-cups",
+            name: "Alpha Cup Skater",
+            position: "D",
+            cupCount: 2,
+            cups: [
+              {
+                season: 2023,
+                team: { id: "2", name: "Carolina Hurricanes" },
+              },
+              {
+                season: 2023,
+                team: { id: "1", name: "Colorado Avalanche" },
+              },
+            ],
+          },
+          {
+            id: "p-cups",
+            name: "Cup Skater",
+            position: "F",
+            cupCount: 2,
+            cups: [
+              {
+                season: 2021,
+                team: { id: "1", name: "Colorado Avalanche" },
+              },
+              {
+                season: 2023,
+                team: { id: "2", name: "Carolina Hurricanes" },
+              },
+            ],
+          },
+        ]);
+      });
+
+      test("builds reunion-king highlights from separate same-team season blocks", async () => {
+        mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
+          ...[2018, 2020, 2022].map((season) =>
+            createPlayerCareerRow({
+              player_id: "p-reunion",
+              name: "Reunion Skater",
+              position: "F",
+              team_id: "7",
+              season,
+              games: 0,
+            }),
+          ),
+          ...[2019, 2020, 2022, 2024].map((season) =>
+            createPlayerCareerRow({
+              player_id: "p-reunion",
+              name: "Reunion Skater",
+              position: "F",
+              team_id: "19",
+              season,
+              games: 0,
+            }),
+          ),
+          ...[2020, 2022].map((season) =>
+            createPlayerCareerRow({
+              player_id: "p-two",
+              name: "Two Reunion",
+              position: "D",
+              team_id: "1",
+              season,
+              games: 0,
+            }),
+          ),
+          ...[2020, 2021, 2022].map((season) =>
+            createPlayerCareerRow({
+              player_id: "p-short",
+              name: "Short Reunion",
+              position: "D",
+              team_id: "1",
+              season,
+              games: 0,
+            }),
+          ),
+        ]);
+        mockGetAllGoalieCareerRowsFromDb.mockResolvedValue([]);
+
+        const result = await getCareerHighlightsData("reunion-king");
+
+        expect(result).toEqual([
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            reunionCount: 3,
+            team: { id: "7", name: "Edmonton Oilers" },
+            stints: [
+              { fromSeason: 2018, toSeason: 2018 },
+              { fromSeason: 2020, toSeason: 2020 },
+              { fromSeason: 2022, toSeason: 2022 },
+            ],
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            reunionCount: 3,
+            team: { id: "19", name: "Toronto Maple Leafs" },
+            stints: [
+              { fromSeason: 2019, toSeason: 2020 },
+              { fromSeason: 2022, toSeason: 2022 },
+              { fromSeason: 2024, toSeason: 2024 },
+            ],
+          },
+          {
+            id: "p-two",
+            name: "Two Reunion",
+            position: "D",
+            reunionCount: 2,
+            team: { id: "1", name: "Colorado Avalanche" },
+            stints: [
+              { fromSeason: 2020, toSeason: 2020 },
+              { fromSeason: 2022, toSeason: 2022 },
+            ],
+          },
+        ]);
+      });
+
+      test("builds stash-king highlights from same-team zero-game seasons and ignores transfer accumulation", async () => {
+        mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
+          ...Array.from({ length: 10 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-alpha-stash",
+              name: "Alpha Stash",
+              position: "D",
+              team_id: "4",
+              season: 2010 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+          ...Array.from({ length: 10 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-stash",
+              name: "Stash Skater",
+              position: "F",
+              team_id: "1",
+              season: 2015 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+          createPlayerCareerRow({
+            player_id: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            team_id: "1",
+            season: 2015,
+            report_type: "playoffs",
+            games: 0,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            team_id: "11",
+            season: 2025,
+            report_type: "regular",
+            games: 0,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            team_id: "11",
+            season: 2025,
+            report_type: "playoffs",
+            games: 1,
+          }),
+          ...Array.from({ length: 10 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-transfer-stash",
+              name: "Transfer Stash",
+              position: "F",
+              team_id: String(index + 20),
+              season: 2012 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+          ...Array.from({ length: 10 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-tie-stash",
+              name: "Tie Stash",
+              position: "F",
+              team_id: "2",
+              season: 2010 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+          ...Array.from({ length: 10 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-tie-stash",
+              name: "Tie Stash",
+              position: "F",
+              team_id: "3",
+              season: 2010 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+          ...Array.from({ length: 9 }, (_, index) =>
+            createPlayerCareerRow({
+              player_id: "p-short-stash",
+              name: "Short Stash",
+              position: "D",
+              team_id: "8",
+              season: 2016 + index,
+              report_type: "regular",
+              games: 0,
+            }),
+          ),
+        ]);
+        mockGetAllGoalieCareerRowsFromDb.mockResolvedValue([]);
+
+        const result = await getCareerHighlightsData("stash-king");
+
+        expect(result).toEqual([
+          {
+            id: "p-alpha-stash",
+            name: "Alpha Stash",
+            position: "D",
+            seasonCount: 10,
+            team: { id: "4", name: "Vancouver Canucks" },
+          },
+          {
+            id: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            seasonCount: 10,
+            team: { id: "1", name: "Colorado Avalanche" },
+          },
+          {
+            id: "p-tie-stash",
+            name: "Tie Stash",
+            position: "F",
+            seasonCount: 10,
+            team: { id: "3", name: "Calgary Flames" },
+          },
+          {
+            id: "p-tie-stash",
+            name: "Tie Stash",
+            position: "F",
+            seasonCount: 10,
+            team: { id: "2", name: "Carolina Hurricanes" },
+          },
+        ]);
+      });
+
+      test("builds regular-grinder-without-playoffs from regular-season max games per season", async () => {
+        mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
+          createPlayerCareerRow({
+            player_id: "p-alpha-grinder",
+            name: "Alpha Grinder",
+            position: "D",
+            team_id: "6",
+            season: 2023,
+            report_type: "regular",
+            games: 30,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-alpha-grinder",
+            name: "Alpha Grinder",
+            position: "D",
+            team_id: "7",
+            season: 2024,
+            report_type: "regular",
+            games: 35,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-alpha-grinder",
+            name: "Alpha Grinder",
+            position: "D",
+            team_id: "7",
+            season: 2024,
+            report_type: "playoffs",
+            games: 0,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            team_id: "1",
+            season: 2023,
+            report_type: "regular",
+            games: 30,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            team_id: "2",
+            season: 2023,
+            report_type: "regular",
+            games: 40,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            team_id: "2",
+            season: 2024,
+            report_type: "regular",
+            games: 25,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-playoffs",
+            name: "Playoff Skater",
+            position: "D",
+            team_id: "3",
+            season: 2024,
+            report_type: "regular",
+            games: 82,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-playoffs",
+            name: "Playoff Skater",
+            position: "D",
+            team_id: "3",
+            season: 2024,
+            report_type: "playoffs",
+            games: 8,
+          }),
+          createPlayerCareerRow({
+            player_id: "p-short-grinder",
+            name: "Short Grinder",
+            position: "F",
+            team_id: "8",
+            season: 2024,
+            report_type: "regular",
+            games: 59,
+          }),
+        ]);
+        mockGetAllGoalieCareerRowsFromDb.mockResolvedValue([
+          createGoalieCareerRow({
+            goalie_id: "g-grinder",
+            name: "Goalie Grinder",
+            team_id: "5",
+            season: 2023,
+            report_type: "regular",
+            games: 70,
+          }),
+        ]);
+
+        const result = await getCareerHighlightsData(
+          "regular-grinder-without-playoffs",
+        );
+
+        expect(result).toEqual([
+          {
+            id: "g-grinder",
+            name: "Goalie Grinder",
+            position: "G",
+            regularGames: 70,
+          },
+          {
+            id: "p-alpha-grinder",
+            name: "Alpha Grinder",
+            position: "D",
+            regularGames: 65,
+          },
+          {
+            id: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            regularGames: 65,
           },
         ]);
       });

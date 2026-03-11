@@ -34,8 +34,9 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 
 The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
-The highlights route supports `skip` / `take` paging and the four route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, and `same-team-seasons-owned`.
-Current highlight minimums are stricter than before: `most-teams-played` requires 4 played teams, `most-teams-owned` requires 5 owned teams, `same-team-seasons-played` requires 8 played seasons with one team, and `same-team-seasons-owned` requires 10 owned seasons with one team.
+The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, and `regular-grinder-without-playoffs`.
+`reunion-king` items include stint ranges as `fromSeason` / `toSeason` pairs for each return stint.
+Current highlight minimums are: `most-teams-played` 4, `most-teams-owned` 5, `same-team-seasons-played` 8, `same-team-seasons-owned` 10, `most-stanley-cups` 2, `reunion-king` 2, `stash-king` 10, and `regular-grinder-without-playoffs` 60.
 
 ### Viewing docs locally
 

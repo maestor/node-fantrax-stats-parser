@@ -26,6 +26,12 @@ import {
   CareerHighlightTeam,
   CareerTeamCountHighlightItem,
   CareerSameTeamHighlightItem,
+  CareerStanleyCupHighlightItem,
+  CareerStanleyCupHighlightCup,
+  CareerReunionHighlightStint,
+  CareerReunionHighlightItem,
+  CareerStashHighlightItem,
+  CareerRegularGrinderHighlightItem,
 } from "./types";
 import {
   CAREER_HIGHLIGHT_CONFIG,
@@ -617,6 +623,14 @@ const buildCareerHighlightTeams = (
   );
 };
 
+const compareCareerHighlightIdentity = (
+  left: { name: string; id: string; position: string },
+  right: { name: string; id: string; position: string },
+): number =>
+  left.name.localeCompare(right.name) ||
+  left.id.localeCompare(right.id) ||
+  left.position.localeCompare(right.position);
+
 const buildCareerTeamCountHighlightItem = (
   rows: readonly CareerHighlightRow[],
   playedOnly: boolean,
@@ -677,6 +691,207 @@ const buildCareerSameTeamHighlightItems = (
     .sort((left, right) => left.team.name.localeCompare(right.team.name));
 };
 
+const buildCareerStanleyCupHighlightCups = (
+  rows: readonly CareerHighlightRow[],
+  championSeasonKeys: ReadonlySet<string>,
+): CareerStanleyCupHighlightCup[] => {
+  const cups = new Map<string, CareerStanleyCupHighlightCup>();
+
+  for (const row of rows) {
+    if (row.reportType !== "playoffs" || row.games <= 0) continue;
+
+    const key = `${row.teamId}:${row.season}`;
+    if (!championSeasonKeys.has(key) || cups.has(key)) continue;
+
+    cups.set(key, {
+      season: row.season,
+      team: {
+        id: row.teamId,
+        name: getTeamName(row.teamId),
+      },
+    });
+  }
+
+  return [...cups.values()].sort(
+    (left, right) =>
+      left.season - right.season ||
+      left.team.name.localeCompare(right.team.name),
+  );
+};
+
+const buildCareerStanleyCupHighlightItem = (
+  rows: readonly CareerHighlightRow[],
+  championSeasonKeys: ReadonlySet<string>,
+  minCupCount: number,
+): CareerStanleyCupHighlightItem | null => {
+  const cups = buildCareerStanleyCupHighlightCups(rows, championSeasonKeys);
+  if (cups.length < minCupCount) {
+    return null;
+  }
+
+  return {
+    id: rows[0].id,
+    name: rows[0].name,
+    position: rows[0].position,
+    cupCount: cups.length,
+    cups,
+  };
+};
+
+const buildSeasonStints = (
+  seasons: ReadonlySet<number>,
+): CareerReunionHighlightStint[] => {
+  const [firstSeason, ...remainingSeasons] = [...seasons].sort(
+    (left, right) => left - right,
+  );
+  const stints: CareerReunionHighlightStint[] = [];
+  let fromSeason = firstSeason as number;
+  let previousSeason = firstSeason as number;
+
+  for (const season of remainingSeasons) {
+    if (season !== previousSeason + 1) {
+      stints.push({ fromSeason, toSeason: previousSeason });
+      fromSeason = season;
+    }
+    previousSeason = season;
+  }
+
+  stints.push({ fromSeason, toSeason: previousSeason });
+  return stints;
+};
+
+const buildCareerReunionHighlightItems = (
+  rows: readonly CareerHighlightRow[],
+  minReunionCount: number,
+): CareerReunionHighlightItem[] => {
+  const seasonsByTeam = new Map<string, Set<number>>();
+
+  for (const row of rows) {
+    const seasons = seasonsByTeam.get(row.teamId);
+    if (seasons) {
+      seasons.add(row.season);
+    } else {
+      seasonsByTeam.set(row.teamId, new Set([row.season]));
+    }
+  }
+
+  const reunionCounts = [...seasonsByTeam.entries()].map(([teamId, seasons]) => {
+    const stints = buildSeasonStints(seasons);
+    return {
+      teamId,
+      reunionCount: stints.length,
+      stints,
+    };
+  });
+  const maxReunionCount = Math.max(
+    0,
+    ...reunionCounts.map((entry) => entry.reunionCount),
+  );
+
+  if (maxReunionCount < minReunionCount) {
+    return [];
+  }
+
+  return reunionCounts
+    .filter((entry) => entry.reunionCount === maxReunionCount)
+    .map(({ teamId, reunionCount, stints }) => ({
+      id: rows[0].id,
+      name: rows[0].name,
+      position: rows[0].position,
+      reunionCount,
+      team: {
+        id: teamId,
+        name: getTeamName(teamId),
+      },
+      stints,
+    }))
+    .sort((left, right) => left.team.name.localeCompare(right.team.name));
+};
+
+const buildCareerStashHighlightItems = (
+  rows: readonly CareerHighlightRow[],
+  minStashCount: number,
+): CareerStashHighlightItem[] => {
+  const maxGamesByTeamSeason = new Map<string, number>();
+
+  for (const row of rows) {
+    const key = `${row.teamId}:${row.season}`;
+    maxGamesByTeamSeason.set(
+      key,
+      Math.max(row.games, maxGamesByTeamSeason.get(key) ?? 0),
+    );
+  }
+
+  const stashSeasonsByTeam = new Map<string, Set<number>>();
+  for (const [key, games] of maxGamesByTeamSeason.entries()) {
+    if (games !== 0) continue;
+
+    const [teamId, season] = key.split(":");
+    const seasons = stashSeasonsByTeam.get(teamId);
+    if (seasons) {
+      seasons.add(Number(season));
+    } else {
+      stashSeasonsByTeam.set(teamId, new Set([Number(season)]));
+    }
+  }
+
+  const maxSeasonCount = Math.max(
+    0,
+    ...[...stashSeasonsByTeam.values()].map((seasons) => seasons.size),
+  );
+  if (maxSeasonCount < minStashCount) {
+    return [];
+  }
+
+  return [...stashSeasonsByTeam.entries()]
+    .filter(([, seasons]) => seasons.size === maxSeasonCount)
+    .map(([teamId]) => ({
+      id: rows[0].id,
+      name: rows[0].name,
+      position: rows[0].position,
+      seasonCount: maxSeasonCount,
+      team: {
+        id: teamId,
+        name: getTeamName(teamId),
+      },
+    }))
+    .sort((left, right) => left.team.name.localeCompare(right.team.name));
+};
+
+const buildCareerRegularGrinderHighlightItem = (
+  rows: readonly CareerHighlightRow[],
+  minRegularGames: number,
+): CareerRegularGrinderHighlightItem | null => {
+  if (rows.some((row) => row.reportType === "playoffs" && row.games > 0)) {
+    return null;
+  }
+
+  const maxRegularGamesBySeason = new Map<number, number>();
+  for (const row of rows) {
+    if (row.reportType !== "regular" || row.games <= 0) continue;
+
+    maxRegularGamesBySeason.set(
+      row.season,
+      Math.max(row.games, maxRegularGamesBySeason.get(row.season) ?? 0),
+    );
+  }
+
+  const regularGames = [...maxRegularGamesBySeason.values()].reduce(
+    (sum, games) => sum + games,
+    0,
+  );
+  if (regularGames < minRegularGames) {
+    return null;
+  }
+
+  return {
+    id: rows[0].id,
+    name: rows[0].name,
+    position: rows[0].position,
+    regularGames,
+  };
+};
+
 const sortCareerTeamCountHighlightItems = (
   items: readonly CareerTeamCountHighlightItem[],
 ): CareerTeamCountHighlightItem[] =>
@@ -711,6 +926,52 @@ const sortCareerSameTeamHighlightItems = (
 
     return left.position.localeCompare(right.position);
   });
+
+const sortCareerStanleyCupHighlightItems = (
+  items: readonly CareerStanleyCupHighlightItem[],
+): CareerStanleyCupHighlightItem[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        right.cupCount - left.cupCount ||
+        compareCareerHighlightIdentity(left, right),
+    );
+
+const sortCareerReunionHighlightItems = (
+  items: readonly CareerReunionHighlightItem[],
+): CareerReunionHighlightItem[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        right.reunionCount - left.reunionCount ||
+        compareCareerHighlightIdentity(left, right) ||
+        left.team.name.localeCompare(right.team.name),
+    );
+
+const sortCareerStashHighlightItems = (
+  items: readonly CareerStashHighlightItem[],
+): CareerStashHighlightItem[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        right.seasonCount - left.seasonCount ||
+        compareCareerHighlightIdentity(left, right) ||
+        left.team.name.localeCompare(right.team.name),
+    );
+
+const sortCareerRegularGrinderHighlightItems = (
+  items: readonly CareerRegularGrinderHighlightItem[],
+): CareerRegularGrinderHighlightItem[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        right.regularGames - left.regularGames ||
+        compareCareerHighlightIdentity(left, right),
+    );
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
@@ -904,7 +1165,14 @@ export const getCareerGoaliesData = async (): Promise<CareerGoalieListItem[]> =>
 
 export const getCareerHighlightsData = async (
   type: CareerHighlightType,
-): Promise<CareerTeamCountHighlightItem[] | CareerSameTeamHighlightItem[]> => {
+): Promise<
+  | CareerTeamCountHighlightItem[]
+  | CareerSameTeamHighlightItem[]
+  | CareerStanleyCupHighlightItem[]
+  | CareerReunionHighlightItem[]
+  | CareerStashHighlightItem[]
+  | CareerRegularGrinderHighlightItem[]
+> => {
   const [playerRows, goalieRows] = await Promise.all([
     getAllPlayerCareerRowsFromDb(),
     getAllGoalieCareerRowsFromDb(),
@@ -934,14 +1202,68 @@ export const getCareerHighlightsData = async (
     );
   }
 
-  return sortCareerSameTeamHighlightItems(
-    [...grouped.values()].flatMap((rows) =>
-      buildCareerSameTeamHighlightItems(
-        rows,
-        config.playedOnly,
-        config.minCount,
+  if (config.kind === "same-team-season-count") {
+    return sortCareerSameTeamHighlightItems(
+      [...grouped.values()].flatMap((rows) =>
+        buildCareerSameTeamHighlightItems(
+          rows,
+          config.playedOnly,
+          config.minCount,
+        ),
       ),
-    ),
+    );
+  }
+
+  if (config.kind === "stanley-cups") {
+    const championSeasonKeys = new Set(
+      (await getPlayoffSeasons())
+        .filter((entry) => entry.round === 5)
+        .map((entry) => `${entry.teamId}:${entry.season}`),
+    );
+
+    return sortCareerStanleyCupHighlightItems(
+      [...grouped.values()]
+        .map((rows) =>
+          buildCareerStanleyCupHighlightItem(
+            rows,
+            championSeasonKeys,
+            config.minCount,
+          ),
+        )
+        .filter(
+          (
+            item,
+          ): item is CareerStanleyCupHighlightItem => item !== null,
+        ),
+    );
+  }
+
+  if (config.kind === "reunion-count") {
+    return sortCareerReunionHighlightItems(
+      [...grouped.values()].flatMap((rows) =>
+        buildCareerReunionHighlightItems(rows, config.minCount),
+      ),
+    );
+  }
+
+  if (config.kind === "stash-count") {
+    return sortCareerStashHighlightItems(
+      [...grouped.values()].flatMap((rows) =>
+        buildCareerStashHighlightItems(rows, config.minCount),
+      ),
+    );
+  }
+
+  return sortCareerRegularGrinderHighlightItems(
+    [...grouped.values()]
+      .map((rows) =>
+        buildCareerRegularGrinderHighlightItem(rows, config.minCount),
+      )
+      .filter(
+        (
+          item,
+        ): item is CareerRegularGrinderHighlightItem => item !== null,
+      ),
   );
 };
 
