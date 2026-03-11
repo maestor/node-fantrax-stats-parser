@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import type { Report } from "./types";
+import type { CareerHighlightType, Report } from "./types";
 
 const DEFAULT_SNAPSHOT_DIR = path.resolve(
   process.cwd(),
@@ -175,6 +175,10 @@ export const loadSnapshot = async <T>(
 export const getCareerPlayersSnapshotKey = (): string => "career/players";
 
 export const getCareerGoaliesSnapshotKey = (): string => "career/goalies";
+
+export const getCareerHighlightsSnapshotKey = (
+  type: CareerHighlightType,
+): string => `career/highlights/${type}`;
 
 export const getRegularLeaderboardSnapshotKey = (): string =>
   "leaderboard/regular";

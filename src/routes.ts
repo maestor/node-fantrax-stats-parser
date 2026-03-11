@@ -11,10 +11,11 @@ import {
   getGoalieCareerData,
   getCareerPlayersData,
   getCareerGoaliesData,
+  getCareerHighlightsData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
 } from "./services";
-import { Report } from "./types";
+import { CareerHighlightType, Report } from "./types";
 import {
   reportTypeAvailable,
   seasonAvailable,
@@ -33,13 +34,21 @@ import {
 import { getLastModifiedFromDb } from "./db/queries";
 import {
   getCareerGoaliesSnapshotKey,
+  getCareerHighlightsSnapshotKey,
   getCareerPlayersSnapshotKey,
   getCombinedSnapshotKey,
   getPlayoffsLeaderboardSnapshotKey,
   getRegularLeaderboardSnapshotKey,
   loadSnapshot,
 } from "./snapshots";
-import { START_SEASON, TEAMS } from "./constants";
+import {
+  CAREER_HIGHLIGHT_TYPES,
+  DEFAULT_CAREER_HIGHLIGHT_SKIP,
+  DEFAULT_CAREER_HIGHLIGHT_TAKE,
+  MAX_CAREER_HIGHLIGHT_TAKE,
+  START_SEASON,
+  TEAMS,
+} from "./constants";
 
 type DataSource = "snapshot" | "db";
 
@@ -164,6 +173,19 @@ const loadSnapshotOrFallback = async <T>(
 
 const getDefaultStartFromForTeam = (teamId: string): number =>
   TEAMS.find((team) => team.id === teamId)?.firstSeason ?? START_SEASON;
+
+const isCareerHighlightType = (
+  value: string,
+): value is CareerHighlightType =>
+  CAREER_HIGHLIGHT_TYPES.includes(value as CareerHighlightType);
+
+const parsePagingParam = (value: string | undefined): number | null | undefined => {
+  if (value === undefined) return undefined;
+  if (!/^\d+$/u.test(value)) return null;
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
   setNoStoreHeaders(res);
@@ -334,6 +356,56 @@ export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
       getCareerGoaliesData(),
     ),
   );
+};
+
+export const getCareerHighlights: AugmentedRequestHandler = async (req, res) => {
+  const rawType = req.params.type;
+  if (!isCareerHighlightType(rawType)) {
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_CAREER_HIGHLIGHT_TYPE,
+    );
+    return;
+  }
+
+  const skip = parsePagingParam(getQueryParam(req, "skip"));
+  const take = parsePagingParam(getQueryParam(req, "take"));
+  if (
+    skip === null ||
+    take === null ||
+    (skip !== undefined && skip < 0) ||
+    (take !== undefined && (take < 0 || take > MAX_CAREER_HIGHLIGHT_TAKE))
+  ) {
+    sendNoStore(
+      res,
+      HTTP_STATUS.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_PAGING_PARAMS,
+    );
+    return;
+  }
+
+  const resolvedSkip = skip ?? DEFAULT_CAREER_HIGHLIGHT_SKIP;
+  const resolvedTake = take ?? DEFAULT_CAREER_HIGHLIGHT_TAKE;
+
+  await withErrorHandlingCached(req, res, async () => {
+    const result = await loadSnapshotOrFallback(
+      getCareerHighlightsSnapshotKey(rawType),
+      () => getCareerHighlightsData(rawType),
+    );
+    const items = result.data.slice(resolvedSkip, resolvedSkip + resolvedTake);
+
+    return {
+      data: {
+        type: rawType,
+        skip: resolvedSkip,
+        take: resolvedTake,
+        total: result.data.length,
+        items,
+      },
+      dataSource: result.dataSource,
+    };
+  });
 };
 
 export const getLastModified: AugmentedRequestHandler = async (req, res) => {

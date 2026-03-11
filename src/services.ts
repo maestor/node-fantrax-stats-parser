@@ -22,6 +22,10 @@ import {
   CareerGoalieListItem,
   CareerPlayerSeasonRow,
   CareerGoalieSeasonRow,
+  CareerHighlightType,
+  CareerHighlightTeam,
+  CareerTeamCountHighlightItem,
+  CareerSameTeamHighlightItem,
 } from "./types";
 import { CURRENT_SEASON, DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "./constants";
 import {
@@ -517,6 +521,189 @@ const buildGoalieCareerListItem = (rows: readonly GoalieCareerRow[]): CareerGoal
   };
 };
 
+type CareerHighlightRow = {
+  source: "player" | "goalie";
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  season: number;
+  reportType: CsvReport;
+  games: number;
+};
+
+type TeamFirstSeason = CareerHighlightTeam & {
+  firstSeason: number;
+};
+
+const mapPlayerCareerHighlightRows = (
+  rows: readonly PlayerCareerRow[],
+): CareerHighlightRow[] =>
+  rows.map((row) => ({
+    source: "player",
+    id: row.player_id,
+    name: row.name,
+    position: requirePlayerPosition(row.position),
+    teamId: row.team_id,
+    season: row.season,
+    reportType: row.report_type,
+    games: row.games,
+  }));
+
+const mapGoalieCareerHighlightRows = (
+  rows: readonly GoalieCareerRow[],
+): CareerHighlightRow[] =>
+  rows.map((row) => ({
+    source: "goalie",
+    id: row.goalie_id,
+    name: row.name,
+    position: "G",
+    teamId: row.team_id,
+    season: row.season,
+    reportType: row.report_type,
+    games: row.games,
+  }));
+
+const groupCareerHighlightRows = (
+  rows: readonly CareerHighlightRow[],
+): Map<string, CareerHighlightRow[]> => {
+  const grouped = new Map<string, CareerHighlightRow[]>();
+  for (const row of rows) {
+    const key = `${row.source}:${row.id}`;
+    const list = grouped.get(key);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(key, [row]);
+    }
+  }
+  return grouped;
+};
+
+const sortCareerHighlightTeams = (
+  teams: readonly TeamFirstSeason[],
+): CareerHighlightTeam[] =>
+  teams
+    .slice()
+    .sort(
+      (left, right) =>
+        left.firstSeason - right.firstSeason || left.name.localeCompare(right.name),
+    )
+    .map(({ id, name }) => ({ id, name }));
+
+const buildCareerHighlightTeams = (
+  rows: readonly CareerHighlightRow[],
+): CareerHighlightTeam[] => {
+  const firstSeasonByTeam = new Map<string, number>();
+  for (const row of rows) {
+    const current = firstSeasonByTeam.get(row.teamId);
+    if (current === undefined || row.season < current) {
+      firstSeasonByTeam.set(row.teamId, row.season);
+    }
+  }
+
+  return sortCareerHighlightTeams(
+    [...firstSeasonByTeam.entries()].map(([id, firstSeason]) => ({
+      id,
+      name: getTeamName(id),
+      firstSeason,
+    })),
+  );
+};
+
+const buildCareerTeamCountHighlightItem = (
+  rows: readonly CareerHighlightRow[],
+  playedOnly: boolean,
+): CareerTeamCountHighlightItem | null => {
+  const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
+  const teams = buildCareerHighlightTeams(countedRows);
+  if (teams.length < 3) {
+    return null;
+  }
+
+  return {
+    id: rows[0].id,
+    name: rows[0].name,
+    position: rows[0].position,
+    teamCount: teams.length,
+    teams,
+  };
+};
+
+const buildCareerSameTeamHighlightItems = (
+  rows: readonly CareerHighlightRow[],
+  playedOnly: boolean,
+): CareerSameTeamHighlightItem[] => {
+  const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
+  const seasonsByTeam = new Map<string, Set<number>>();
+
+  for (const row of countedRows) {
+    const seasons = seasonsByTeam.get(row.teamId);
+    if (seasons) {
+      seasons.add(row.season);
+    } else {
+      seasonsByTeam.set(row.teamId, new Set([row.season]));
+    }
+  }
+
+  const maxSeasonCount = Math.max(
+    0,
+    ...[...seasonsByTeam.values()].map((seasons) => seasons.size),
+  );
+  if (maxSeasonCount < 5) {
+    return [];
+  }
+
+  return [...seasonsByTeam.entries()]
+    .filter(([, seasons]) => seasons.size === maxSeasonCount)
+    .map(([teamId]) => ({
+      id: rows[0].id,
+      name: rows[0].name,
+      position: rows[0].position,
+      seasonCount: maxSeasonCount,
+      team: {
+        id: teamId,
+        name: getTeamName(teamId),
+      },
+    }))
+    .sort((left, right) => left.team.name.localeCompare(right.team.name));
+};
+
+const sortCareerTeamCountHighlightItems = (
+  items: readonly CareerTeamCountHighlightItem[],
+): CareerTeamCountHighlightItem[] =>
+  items.slice().sort((left, right) => {
+    const byCount = right.teamCount - left.teamCount;
+    if (byCount !== 0) return byCount;
+
+    const byName = left.name.localeCompare(right.name);
+    if (byName !== 0) return byName;
+
+    const byId = left.id.localeCompare(right.id);
+    if (byId !== 0) return byId;
+
+    return left.position.localeCompare(right.position);
+  });
+
+const sortCareerSameTeamHighlightItems = (
+  items: readonly CareerSameTeamHighlightItem[],
+): CareerSameTeamHighlightItem[] =>
+  items.slice().sort((left, right) => {
+    const byCount = right.seasonCount - left.seasonCount;
+    if (byCount !== 0) return byCount;
+
+    const byName = left.name.localeCompare(right.name);
+    if (byName !== 0) return byName;
+
+    const byId = left.id.localeCompare(right.id);
+    if (byId !== 0) return byId;
+
+    const byTeam = left.team.name.localeCompare(right.team.name);
+    if (byTeam !== 0) return byTeam;
+
+    return left.position.localeCompare(right.position);
+  });
+
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
   reportType: Report = "regular",
@@ -705,6 +892,39 @@ export const getCareerGoaliesData = async (): Promise<CareerGoalieListItem[]> =>
   const rows = await getAllGoalieCareerRowsFromDb();
   const grouped = groupCareerRowsById(rows.map((row) => ({ ...row, id: row.goalie_id })));
   return sortCareerListItems([...grouped.values()].map((goalieRows) => buildGoalieCareerListItem(goalieRows)));
+};
+
+export const getCareerHighlightsData = async (
+  type: CareerHighlightType,
+): Promise<CareerTeamCountHighlightItem[] | CareerSameTeamHighlightItem[]> => {
+  const [playerRows, goalieRows] = await Promise.all([
+    getAllPlayerCareerRowsFromDb(),
+    getAllGoalieCareerRowsFromDb(),
+  ]);
+  const grouped = groupCareerHighlightRows([
+    ...mapPlayerCareerHighlightRows(playerRows),
+    ...mapGoalieCareerHighlightRows(goalieRows),
+  ]);
+
+  if (type === "most-teams-played" || type === "most-teams-owned") {
+    const playedOnly = type === "most-teams-played";
+    return sortCareerTeamCountHighlightItems(
+      [...grouped.values()]
+        .map((rows) => buildCareerTeamCountHighlightItem(rows, playedOnly))
+        .filter(
+          (
+            item,
+          ): item is CareerTeamCountHighlightItem => item !== null,
+        ),
+    );
+  }
+
+  const playedOnly = type === "same-team-seasons-played";
+  return sortCareerSameTeamHighlightItems(
+    [...grouped.values()].flatMap((rows) =>
+      buildCareerSameTeamHighlightItems(rows, playedOnly),
+    ),
+  );
 };
 
 export const getPlayoffLeaderboardData = async (): Promise<
