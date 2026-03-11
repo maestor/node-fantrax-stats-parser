@@ -48,7 +48,7 @@ describe("services", () => {
   });
 
   describe("getAvailableSeasons", () => {
-    test("uses default team and report when optional params are omitted", async () => {
+    test("uses the default team and report when optional params are omitted", async () => {
       const mockSeasons = [
         { season: 2012, text: "2012-2013" },
         { season: 2013, text: "2013-2014" },
@@ -71,12 +71,6 @@ describe("services", () => {
       (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
       (applyPlayerScoresByPosition as jest.Mock).mockImplementation(() => {});
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
-    });
-
-    test("uses max season when season is undefined", async () => {
-      await getPlayersStatsSeason("regular", undefined);
-
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
     });
 
     test("returns empty array when season is undefined and no seasons are available", async () => {
@@ -115,12 +109,6 @@ describe("services", () => {
       (getGoaliesFromDb as jest.Mock).mockResolvedValue([mockGoalieWithSeason]);
       (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
-    });
-
-    test("uses max season when season is undefined", async () => {
-      await getGoaliesStatsSeason("regular", undefined);
-
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
     });
 
     test("when reportType is both, strips gaa/savePercent for merged goalies", async () => {
@@ -168,17 +156,6 @@ describe("services", () => {
       expect(getPlayersFromDb).not.toHaveBeenCalled();
     });
 
-    test("filters seasons when startFrom is provided", async () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014, 2020]);
-
-      const result = await getPlayersStatsCombined("regular", "1", 2020);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledTimes(1);
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2020, "regular");
-      expect(result).toEqual([mockPlayer]);
-    });
-
     test("returns empty array when startFrom is after all available seasons", async () => {
       (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([]);
 
@@ -187,44 +164,6 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(result).toEqual([]);
     });
-
-    test("when reportType is both, queries regular+playoffs and merges before combining", async () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2024]);
-
-      const regular = { ...mockPlayerWithSeason, games: 12, points: 6 };
-      const playoffs = { ...mockPlayerWithSeason, games: 4, points: 3 };
-
-      (getPlayersFromDb as jest.Mock)
-        .mockResolvedValueOnce([regular]) // regular
-        .mockResolvedValueOnce([playoffs]); // playoffs
-      (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([mockPlayer]);
-
-      const result = await getPlayersStatsCombined("both", "1", 2020);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "playoffs");
-
-      expect(mapCombinedPlayerDataFromPlayersWithSeason).toHaveBeenCalledWith([
-        expect.objectContaining({ name: "Test Player", season: 2024, games: 16, points: 9 }),
-      ]);
-      expect(result).toEqual([mockPlayer]);
-    });
-
-    test("when reportType is both and startFrom is undefined, uses all seasons", async () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2024]);
-      (getPlayersFromDb as jest.Mock)
-        .mockResolvedValueOnce([mockPlayerWithSeason]) // regular
-        .mockResolvedValueOnce([mockPlayerWithSeason]); // playoffs
-      (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue([mockPlayer]);
-
-      const result = await getPlayersStatsCombined("both", "1", undefined);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
-      expect(getPlayersFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(result).toEqual([mockPlayer]);
-    });
-
   });
 
   describe("getGoaliesStatsCombined", () => {
@@ -236,7 +175,7 @@ describe("services", () => {
       (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
     });
 
-    test("uses the default team and full season list when startFrom is omitted", async () => {
+    test("uses the default team when startFrom is omitted", async () => {
       const result = await getGoaliesStatsCombined("regular");
 
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
@@ -263,51 +202,6 @@ describe("services", () => {
       expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
       expect(result).toEqual([]);
     });
-
-    test("when reportType is both, queries regular+playoffs and strips gaa/savePercent", async () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2024]);
-
-      const regular = { ...mockGoalieWithSeason, games: 10, wins: 6, gaa: "2.30", savePercent: "0.920" };
-      const playoffs = { ...mockGoalieWithSeason, games: 2, wins: 1, gaa: "1.00", savePercent: "0.950" };
-
-      (getGoaliesFromDb as jest.Mock)
-        .mockResolvedValueOnce([regular]) // regular
-        .mockResolvedValueOnce([playoffs]); // playoffs
-      (mapCombinedGoalieDataFromGoaliesWithSeason as jest.Mock).mockReturnValue([mockGoalie]);
-
-      const result = await getGoaliesStatsCombined("both", "1", 2020);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "playoffs");
-
-      expect(mapCombinedGoalieDataFromGoaliesWithSeason).toHaveBeenCalledWith([
-        expect.objectContaining({
-          name: "Test Goalie",
-          season: 2024,
-          games: 12,
-          wins: 7,
-          gaa: undefined,
-          savePercent: undefined,
-        }),
-      ]);
-      expect(result).toEqual([mockGoalie]);
-    });
-
-    test("when reportType is both and startFrom is undefined, uses all seasons", async () => {
-      (availableSeasons as jest.Mock).mockReturnValue([2024]);
-      (getGoaliesFromDb as jest.Mock)
-        .mockResolvedValueOnce([mockGoalieWithSeason]) // regular
-        .mockResolvedValueOnce([mockGoalieWithSeason]); // playoffs
-      (mapCombinedGoalieDataFromGoaliesWithSeason as jest.Mock).mockReturnValue([mockGoalie]);
-
-      const result = await getGoaliesStatsCombined("both", "1", undefined);
-
-      expect(availableSeasons).toHaveBeenCalledWith("1", "both");
-      expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2024, "regular");
-      expect(result).toEqual([mockGoalie]);
-    });
-
   });
 
   describe("getPlayerCareerData", () => {

@@ -233,6 +233,64 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns the current configured player season when the season param is omitted", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertPlayers([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          playerId: "p-old",
+          name: "Older Skater",
+          position: "F",
+          games: 9,
+          goals: 4,
+          assists: 3,
+          points: 7,
+        },
+        {
+          teamId: "1",
+          season: 2025,
+          reportType: "regular",
+          playerId: "p-new",
+          name: "Newest Skater",
+          position: "F",
+          games: 12,
+          goals: 5,
+          assists: 6,
+          points: 11,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/players/season/regular?teamId=1",
+        params: { reportType: "regular" },
+      });
+      const res = createResponse();
+
+      await getPlayersSeason(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "p-new",
+          name: "Newest Skater",
+          games: 12,
+          points: 11,
+        }),
+      );
+      expectArraySchema("Player", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("merges regular and playoff goalie stats in combined both route without leaking rate fields", async () => {
     const db = await createIntegrationDb();
 
@@ -378,6 +436,204 @@ describe("routes integration", () => {
           season: 2024,
           games: 10,
           points: 11,
+        }),
+      ]);
+      expectArraySchema("CombinedPlayer", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("merges regular and playoff player stats across all seasons in combined both route", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertPlayers([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          playerId: "p-both",
+          name: "Merged Skater",
+          position: "F",
+          games: 8,
+          goals: 3,
+          assists: 4,
+          points: 7,
+          plusMinus: 1,
+          shots: 14,
+        },
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "playoffs",
+          playerId: "p-both",
+          name: "Merged Skater",
+          position: "F",
+          games: 2,
+          goals: 1,
+          assists: 1,
+          points: 2,
+          plusMinus: 1,
+          shots: 4,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          playerId: "p-both",
+          name: "Merged Skater",
+          position: "F",
+          games: 10,
+          goals: 5,
+          assists: 6,
+          points: 11,
+          plusMinus: 3,
+          shots: 20,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "playoffs",
+          playerId: "p-both",
+          name: "Merged Skater",
+          position: "F",
+          games: 3,
+          goals: 2,
+          assists: 1,
+          points: 3,
+          plusMinus: 1,
+          shots: 5,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/players/combined/both?teamId=1",
+        params: { reportType: "both" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "p-both",
+          name: "Merged Skater",
+          games: 23,
+          goals: 11,
+          assists: 12,
+          points: 23,
+        }),
+      );
+      expect(body[0].seasons).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            season: 2023,
+            games: 10,
+            points: 9,
+          }),
+          expect.objectContaining({
+            season: 2024,
+            games: 13,
+            points: 14,
+          }),
+        ]),
+      );
+      expectArraySchema("CombinedPlayer", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("honors startFrom in combined player both route", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertPlayers([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          playerId: "p-filtered-both",
+          name: "Filtered Merged Skater",
+          position: "F",
+          games: 8,
+          goals: 3,
+          assists: 4,
+          points: 7,
+        },
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "playoffs",
+          playerId: "p-filtered-both",
+          name: "Filtered Merged Skater",
+          position: "F",
+          games: 2,
+          goals: 1,
+          assists: 1,
+          points: 2,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          playerId: "p-filtered-both",
+          name: "Filtered Merged Skater",
+          position: "F",
+          games: 10,
+          goals: 5,
+          assists: 6,
+          points: 11,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "playoffs",
+          playerId: "p-filtered-both",
+          name: "Filtered Merged Skater",
+          position: "F",
+          games: 3,
+          goals: 2,
+          assists: 1,
+          points: 3,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/players/combined/both?teamId=1&startFrom=2024",
+        params: { reportType: "both" },
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await getPlayersCombined(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "p-filtered-both",
+          name: "Filtered Merged Skater",
+          games: 13,
+          goals: 7,
+          assists: 7,
+          points: 14,
+        }),
+      );
+      expect(body[0].seasons).toEqual([
+        expect.objectContaining({
+          season: 2024,
+          games: 13,
+          points: 14,
         }),
       ]);
       expectArraySchema("CombinedPlayer", body);
@@ -537,6 +793,66 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns the current configured goalie season when the season param is omitted", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          goalieId: "g-old",
+          name: "Older Goalie",
+          games: 9,
+          wins: 5,
+          saves: 250,
+          shutouts: 1,
+          gaa: 2.4,
+          savePercent: 0.915,
+        },
+        {
+          teamId: "1",
+          season: 2025,
+          reportType: "regular",
+          goalieId: "g-new",
+          name: "Newest Goalie",
+          games: 12,
+          wins: 8,
+          saves: 340,
+          shutouts: 2,
+          gaa: 2.15,
+          savePercent: 0.918,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/season/regular?teamId=1",
+        params: { reportType: "regular" },
+      });
+      const res = createResponse();
+
+      await getGoaliesSeason(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "g-new",
+          name: "Newest Goalie",
+          games: 12,
+          wins: 8,
+        }),
+      );
+      expectArraySchema("Goalie", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("returns 400 for unavailable goalie season using the real DB season lookup", async () => {
     const db = await createIntegrationDb();
 
@@ -620,6 +936,80 @@ describe("routes integration", () => {
     }
   });
 
+  test("returns combined goalie data from all seasons when startFrom is omitted", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          goalieId: "g-window",
+          name: "Window Goalie",
+          games: 9,
+          wins: 5,
+          saves: 250,
+          shutouts: 1,
+          assists: 1,
+          points: 1,
+          gaa: 2.4,
+          savePercent: 0.915,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          goalieId: "g-window",
+          name: "Window Goalie",
+          games: 12,
+          wins: 8,
+          saves: 340,
+          shutouts: 2,
+          assists: 1,
+          points: 1,
+          gaa: 2.15,
+          savePercent: 0.918,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/combined/regular?teamId=1",
+        params: { reportType: "regular" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "g-window",
+          name: "Window Goalie",
+          games: 21,
+          wins: 13,
+          saves: 590,
+          shutouts: 3,
+          assists: 2,
+          points: 2,
+        }),
+      );
+      expect(body[0].seasons).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ season: 2023, games: 9, wins: 5 }),
+          expect.objectContaining({ season: 2024, games: 12, wins: 8 }),
+        ]),
+      );
+      expectArraySchema("CombinedGoalie", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("uses goalie combined snapshots when startFrom matches the team window", async () => {
     const db = await createIntegrationDb();
 
@@ -662,6 +1052,120 @@ describe("routes integration", () => {
       expect(res.statusCode).toBe(HTTP_STATUS.OK);
       expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
       expect(getJsonBody(res)).toEqual(snapshotPayload);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
+  test("merges regular and playoff goalie stats across all seasons in combined both route", async () => {
+    const db = await createIntegrationDb();
+
+    try {
+      await db.insertGoalies([
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "regular",
+          goalieId: "g-both",
+          name: "Merged Window Goalie",
+          games: 9,
+          wins: 5,
+          saves: 250,
+          shutouts: 1,
+          assists: 1,
+          points: 1,
+          gaa: 2.4,
+          savePercent: 0.915,
+        },
+        {
+          teamId: "1",
+          season: 2023,
+          reportType: "playoffs",
+          goalieId: "g-both",
+          name: "Merged Window Goalie",
+          games: 2,
+          wins: 1,
+          saves: 60,
+          shutouts: 0,
+          assists: 0,
+          points: 0,
+          gaa: 2.1,
+          savePercent: 0.926,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "regular",
+          goalieId: "g-both",
+          name: "Merged Window Goalie",
+          games: 12,
+          wins: 8,
+          saves: 340,
+          shutouts: 2,
+          assists: 1,
+          points: 1,
+          gaa: 2.15,
+          savePercent: 0.918,
+        },
+        {
+          teamId: "1",
+          season: 2024,
+          reportType: "playoffs",
+          goalieId: "g-both",
+          name: "Merged Window Goalie",
+          games: 3,
+          wins: 2,
+          saves: 90,
+          shutouts: 1,
+          assists: 0,
+          points: 0,
+          gaa: 1.95,
+          savePercent: 0.931,
+        },
+      ]);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/goalies/combined/both?teamId=1",
+        params: { reportType: "both" },
+      });
+      const res = createResponse();
+
+      await getGoaliesCombined(asRouteReq(req), res);
+
+      const body = getJsonBody<Array<Record<string, unknown>>>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expect(body).toHaveLength(1);
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: "g-both",
+          name: "Merged Window Goalie",
+          games: 26,
+          wins: 16,
+          saves: 740,
+          shutouts: 4,
+          assists: 2,
+          points: 2,
+        }),
+      );
+      expect(body[0]).not.toHaveProperty("gaa");
+      expect(body[0]).not.toHaveProperty("savePercent");
+      expect(body[0].seasons).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            season: 2023,
+            games: 11,
+            wins: 6,
+          }),
+          expect.objectContaining({
+            season: 2024,
+            games: 15,
+            wins: 10,
+          }),
+        ]),
+      );
+      expectArraySchema("CombinedGoalie", body);
     } finally {
       await db.cleanup();
     }

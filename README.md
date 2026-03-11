@@ -698,6 +698,6 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
-- Continue pruning the remaining mock-heavy `services.test.ts` happy-path coverage where DB-backed route integration already exercises the same behavior end-to-end
+- Evaluate whether any remaining career/leaderboard `services.test.ts` happy paths should move to DB-backed route integration, while keeping direct unit coverage for the aggregation-heavy transforms
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!

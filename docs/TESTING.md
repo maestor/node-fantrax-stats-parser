@@ -61,6 +61,7 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - For changes that cross `routes` + `services` + `db/queries`, prefer a DB-backed integration test before adding more delegation assertions.
 - When a DB-backed integration test already covers a route or service happy path end-to-end, delete the overlapping mocked happy-path test instead of keeping both.
 - In `services.test.ts`, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
+- Treat omitted-season selection and combined default-window behavior as route-integration territory, not mocked service wiring.
 - Keep focused unit tests for pure logic such as scoring, mapping, auth parsing, cache normalization, and snapshot cache behavior.
 - For OpenAPI schema conformance, prefer validating real route responses, using the integration suite for DB-backed endpoints and only lightweight route tests for non-DB cases.
 - The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
