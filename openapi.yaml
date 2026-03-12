@@ -450,6 +450,10 @@ components:
         - most-teams-owned
         - same-team-seasons-played
         - same-team-seasons-owned
+        - most-stanley-cups
+        - reunion-king
+        - stash-king
+        - regular-grinder-without-playoffs
 
     CareerHighlightTeam:
       type: object
@@ -492,6 +496,88 @@ components:
         team:
           $ref: "#/components/schemas/CareerHighlightTeam"
 
+    CareerStanleyCupHighlightCup:
+      type: object
+      required: [season, team]
+      properties:
+        season:
+          type: integer
+        team:
+          $ref: "#/components/schemas/CareerHighlightTeam"
+
+    CareerStanleyCupHighlightItem:
+      type: object
+      required: [id, name, position, cupCount, cups]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        cupCount:
+          type: integer
+        cups:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerStanleyCupHighlightCup"
+
+    CareerReunionHighlightItem:
+      type: object
+      required: [id, name, position, reunionCount, team, stints]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        reunionCount:
+          type: integer
+        team:
+          $ref: "#/components/schemas/CareerHighlightTeam"
+        stints:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerReunionHighlightStint"
+
+    CareerReunionHighlightStint:
+      type: object
+      required: [fromSeason, toSeason]
+      properties:
+        fromSeason:
+          type: integer
+        toSeason:
+          type: integer
+
+    CareerStashHighlightItem:
+      type: object
+      required: [id, name, position, seasonCount, team]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        seasonCount:
+          type: integer
+        team:
+          $ref: "#/components/schemas/CareerHighlightTeam"
+
+    CareerRegularGrinderHighlightItem:
+      type: object
+      required: [id, name, position, regularGames]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        regularGames:
+          type: integer
+
     CareerTeamCountHighlightPage:
       type: object
       required: [type, skip, take, total, items]
@@ -527,6 +613,78 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CareerSameTeamHighlightItem"
+
+    CareerStanleyCupHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [most-stanley-cups]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerStanleyCupHighlightItem"
+
+    CareerReunionHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [reunion-king]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerReunionHighlightItem"
+
+    CareerStashHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [stash-king]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerStashHighlightItem"
+
+    CareerRegularGrinderHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [regular-grinder-without-playoffs]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerRegularGrinderHighlightItem"
 
     CareerGoalie:
       type: object
@@ -1388,9 +1546,19 @@ paths:
         Returns a paged mixed skater + goalie career highlights leaderboard.
         `most-teams-played` and `most-teams-owned` return team-count rows.
         `same-team-seasons-played` and `same-team-seasons-owned` return one row per top team, so the same person can appear multiple times on tied same-team results.
+        `most-stanley-cups` returns one row per player/goalie with cup seasons and fantasy teams.
+        `reunion-king` returns one row per top reunion team, so the same person can appear multiple
+        times on tied reunion results, and includes stint ranges for each return.
+        `stash-king` returns the top same-team zero-game season counts, similar to
+        `same-team-seasons-owned` but counting only team seasons where both regular and playoff
+        games stayed at zero.
+        `regular-grinder-without-playoffs` returns total regular-season games for players/goalies who
+        never recorded a playoff appearance.
         Minimum cutoffs are 4 teams for `most-teams-played`, 5 teams for `most-teams-owned`,
-        8 same-team seasons for `same-team-seasons-played`, and 10 same-team seasons for
-        `same-team-seasons-owned`.
+        8 same-team seasons for `same-team-seasons-played`, 10 same-team seasons for
+        `same-team-seasons-owned`, 2 cups for `most-stanley-cups`, 2 reunion stints for
+        `reunion-king`, 10 stash counts for `stash-king`, and 60 games for
+        `regular-grinder-without-playoffs`.
       parameters:
         - name: type
           in: path
@@ -1409,6 +1577,10 @@ paths:
                 oneOf:
                   - $ref: "#/components/schemas/CareerTeamCountHighlightPage"
                   - $ref: "#/components/schemas/CareerSameTeamHighlightPage"
+                  - $ref: "#/components/schemas/CareerStanleyCupHighlightPage"
+                  - $ref: "#/components/schemas/CareerReunionHighlightPage"
+                  - $ref: "#/components/schemas/CareerStashHighlightPage"
+                  - $ref: "#/components/schemas/CareerRegularGrinderHighlightPage"
         "400":
           description: Invalid highlight type or paging params.
         "401":

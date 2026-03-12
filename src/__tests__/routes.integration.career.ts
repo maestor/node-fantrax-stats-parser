@@ -829,6 +829,452 @@ export const registerCareerRouteIntegrationTests = (): void => {
       }
     });
 
+    test("returns most-stanley-cups highlights with cup seasons and fantasy teams", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2021,
+            reportType: "playoffs",
+            playerId: "p-cups",
+            name: "Cup Skater",
+            position: "F",
+            games: 8,
+          },
+          {
+            teamId: "2",
+            season: 2023,
+            reportType: "playoffs",
+            playerId: "p-cups",
+            name: "Cup Skater",
+            position: "F",
+            games: 12,
+          },
+          {
+            teamId: "4",
+            season: 2024,
+            reportType: "playoffs",
+            playerId: "p-one",
+            name: "One Cup Skater",
+            position: "D",
+            games: 6,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "3",
+            season: 2020,
+            reportType: "playoffs",
+            goalieId: "g-cups",
+            name: "Cup Goalie",
+            games: 4,
+          },
+          {
+            teamId: "3",
+            season: 2022,
+            reportType: "playoffs",
+            goalieId: "g-cups",
+            name: "Cup Goalie",
+            games: 4,
+          },
+          {
+            teamId: "3",
+            season: 2024,
+            reportType: "playoffs",
+            goalieId: "g-cups",
+            name: "Cup Goalie",
+            games: 5,
+          },
+        ]);
+        await db.insertPlayoffResults([
+          { teamId: "3", season: 2020, round: 5 },
+          { teamId: "1", season: 2021, round: 5 },
+          { teamId: "3", season: 2022, round: 5 },
+          { teamId: "2", season: 2023, round: 5 },
+          { teamId: "3", season: 2024, round: 5 },
+          { teamId: "4", season: 2024, round: 4 },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-stanley-cups",
+          params: { type: "most-stanley-cups" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "most-stanley-cups",
+          skip: 0,
+          take: 10,
+          total: 2,
+          items: [
+            {
+              id: "g-cups",
+              name: "Cup Goalie",
+              position: "G",
+              cupCount: 3,
+              cups: [
+                {
+                  season: 2020,
+                  team: { id: "3", name: "Calgary Flames" },
+                },
+                {
+                  season: 2022,
+                  team: { id: "3", name: "Calgary Flames" },
+                },
+                {
+                  season: 2024,
+                  team: { id: "3", name: "Calgary Flames" },
+                },
+              ],
+            },
+            {
+              id: "p-cups",
+              name: "Cup Skater",
+              position: "F",
+              cupCount: 2,
+              cups: [
+                {
+                  season: 2021,
+                  team: { id: "1", name: "Colorado Avalanche" },
+                },
+                {
+                  season: 2023,
+                  team: { id: "2", name: "Carolina Hurricanes" },
+                },
+              ],
+            },
+          ],
+        });
+        expectObjectSchema("CareerStanleyCupHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns reunion-king highlights from separated same-team season blocks", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          ...[2018, 2020, 2022].map((season) => ({
+            teamId: "7",
+            season,
+            reportType: "regular" as const,
+            playerId: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            games: 0,
+          })),
+          ...[2019, 2020, 2022, 2024].map((season) => ({
+            teamId: "19",
+            season,
+            reportType: "regular" as const,
+            playerId: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            games: 0,
+          })),
+          ...[2020, 2022].map((season) => ({
+            teamId: "1",
+            season,
+            reportType: "regular" as const,
+            playerId: "p-two",
+            name: "Two Reunion",
+            position: "D",
+            games: 0,
+          })),
+        ]);
+        await db.insertGoalies(
+          [2017, 2019, 2021, 2023].map((season) => ({
+            teamId: "3",
+            season,
+            reportType: "regular" as const,
+            goalieId: "g-reunion",
+            name: "Reunion Goalie",
+            games: 0,
+          })),
+        );
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/reunion-king",
+          params: { type: "reunion-king" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "reunion-king",
+          skip: 0,
+          take: 10,
+          total: 4,
+          items: [
+            {
+              id: "g-reunion",
+              name: "Reunion Goalie",
+              position: "G",
+              reunionCount: 4,
+              team: { id: "3", name: "Calgary Flames" },
+              stints: [
+                { fromSeason: 2017, toSeason: 2017 },
+                { fromSeason: 2019, toSeason: 2019 },
+                { fromSeason: 2021, toSeason: 2021 },
+                { fromSeason: 2023, toSeason: 2023 },
+              ],
+            },
+            {
+              id: "p-reunion",
+              name: "Reunion Skater",
+              position: "F",
+              reunionCount: 3,
+              team: { id: "7", name: "Edmonton Oilers" },
+              stints: [
+                { fromSeason: 2018, toSeason: 2018 },
+                { fromSeason: 2020, toSeason: 2020 },
+                { fromSeason: 2022, toSeason: 2022 },
+              ],
+            },
+            {
+              id: "p-reunion",
+              name: "Reunion Skater",
+              position: "F",
+              reunionCount: 3,
+              team: { id: "19", name: "Toronto Maple Leafs" },
+              stints: [
+                { fromSeason: 2019, toSeason: 2020 },
+                { fromSeason: 2022, toSeason: 2022 },
+                { fromSeason: 2024, toSeason: 2024 },
+              ],
+            },
+            {
+              id: "p-two",
+              name: "Two Reunion",
+              position: "D",
+              reunionCount: 2,
+              team: { id: "1", name: "Colorado Avalanche" },
+              stints: [
+                { fromSeason: 2020, toSeason: 2020 },
+                { fromSeason: 2022, toSeason: 2022 },
+              ],
+            },
+          ],
+        });
+        expectObjectSchema("CareerReunionHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns same-team zero-game season counts for stash-king", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          ...Array.from({ length: 10 }, (_, index) => ({
+            teamId: "1",
+            season: 2015 + index,
+            reportType: "regular" as const,
+            playerId: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            games: 0,
+          })),
+          {
+            teamId: "1",
+            season: 2015,
+            reportType: "playoffs",
+            playerId: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "11",
+            season: 2025,
+            reportType: "regular",
+            playerId: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            games: 0,
+          },
+          {
+            teamId: "11",
+            season: 2025,
+            reportType: "playoffs",
+            playerId: "p-stash",
+            name: "Stash Skater",
+            position: "F",
+            games: 1,
+          },
+          ...Array.from({ length: 10 }, (_, index) => ({
+            teamId: String(index + 20),
+            season: 2012 + index,
+            reportType: "regular" as const,
+            playerId: "p-transfer-stash",
+            name: "Transfer Stash",
+            position: "D",
+            games: 0,
+          })),
+        ]);
+        await db.insertGoalies(
+          Array.from({ length: 11 }, (_, index) => ({
+            teamId: "20",
+            season: 2014 + index,
+            reportType: "regular" as const,
+            goalieId: "g-stash",
+            name: "Stash Goalie",
+            games: 0,
+          })),
+        );
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/stash-king",
+          params: { type: "stash-king" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "stash-king",
+          skip: 0,
+          take: 10,
+          total: 2,
+          items: [
+            {
+              id: "g-stash",
+              name: "Stash Goalie",
+              position: "G",
+              seasonCount: 11,
+              team: { id: "20", name: "Ottawa Senators" },
+            },
+            {
+              id: "p-stash",
+              name: "Stash Skater",
+              position: "F",
+              seasonCount: 10,
+              team: { id: "1", name: "Colorado Avalanche" },
+            },
+          ],
+        });
+        expectObjectSchema("CareerStashHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns regular-grinder-without-playoffs highlights from regular-season max games", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            games: 30,
+          },
+          {
+            teamId: "2",
+            season: 2023,
+            reportType: "regular",
+            playerId: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            games: 40,
+          },
+          {
+            teamId: "2",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-grinder",
+            name: "Grinder Skater",
+            position: "F",
+            games: 25,
+          },
+          {
+            teamId: "3",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-playoffs",
+            name: "Playoff Skater",
+            position: "D",
+            games: 82,
+          },
+          {
+            teamId: "3",
+            season: 2024,
+            reportType: "playoffs",
+            playerId: "p-playoffs",
+            name: "Playoff Skater",
+            position: "D",
+            games: 8,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "5",
+            season: 2023,
+            reportType: "regular",
+            goalieId: "g-grinder",
+            name: "Goalie Grinder",
+            games: 70,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/regular-grinder-without-playoffs",
+          params: { type: "regular-grinder-without-playoffs" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "regular-grinder-without-playoffs",
+          skip: 0,
+          take: 10,
+          total: 2,
+          items: [
+            {
+              id: "g-grinder",
+              name: "Goalie Grinder",
+              position: "G",
+              regularGames: 70,
+            },
+            {
+              id: "p-grinder",
+              name: "Grinder Skater",
+              position: "F",
+              regularGames: 65,
+            },
+          ],
+        });
+        expectObjectSchema("CareerRegularGrinderHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
     test("serves career highlight snapshots and applies paging after loading the snapshot", async () => {
       const db = await createIntegrationDb();
 
