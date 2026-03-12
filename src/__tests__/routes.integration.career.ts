@@ -148,6 +148,68 @@ export const registerCareerRouteIntegrationTests = (): void => {
       }
     });
 
+    test("prefers canonical fantrax entity metadata for career player routes", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-canonical",
+            name: "Typo Skater",
+            position: null,
+            games: 3,
+            goals: 1,
+            assists: 1,
+            points: 2,
+          },
+        ]);
+        await db.db.execute({
+          sql: "UPDATE fantrax_entities SET name = ?, position = ? WHERE fantrax_id = ?",
+          args: ["Canonical Skater", "D", "p-canonical"],
+        });
+
+        const detailReq = createRequest({
+          method: "GET",
+          url: "/career/player/p-canonical",
+          params: { id: "p-canonical" },
+        });
+        const detailRes = createResponse();
+
+        await getCareerPlayer(asRouteReq<CareerPlayerReq>(detailReq), detailRes);
+
+        expect(detailRes.statusCode).toBe(HTTP_STATUS.OK);
+        expect(getJsonBody<Record<string, unknown>>(detailRes)).toEqual(
+          expect.objectContaining({
+            id: "p-canonical",
+            name: "Canonical Skater",
+            position: "D",
+          }),
+        );
+
+        const listReq = createRequest({
+          method: "GET",
+          url: "/career/players",
+        });
+        const listRes = createResponse();
+
+        await getCareerPlayers(asRouteReq<CareerPlayersReq>(listReq), listRes);
+
+        expect(listRes.statusCode).toBe(HTTP_STATUS.OK);
+        expect(getJsonBody<Array<Record<string, unknown>>>(listRes)).toEqual([
+          expect.objectContaining({
+            id: "p-canonical",
+            name: "Canonical Skater",
+            position: "D",
+          }),
+        ]);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
     test("returns career player list data from the live DB", async () => {
       const db = await createIntegrationDb();
 
@@ -340,6 +402,64 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.NOT_FOUND);
         expect(res._getData()).toBe("Goalie not found");
         expect(res.getHeader("cache-control")).toBe("private, no-store");
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("prefers canonical fantrax entity metadata for career goalie routes", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertGoalies([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "g-canonical",
+            name: "Typo Goalie",
+            games: 4,
+            wins: 2,
+            saves: 120,
+          },
+        ]);
+        await db.db.execute({
+          sql: "UPDATE fantrax_entities SET name = ? WHERE fantrax_id = ?",
+          args: ["Canonical Goalie", "g-canonical"],
+        });
+
+        const detailReq = createRequest({
+          method: "GET",
+          url: "/career/goalie/g-canonical",
+          params: { id: "g-canonical" },
+        });
+        const detailRes = createResponse();
+
+        await getCareerGoalie(asRouteReq<CareerGoalieReq>(detailReq), detailRes);
+
+        expect(detailRes.statusCode).toBe(HTTP_STATUS.OK);
+        expect(getJsonBody<Record<string, unknown>>(detailRes)).toEqual(
+          expect.objectContaining({
+            id: "g-canonical",
+            name: "Canonical Goalie",
+          }),
+        );
+
+        const listReq = createRequest({
+          method: "GET",
+          url: "/career/goalies",
+        });
+        const listRes = createResponse();
+
+        await getCareerGoalies(asRouteReq<CareerGoaliesReq>(listReq), listRes);
+
+        expect(listRes.statusCode).toBe(HTTP_STATUS.OK);
+        expect(getJsonBody<Array<Record<string, unknown>>>(listRes)).toEqual([
+          expect.objectContaining({
+            id: "g-canonical",
+            name: "Canonical Goalie",
+          }),
+        ]);
       } finally {
         await db.cleanup();
       }

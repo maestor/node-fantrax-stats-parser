@@ -162,13 +162,29 @@ export const getPlayerCareerRowsFromDb = async (
 ): Promise<PlayerCareerRow[]> => {
   const db = getDbClient();
   const result = await db.execute({
-    sql: `SELECT player_id, name, position, team_id, season, report_type, games, goals, assists, points,
-                 plus_minus, penalties, shots, ppp, shp, hits, blocks
-          FROM players
-          WHERE player_id = ?
-          ORDER BY season DESC,
-                   team_id ASC,
-                   CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    sql: `SELECT p.player_id,
+                 COALESCE(fe.name, p.name) AS name,
+                 COALESCE(fe.position, p.position) AS position,
+                 p.team_id,
+                 p.season,
+                 p.report_type,
+                 p.games,
+                 p.goals,
+                 p.assists,
+                 p.points,
+                 p.plus_minus,
+                 p.penalties,
+                 p.shots,
+                 p.ppp,
+                 p.shp,
+                 p.hits,
+                 p.blocks
+          FROM players p
+          LEFT JOIN fantrax_entities fe ON fe.fantrax_id = p.player_id
+          WHERE p.player_id = ?
+          ORDER BY p.season DESC,
+                   p.team_id ASC,
+                   CASE p.report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
     args: [playerId],
   });
   return castRows<PlayerCareerRow>(result.rows);
@@ -179,13 +195,29 @@ export const getGoalieCareerRowsFromDb = async (
 ): Promise<GoalieCareerRow[]> => {
   const db = getDbClient();
   const result = await db.execute({
-    sql: `SELECT goalie_id, name, team_id, season, report_type, games, wins, saves, shutouts,
-                 goals, assists, points, penalties, ppp, shp, gaa, save_percent
-          FROM goalies
-          WHERE goalie_id = ?
-          ORDER BY season DESC,
-                   team_id ASC,
-                   CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    sql: `SELECT g.goalie_id,
+                 COALESCE(fe.name, g.name) AS name,
+                 g.team_id,
+                 g.season,
+                 g.report_type,
+                 g.games,
+                 g.wins,
+                 g.saves,
+                 g.shutouts,
+                 g.goals,
+                 g.assists,
+                 g.points,
+                 g.penalties,
+                 g.ppp,
+                 g.shp,
+                 g.gaa,
+                 g.save_percent
+          FROM goalies g
+          LEFT JOIN fantrax_entities fe ON fe.fantrax_id = g.goalie_id
+          WHERE g.goalie_id = ?
+          ORDER BY g.season DESC,
+                   g.team_id ASC,
+                   CASE g.report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
     args: [goalieId],
   });
   return castRows<GoalieCareerRow>(result.rows);
@@ -194,11 +226,27 @@ export const getGoalieCareerRowsFromDb = async (
 export const getAllPlayerCareerRowsFromDb = async (): Promise<PlayerCareerRow[]> => {
   const db = getDbClient();
   const result = await db.execute(
-    `SELECT player_id, name, position, team_id, season, report_type, games, goals, assists, points,
-            plus_minus, penalties, shots, ppp, shp, hits, blocks
-     FROM players
-     ORDER BY name ASC, player_id ASC, season DESC, team_id ASC,
-              CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    `SELECT p.player_id,
+            COALESCE(fe.name, p.name) AS name,
+            COALESCE(fe.position, p.position) AS position,
+            p.team_id,
+            p.season,
+            p.report_type,
+            p.games,
+            p.goals,
+            p.assists,
+            p.points,
+            p.plus_minus,
+            p.penalties,
+            p.shots,
+            p.ppp,
+            p.shp,
+            p.hits,
+            p.blocks
+     FROM players p
+     LEFT JOIN fantrax_entities fe ON fe.fantrax_id = p.player_id
+     ORDER BY name ASC, p.player_id ASC, p.season DESC, p.team_id ASC,
+              CASE p.report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
   );
   return castRows<PlayerCareerRow>(result.rows);
 };
@@ -206,11 +254,27 @@ export const getAllPlayerCareerRowsFromDb = async (): Promise<PlayerCareerRow[]>
 export const getAllGoalieCareerRowsFromDb = async (): Promise<GoalieCareerRow[]> => {
   const db = getDbClient();
   const result = await db.execute(
-    `SELECT goalie_id, name, team_id, season, report_type, games, wins, saves, shutouts,
-            goals, assists, points, penalties, ppp, shp, gaa, save_percent
-     FROM goalies
-     ORDER BY name ASC, goalie_id ASC, season DESC, team_id ASC,
-              CASE report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
+    `SELECT g.goalie_id,
+            COALESCE(fe.name, g.name) AS name,
+            g.team_id,
+            g.season,
+            g.report_type,
+            g.games,
+            g.wins,
+            g.saves,
+            g.shutouts,
+            g.goals,
+            g.assists,
+            g.points,
+            g.penalties,
+            g.ppp,
+            g.shp,
+            g.gaa,
+            g.save_percent
+     FROM goalies g
+     LEFT JOIN fantrax_entities fe ON fe.fantrax_id = g.goalie_id
+     ORDER BY name ASC, g.goalie_id ASC, g.season DESC, g.team_id ASC,
+              CASE g.report_type WHEN 'regular' THEN 0 ELSE 1 END ASC`,
   );
   return castRows<GoalieCareerRow>(result.rows);
 };

@@ -56,8 +56,20 @@ describe("db/queries", () => {
           args: ["p001"],
         });
         expect(mockExecute).toHaveBeenCalledWith({
+          sql: expect.stringContaining("LEFT JOIN fantrax_entities fe"),
+          args: ["p001"],
+        });
+        expect(mockExecute).toHaveBeenCalledWith({
+          sql: expect.stringContaining("COALESCE(fe.name, p.name) AS name"),
+          args: ["p001"],
+        });
+        expect(mockExecute).toHaveBeenCalledWith({
+          sql: expect.stringContaining("COALESCE(fe.position, p.position) AS position"),
+          args: ["p001"],
+        });
+        expect(mockExecute).toHaveBeenCalledWith({
           sql: expect.stringContaining(
-            "CASE report_type WHEN 'regular' THEN 0 ELSE 1 END",
+            "CASE p.report_type WHEN 'regular' THEN 0 ELSE 1 END",
           ),
           args: ["p001"],
         });
@@ -106,8 +118,16 @@ describe("db/queries", () => {
           args: ["g001"],
         });
         expect(mockExecute).toHaveBeenCalledWith({
+          sql: expect.stringContaining("LEFT JOIN fantrax_entities fe"),
+          args: ["g001"],
+        });
+        expect(mockExecute).toHaveBeenCalledWith({
+          sql: expect.stringContaining("COALESCE(fe.name, g.name) AS name"),
+          args: ["g001"],
+        });
+        expect(mockExecute).toHaveBeenCalledWith({
           sql: expect.stringContaining(
-            "CASE report_type WHEN 'regular' THEN 0 ELSE 1 END",
+            "CASE g.report_type WHEN 'regular' THEN 0 ELSE 1 END",
           ),
           args: ["g001"],
         });
@@ -155,6 +175,12 @@ describe("db/queries", () => {
           expect.not.stringContaining("games > 0"),
         );
         expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("LEFT JOIN fantrax_entities fe"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("COALESCE(fe.name, p.name) AS name"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
           expect.stringContaining("ORDER BY name ASC"),
         );
         expect(result).toEqual(rows);
@@ -193,6 +219,12 @@ describe("db/queries", () => {
 
         expect(mockExecute).toHaveBeenCalledWith(
           expect.not.stringContaining("games > 0"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("LEFT JOIN fantrax_entities fe"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("COALESCE(fe.name, g.name) AS name"),
         );
         expect(mockExecute).toHaveBeenCalledWith(
           expect.stringContaining("ORDER BY name ASC"),
