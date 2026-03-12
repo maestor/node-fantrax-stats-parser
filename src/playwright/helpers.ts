@@ -114,6 +114,11 @@ type LeagueSeasonInfo = {
   periods: LeaguePeriods;
 };
 
+export type LeagueYearInfo = {
+  year: number;
+  leagueId: string;
+};
+
 type LeagueIdsFileV2 = {
   schemaVersion: 2;
   leagueName: string;
@@ -638,6 +643,31 @@ const resolveAvailableYears = (file: LeagueIdsFile): number[] => {
     .sort((a, b) => b - a);
 };
 
+export const readLeagueYearInfos = (): LeagueYearInfo[] => {
+  const file = readLeagueIdsFile();
+
+  if (file.schemaVersion === 1) {
+    return Object.entries(file.leagueIdsByYear)
+      .map(([year, leagueId]) => ({
+        year: Number(year),
+        leagueId,
+      }))
+      .filter(
+        (season): season is LeagueYearInfo =>
+          Number.isFinite(season.year) && Boolean(season.leagueId),
+      )
+      .sort((a, b) => b.year - a.year);
+  }
+
+  return file.seasons
+    .map(({ year, leagueId }) => ({ year, leagueId }))
+    .filter(
+      (season): season is LeagueYearInfo =>
+        Number.isFinite(season.year) && Boolean(season.leagueId),
+    )
+    .sort((a, b) => b.year - a.year);
+};
+
 const resolveSeasonInfoForYear = (
   file: LeagueIdsFile,
   year: number,
@@ -984,6 +1014,25 @@ export const buildRosterCsvPath = (args: {
   return path.resolve(args.outDir, fileName);
 };
 
+export const downloadCsvFromPage = async (
+  page: Page,
+  filePath: string,
+): Promise<string> => {
+  const downloadButton = page.locator(
+    'button[mattooltip="Download all as CSV"]',
+  );
+  await downloadButton.waitFor({ state: "visible", timeout: 30_000 });
+
+  mkdirSync(path.dirname(filePath), { recursive: true });
+
+  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
+  await downloadButton.click();
+  const download = await downloadPromise;
+  await download.saveAs(filePath);
+
+  return filePath;
+};
+
 export const downloadRosterCsv = async (
   page: Page,
   teamSlug: string,
@@ -1005,17 +1054,6 @@ export const downloadRosterCsv = async (
     // ignore
   }
 
-  const downloadButton = page.locator(
-    'button[mattooltip="Download all as CSV"]',
-  );
-  await downloadButton.waitFor({ state: "visible", timeout: 30_000 });
-
-  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
-  await downloadButton.click();
-  const download = await downloadPromise;
-
   const filePath = buildRosterCsvPath({ outDir, teamSlug, teamId, year, kind });
-  await download.saveAs(filePath);
-
-  return filePath;
+  return downloadCsvFromPage(page, filePath);
 };

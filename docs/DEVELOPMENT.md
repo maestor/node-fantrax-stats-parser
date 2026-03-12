@@ -115,6 +115,7 @@ npm run verify
 - `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
 - `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to regular files (and `--year=YYYY` when provided).
 - `npm run playwright:import:playoffs` - Import playoffs data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to playoffs files (and `--year=YYYY` when provided).
+- `npm run playwright:import:transactions` - Download season transaction CSVs (`claims-YYYY-YYYY.csv`, `trades-YYYY-YYYY.csv`) into `csv/transactions/`. Defaults to the most recent mapped season, supports `--year=YYYY` and `--all`, refreshes files in place, retries failed downloads by default (`--retries`, `--retry-delay`), and auto-runs `r2:upload:transactions` when `USE_R2_STORAGE=true` and the default output dir is used.
 - All `playwright:*` scripts run `playwright:install` automatically first so browser updates do not break local runs.
 - `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present, removes only empty placeholder first columns + `Age`, and fixes the known malformed goalie row `*06mqq*` to goalie position `G` inside the `Goalies` section.
 - `./scripts/import-temp-csv.sh [--dry-run] [--keep-temp] [--season=YYYY] [--report-type=regular|playoffs|both]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB. By default it removes successfully imported source files from `csv/temp/`; use `--keep-temp` to preserve them. If `--season` is omitted it processes all matched seasons; if `--report-type` is omitted, `both` is the default.
@@ -151,6 +152,8 @@ npm run verify
 - `npm run r2:upload:current` - Upload only current season to R2
 - `npm run r2:upload -- --report-type=regular|playoffs` - Upload only one report type to R2
 - `npm run r2:download` - Download CSV files from R2. Snapshot objects under the configured snapshot prefix are ignored.
+- `npm run r2:upload:transactions` - Upload `csv/transactions/*.csv` to `transactions/` in R2. Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--force`.
+- `npm run r2:download:transactions` - Download `transactions/*.csv` from R2 into `csv/transactions/`. Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--force`.
 - `npm run r2:upload:raw` - Force-upload raw `csv/temp/*.csv` to `rawFiles/<teamId>/...` and remove uploaded temp files
 - `npm run r2:download:raw` - Download all `rawFiles/` objects from R2 into `csv/temp/` (force overwrite)
 - `npm run parseAndUploadRawCsv` - Post-import raw pipeline: upload `csv/temp` to `rawFiles/` and clean uploaded temp files
@@ -219,7 +222,7 @@ USE_REMOTE_DB=false
 # R2_ACCESS_KEY_ID=your_access_key_id
 # R2_SECRET_ACCESS_KEY=your_secret_access_key
 # R2_BUCKET_NAME=ffhl-stats-csv
-# USE_R2_STORAGE=true               # Enables R2 upload in import pipeline
+# USE_R2_STORAGE=true               # Enables R2 upload in import pipelines (stats import-temp flow + transaction scrape when using default csv/transactions output)
 # USE_R2_SNAPSHOTS=false            # Upload/read generated API snapshots via R2
 # R2_SNAPSHOT_BUCKET_NAME=          # Optional; defaults to R2_BUCKET_NAME
 # R2_SNAPSHOT_PREFIX=snapshots      # Optional object prefix for snapshot JSONs
