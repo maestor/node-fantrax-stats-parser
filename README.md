@@ -26,6 +26,7 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 ```
 
 **Note:** CSV files are only the import source. The API reads live data from Turso and can also serve generated JSON snapshots for read-mostly endpoints. The stats import pipeline also maintains a canonical `fantrax_entities` registry keyed by Fantrax ID so future joins can rely on a stable global player/goalie identity table.
+Transaction imports now also normalize `csv/transactions/*.csv` into dedicated database tables for claim/drop events and trade source blocks, while keeping the CSV files as the raw source of truth.
 
 ## Endpoints
 
@@ -278,6 +279,26 @@ Useful options:
 - `--retries=4` (retry a failed download 4 extra times)
 - `--retry-delay=5000` (wait 5s between retries; default `2000`)
 - `--out=./csv/transactions/` (override output dir; auto-upload is skipped for custom output dirs)
+
+### 3d) Import transaction CSVs into the database
+
+Run:
+
+```bash
+npm run db:import:transactions
+```
+
+Notes:
+
+- Imports all matching `claims-YYYY-YYYY.csv` and `trades-YYYY-YYYY.csv` files from `csv/transactions/` by default.
+- Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--dir=/custom/path`.
+- Stores claim/drop groups in `claim_events` + `claim_event_items`, with `claim_event_items` also mirroring `season`, `team_id`, and `occurred_at` for direct feed-style queries.
+- Stores trade rows in `trade_source_blocks` + `trade_block_items`.
+- Ignores `Lineup Change` rows.
+- Treats `(Drop)` rows inside trade CSVs as normal drop events, not as trade assets.
+- Ignores commissioner-fix one-way trade blocks.
+- Resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` / `goalies` when duplicate names exist, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs.
+- Leaves unresolved player rows in the database with null `fantrax_entity_id` plus explicit match metadata.
 
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
@@ -557,7 +578,8 @@ Currently snapshotted response families are:
 
 Behavior:
 
-- Successful `db:import:*` scripts refresh `import_metadata.last_modified` and then run `npm run snapshot:generate`
+- Successful stats and results import scripts refresh `import_metadata.last_modified` and then run `npm run snapshot:generate`
+- `db:import:transactions` refreshes `import_metadata.last_modified`
 - snapshots are written locally to `generated/snapshots/`
 - if `USE_R2_SNAPSHOTS=true`, the same generation step also uploads JSON snapshots to R2
 - at runtime the API tries local snapshots first, then R2, and finally falls back to live DB queries
@@ -574,6 +596,7 @@ npm run snapshot:generate
 The API reads all data from a Turso (libSQL/SQLite) database. CSV files are imported into the database via the import pipeline.
 
 Stats imports also maintain a global `fantrax_entities` table with one row per Fantrax ID. Each row stores the canonical Fantrax `name`, `position`, and the `first_seen_season` / `last_seen_season` bounds derived from imported data. `npm run db:migrate` backfills this table when upgrading an older database or rebuilding an empty registry, and later `db:import:stats` runs keep it incrementally in sync with cheap UPSERTs instead of full refreshes. Career endpoints now prefer canonical name/position data from this registry while still aggregating season/team stats from `players` and `goalies`.
+Transaction imports use that same registry to link claim/drop/trade player rows whenever possible. Matching prefers exact `name + position`, then same-season fantasy-team context, and finally the candidate with the latest `last_seen_season` when duplicate Fantrax IDs appear to represent merged player history. Normalized transaction storage lives in four tables: `claim_events`, `claim_event_items`, `trade_source_blocks`, and `trade_block_items`. `claim_event_items` also mirrors `season`, `team_id`, and `occurred_at` from its parent event so most claim/drop lookups can read straight from the item table.
 
 ### Local development
 
@@ -585,6 +608,8 @@ npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into local DB
 npm run db:import:stats -- --report-type=playoffs # Import only playoffs
+npm run db:import:transactions  # Import all transaction CSVs into local DB
+npm run db:import:transactions -- --season=2025
 ```
 
 If you already have production data in Turso and want to replace local SQLite with it:
@@ -614,9 +639,10 @@ npm run db:import:stats         # Import all CSV files into remote Turso
 npm run db:import:stats:current # Import only current season into remote Turso
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into remote Turso
 npm run db:import:stats -- --season=2018 --report-type=regular # Import only regular from one season
+npm run db:import:transactions  # Import all transaction CSVs into remote Turso
 ```
 
-All successful `db:import:*` commands regenerate API snapshots after the database update completes.
+Successful stats and results imports regenerate API snapshots after the database update completes.
 
 Get credentials from the [Turso dashboard](https://turso.tech).
 

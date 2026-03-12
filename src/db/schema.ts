@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 
-const DB_SCHEMA_VERSION = "5";
+const DB_SCHEMA_VERSION = "7";
 const FANTRAX_ENTITIES_SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = [
@@ -92,6 +92,110 @@ const SCHEMA_SQL = [
     UNIQUE(team_id, season)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_regular_results_season ON regular_results(season)`,
+  `CREATE TABLE IF NOT EXISTS claim_events (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    season             INTEGER NOT NULL,
+    team_id            TEXT NOT NULL,
+    occurred_at        TEXT NOT NULL,
+    source_file        TEXT NOT NULL,
+    source_group_index INTEGER NOT NULL,
+    UNIQUE(source_file, source_group_index)
+  )`,
+  `CREATE TABLE IF NOT EXISTS claim_event_items (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    claim_event_id    INTEGER NOT NULL,
+    season            INTEGER NOT NULL,
+    team_id           TEXT NOT NULL,
+    occurred_at       TEXT NOT NULL,
+    sequence          INTEGER NOT NULL,
+    action_type       TEXT NOT NULL,
+    fantrax_entity_id TEXT,
+    raw_name          TEXT NOT NULL,
+    raw_position      TEXT,
+    match_status      TEXT NOT NULL,
+    match_strategy    TEXT NOT NULL,
+    UNIQUE(claim_event_id, sequence),
+    FOREIGN KEY (claim_event_id) REFERENCES claim_events(id) ON DELETE CASCADE,
+    FOREIGN KEY (fantrax_entity_id) REFERENCES fantrax_entities(fantrax_id),
+    CHECK (action_type IN ('claim', 'drop')),
+    CHECK (
+      match_status IN (
+        'matched',
+        'unresolved_missing_entity',
+        'unresolved_ambiguous_entity',
+        'not_applicable'
+      )
+    ),
+    CHECK (
+      match_strategy IN (
+        'exact_name_position',
+        'season_team_context',
+        'not_applicable'
+      )
+    )
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_claim_events_season_date
+    ON claim_events(season, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_claim_events_team_date
+    ON claim_events(team_id, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_claim_event_items_entity
+    ON claim_event_items(fantrax_entity_id)`,
+  `CREATE TABLE IF NOT EXISTS trade_source_blocks (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    season                INTEGER NOT NULL,
+    occurred_at           TEXT NOT NULL,
+    source_file           TEXT NOT NULL,
+    source_block_index    INTEGER NOT NULL,
+    source_period         INTEGER NOT NULL,
+    participant_signature TEXT NOT NULL,
+    UNIQUE(source_file, source_block_index)
+  )`,
+  `CREATE TABLE IF NOT EXISTS trade_block_items (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    trade_source_block_id INTEGER NOT NULL,
+    sequence              INTEGER NOT NULL,
+    from_team_id          TEXT NOT NULL,
+    to_team_id            TEXT NOT NULL,
+    asset_type            TEXT NOT NULL,
+    fantrax_entity_id     TEXT,
+    raw_name              TEXT NOT NULL,
+    raw_position          TEXT,
+    match_status          TEXT NOT NULL,
+    match_strategy        TEXT NOT NULL,
+    draft_season          INTEGER,
+    draft_round           INTEGER,
+    draft_original_team_id TEXT,
+    raw_asset_text        TEXT NOT NULL,
+    UNIQUE(trade_source_block_id, sequence),
+    FOREIGN KEY (trade_source_block_id) REFERENCES trade_source_blocks(id) ON DELETE CASCADE,
+    FOREIGN KEY (fantrax_entity_id) REFERENCES fantrax_entities(fantrax_id),
+    CHECK (asset_type IN ('player', 'draft_pick', 'other')),
+    CHECK (
+      match_status IN (
+        'matched',
+        'unresolved_missing_entity',
+        'unresolved_ambiguous_entity',
+        'not_applicable'
+      )
+    ),
+    CHECK (
+      match_strategy IN (
+        'exact_name_position',
+        'season_team_context',
+        'not_applicable'
+      )
+    )
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_trade_source_blocks_season_date
+    ON trade_source_blocks(season, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_trade_source_blocks_signature_date
+    ON trade_source_blocks(participant_signature, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_trade_block_items_entity
+    ON trade_block_items(fantrax_entity_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_trade_block_items_from_team
+    ON trade_block_items(from_team_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_trade_block_items_to_team
+    ON trade_block_items(to_team_id)`,
 ] as const;
 
 const FANTRAX_ENTITIES_BACKFILL_SQL = [
@@ -193,6 +297,9 @@ const FANTRAX_ENTITIES_BACKFILL_SQL = [
 ] as const;
 
 type DbExecutor = Pick<Client, "execute">;
+type TableInfoRow = {
+  name?: string | number | bigint | null;
+};
 
 const getImportMetadataValue = async (
   db: DbExecutor,
@@ -226,10 +333,52 @@ const shouldBackfillFantraxEntities = async (
   return Number(row.count) === 0;
 };
 
+const getTableColumnNames = async (
+  db: DbExecutor,
+  tableName: string,
+): Promise<Set<string>> => {
+  const result = await db.execute(`PRAGMA table_info(${tableName})`);
+  const columnNames = new Set<string>();
+
+  for (const row of result.rows) {
+    const name = (row as unknown as TableInfoRow).name;
+    if (name != null) {
+      columnNames.add(String(name));
+    }
+  }
+
+  return columnNames;
+};
+
+const ensureClaimEventItemColumns = async (db: DbExecutor): Promise<void> => {
+  const columnNames = await getTableColumnNames(db, "claim_event_items");
+
+  if (!columnNames.has("season")) {
+    await db.execute("ALTER TABLE claim_event_items ADD COLUMN season INTEGER");
+  }
+  if (!columnNames.has("team_id")) {
+    await db.execute("ALTER TABLE claim_event_items ADD COLUMN team_id TEXT");
+  }
+  if (!columnNames.has("occurred_at")) {
+    await db.execute("ALTER TABLE claim_event_items ADD COLUMN occurred_at TEXT");
+  }
+
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_claim_event_items_season_date
+      ON claim_event_items(season, occurred_at DESC)`,
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_claim_event_items_team_date
+      ON claim_event_items(team_id, occurred_at DESC)`,
+  );
+};
+
 export const migrateDb = async (db: DbExecutor): Promise<void> => {
   for (const sql of SCHEMA_SQL) {
     await db.execute(sql);
   }
+
+  await ensureClaimEventItemColumns(db);
 
   if (await shouldBackfillFantraxEntities(db)) {
     for (const sql of FANTRAX_ENTITIES_BACKFILL_SQL) {
