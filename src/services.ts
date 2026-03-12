@@ -867,6 +867,9 @@ const buildCareerRegularGrinderHighlightItem = (
   }
 
   const maxRegularGamesBySeason = new Map<number, number>();
+  const regularPlayedRows = rows.filter(
+    (row) => row.reportType === "regular" && row.games > 0,
+  );
   for (const row of rows) {
     if (row.reportType !== "regular" || row.games <= 0) continue;
 
@@ -889,6 +892,7 @@ const buildCareerRegularGrinderHighlightItem = (
     name: rows[0].name,
     position: rows[0].position,
     regularGames,
+    teams: buildCareerHighlightTeams(regularPlayedRows),
   };
 };
 

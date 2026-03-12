@@ -36,6 +36,7 @@ The API includes team-scoped season/combined leaderboards plus career endpoints 
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
 The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, and `regular-grinder-without-playoffs`.
 `reunion-king` items include stint ranges as `fromSeason` / `toSeason` pairs for each return stint.
+`regular-grinder-without-playoffs` items include the played fantasy `teams` list in addition to `regularGames`.
 Current highlight minimums are: `most-teams-played` 4, `most-teams-owned` 5, `same-team-seasons-played` 8, `same-team-seasons-owned` 10, `most-stanley-cups` 2, `reunion-king` 2, `stash-king` 10, and `regular-grinder-without-playoffs` 60.
 
 ### Viewing docs locally

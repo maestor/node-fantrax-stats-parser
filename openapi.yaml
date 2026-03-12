@@ -567,7 +567,7 @@ components:
 
     CareerRegularGrinderHighlightItem:
       type: object
-      required: [id, name, position, regularGames]
+      required: [id, name, position, regularGames, teams]
       properties:
         id:
           type: string
@@ -577,6 +577,10 @@ components:
           type: string
         regularGames:
           type: integer
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerHighlightTeam"
 
     CareerTeamCountHighlightPage:
       type: object
@@ -1552,8 +1556,8 @@ paths:
         `stash-king` returns the top same-team zero-game season counts, similar to
         `same-team-seasons-owned` but counting only team seasons where both regular and playoff
         games stayed at zero.
-        `regular-grinder-without-playoffs` returns total regular-season games for players/goalies who
-        never recorded a playoff appearance.
+        `regular-grinder-without-playoffs` returns total regular-season games plus the played fantasy teams
+        for players/goalies who never recorded a playoff appearance.
         Minimum cutoffs are 4 teams for `most-teams-played`, 5 teams for `most-teams-owned`,
         8 same-team seasons for `same-team-seasons-played`, 10 same-team seasons for
         `same-team-seasons-owned`, 2 cups for `most-stanley-cups`, 2 reunion stints for
