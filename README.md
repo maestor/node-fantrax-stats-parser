@@ -249,6 +249,36 @@ Useful options:
 - `--pause=500` (sleep between teams; default `250`)
 - `--out=./csv/temp/` (override output dir; can also set `CSV_OUT_DIR`)
 
+### 3c) Download transaction CSVs
+
+Run:
+
+```
+npm run playwright:import:transactions
+```
+
+Notes:
+
+- Uses the season-to-league mapping from step 2 (`fantrax-leagues.json`).
+- Output directory defaults to `./csv/transactions/`.
+- If `--year` is omitted, the importer defaults to the most recent mapped season year in `fantrax-leagues.json`.
+- Use `--all` to download every mapped season in one run.
+- Filenames follow: `claims-YYYY-YYYY.csv` and `trades-YYYY-YYYY.csv`.
+- Transaction files are refreshed in place so the current season can be scraped repeatedly without manual cleanup.
+- Each file download retries automatically by default (`--retries=2`, meaning 3 total attempts).
+- If `USE_R2_STORAGE=true` and output dir is the default `./csv/transactions/`, the importer runs `npm run r2:upload:transactions` automatically after scraping.
+
+Useful options:
+
+- `--year=2025` (download one season only)
+- `--all` (download all mapped seasons)
+- `--headed` (default is headless)
+- `--slowmo=250` (slows down actions for debugging)
+- `--pause=500` (sleep between downloads; default `250`)
+- `--retries=4` (retry a failed download 4 extra times)
+- `--retry-delay=5000` (wait 5s between retries; default `2000`)
+- `--out=./csv/transactions/` (override output dir; auto-upload is skipped for custom output dirs)
+
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
@@ -458,6 +488,15 @@ npm run r2:upload:raw -- --keep-temp   # Upload raw files but keep csv/temp file
 npm run r2:upload:raw:dry              # Preview without uploading/removing
 ```
 
+**Upload transaction CSV files to `transactions/` in R2:**
+
+```bash
+npm run r2:upload:transactions                  # Upload all transaction CSVs from csv/transactions
+npm run r2:upload:transactions -- --season=2025 # Upload only one season
+npm run r2:upload:transactions -- --current-only
+npm run r2:upload:transactions:dry
+```
+
 **Download CSV files from R2 (for local development):**
 
 ```bash
@@ -469,6 +508,15 @@ npm run r2:download -- --force        # Force overwrite existing files
 ```
 
 `npm run r2:download` skips runtime snapshot objects under the configured snapshot prefix.
+
+**Download transaction CSV files from `transactions/` in R2 to `csv/transactions/`:**
+
+```bash
+npm run r2:download:transactions                  # Download all transaction CSVs
+npm run r2:download:transactions -- --season=2025 # Download only one season
+npm run r2:download:transactions -- --current-only
+npm run r2:download:transactions:force
+```
 
 **Download raw temp CSV files from `rawFiles/` in R2 to `csv/temp/`:**
 
@@ -485,6 +533,12 @@ When `USE_R2_STORAGE=true`, the import pipeline automatically uploads to R2 and 
 ```bash
 npm run parseAndUploadCsv  # Loads .env, cleans CSVs, uploads to R2, imports to DB
 npm run parseAndUploadRawCsv # Loads .env, uploads raw csv/temp files to rawFiles/, removes uploaded temp files
+```
+
+The transaction scraper also auto-uploads when `USE_R2_STORAGE=true` and files are written to the default `csv/transactions/` directory:
+
+```bash
+npm run playwright:import:transactions
 ```
 
 ## API snapshots
