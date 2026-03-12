@@ -17,6 +17,10 @@ import os from "os";
 import { spawnSync } from "child_process";
 import csv from "csvtojson";
 import { TEAMS, CURRENT_SEASON } from "../src/constants";
+import {
+  buildFantraxEntityUpsertStatements,
+  collectFantraxEntitiesFromStats,
+} from "../src/fantrax-entities";
 import { mapPlayerData, mapGoalieData } from "../src/mappings";
 import { getDbClient } from "../src/db/client";
 import type { InStatement } from "@libsql/client";
@@ -73,6 +77,7 @@ const main = async () => {
   let errors = 0;
   let skippedPlayersMissingId = 0;
   let skippedGoaliesMissingId = 0;
+  let totalFantraxEntitiesSynced = 0;
   const missingIdMessages: string[] = [];
 
   for (const team of TEAMS) {
@@ -135,6 +140,10 @@ const main = async () => {
         const goaliesMissingId = goalies.filter((g) => !g.id).length;
         const playersToImport = players.filter((p) => p.id);
         const goaliesToImport = goalies.filter((g) => g.id);
+        const fantraxEntities = collectFantraxEntitiesFromStats({
+          players: playersToImport,
+          goalies: goaliesToImport,
+        });
 
         if (playersMissingId > 0 || goaliesMissingId > 0) {
           missingIdMessages.push(
@@ -147,11 +156,12 @@ const main = async () => {
 
         if (dryRun) {
           console.log(
-            `  🔍 Would import: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`,
+            `  🔍 Would import: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies, ${fantraxEntities.length} Fantrax entities)`,
           );
         } else {
           // Build batch: delete existing + insert all rows atomically
           const statements: InStatement[] = [
+            ...buildFantraxEntityUpsertStatements(fantraxEntities),
             {
               sql: "DELETE FROM players WHERE team_id = ? AND season = ? AND report_type = ?",
               args: [team.id, season, reportType],
@@ -217,12 +227,13 @@ const main = async () => {
           await db.batch(statements, "write");
 
           console.log(
-            `  ✅ Imported: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies)`,
+            `  ✅ Imported: ${file} (${playersToImport.length} players, ${goaliesToImport.length} goalies, ${fantraxEntities.length} Fantrax entities)`,
           );
         }
 
         totalPlayers += playersToImport.length;
         totalGoalies += goaliesToImport.length;
+        totalFantraxEntitiesSynced += fantraxEntities.length;
         totalFiles++;
       } catch (error) {
         console.error(`  ❌ Error importing ${file}:`, error);
@@ -257,6 +268,7 @@ const main = async () => {
   console.log(`   Files processed: ${totalFiles}`);
   console.log(`   Players imported: ${totalPlayers}`);
   console.log(`   Goalies imported: ${totalGoalies}`);
+  console.log(`   Fantrax entities synced: ${totalFantraxEntitiesSynced}`);
   console.log(`   Errors: ${errors}`);
   console.log(
     `   Rows skipped (missing IDs): players=${skippedPlayersMissingId}, goalies=${skippedGoaliesMissingId}`,

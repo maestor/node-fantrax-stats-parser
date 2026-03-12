@@ -137,9 +137,11 @@ src/
 └── __tests__/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
+    ├── db.schema.test.ts # Schema migration/backfill behavior for fantrax_entities
     ├── helpers.goalies.test.ts # Goalie scoring helpers
     ├── helpers.players.test.ts # Player scoring helpers
     ├── helpers.test.ts   # Shared helper utilities
+    ├── fantrax-entities.test.ts # Canonical Fantrax identity merge/upsert helpers
     ├── integration-db.ts # Temp DB + env isolation helpers for integration tests
     ├── mappings.players.test.ts # CSV-to-player transformation coverage
     ├── mappings.goalies.test.ts # CSV-to-goalie transformation coverage
@@ -156,7 +158,7 @@ src/
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, canonical Fantrax identity behavior is split between helper-level merge/upsert tests and a DB-backed schema migration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
 
 ---
 

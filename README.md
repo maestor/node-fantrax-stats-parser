@@ -25,7 +25,7 @@ Lightweight API to serve NHL fantasy league (FFHL) team stats as JSON. Data is s
 8. Go to endpoints mentioned below
 ```
 
-**Note:** CSV files are only the import source. The API reads live data from Turso and can also serve generated JSON snapshots for read-mostly endpoints.
+**Note:** CSV files are only the import source. The API reads live data from Turso and can also serve generated JSON snapshots for read-mostly endpoints. The stats import pipeline also maintains a canonical `fantrax_entities` registry keyed by Fantrax ID so future joins can rely on a stable global player/goalie identity table.
 
 ## Endpoints
 
@@ -572,6 +572,8 @@ npm run snapshot:generate
 ## Database (Turso/SQLite)
 
 The API reads all data from a Turso (libSQL/SQLite) database. CSV files are imported into the database via the import pipeline.
+
+Stats imports also maintain a global `fantrax_entities` table with one row per Fantrax ID. Each row stores the canonical Fantrax `name`, `position`, and the `first_seen_season` / `last_seen_season` bounds derived from imported data. `npm run db:migrate` backfills this table when upgrading an older database or rebuilding an empty registry, and later `db:import:stats` runs keep it incrementally in sync with cheap UPSERTs instead of full refreshes.
 
 ### Local development
 
