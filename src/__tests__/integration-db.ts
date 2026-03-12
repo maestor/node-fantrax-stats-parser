@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import type { Client } from "@libsql/client";
+import { buildFantraxEntityUpsertStatements } from "../fantrax-entities";
 import { getDbClient, resetDbClientForTests } from "../db/client";
 import { migrateDb } from "../db/schema";
 import { resetRouteCachesForTests } from "../routes";
@@ -117,6 +118,16 @@ export const createIntegrationDb = async (): Promise<IntegrationDbContext> => {
     }
   };
 
+  const syncFantraxEntities = async (
+    statements: ReadonlyArray<
+      ReturnType<typeof buildFantraxEntityUpsertStatements>[number]
+    >,
+  ): Promise<void> => {
+    for (const statement of statements) {
+      await db.execute(statement);
+    }
+  };
+
   return {
     db,
     snapshotDir,
@@ -148,6 +159,21 @@ export const createIntegrationDb = async (): Promise<IntegrationDbContext> => {
           ],
         });
       }
+
+      await syncFantraxEntities(
+        buildFantraxEntityUpsertStatements(
+          rows.map((row) => ({
+            fantraxId: row.playerId,
+            name: row.name,
+            position:
+              row.position === "F" || row.position === "D"
+                ? row.position
+                : null,
+            firstSeenSeason: row.season,
+            lastSeenSeason: row.season,
+          })),
+        ),
+      );
     },
     insertGoalies: async (rows) => {
       for (const row of rows) {
@@ -177,6 +203,18 @@ export const createIntegrationDb = async (): Promise<IntegrationDbContext> => {
           ],
         });
       }
+
+      await syncFantraxEntities(
+        buildFantraxEntityUpsertStatements(
+          rows.map((row) => ({
+            fantraxId: row.goalieId,
+            name: row.name,
+            position: "G",
+            firstSeenSeason: row.season,
+            lastSeenSeason: row.season,
+          })),
+        ),
+      );
     },
     insertPlayoffResults: async (rows) => {
       for (const row of rows) {
