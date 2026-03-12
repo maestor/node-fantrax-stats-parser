@@ -310,6 +310,7 @@ export type CareerRegularGrinderHighlightItem = {
   name: string;
   position: string;
   regularGames: number;
+  teams: CareerHighlightTeam[];
 };
 
 export type CareerTeamCountHighlightPage = {

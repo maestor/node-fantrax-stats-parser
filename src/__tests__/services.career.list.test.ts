@@ -1320,18 +1320,27 @@ describe("services", () => {
             name: "Goalie Grinder",
             position: "G",
             regularGames: 70,
+            teams: [{ id: "5", name: "Montreal Canadiens" }],
           },
           {
             id: "p-alpha-grinder",
             name: "Alpha Grinder",
             position: "D",
             regularGames: 65,
+            teams: [
+              { id: "6", name: "Detroit Red Wings" },
+              { id: "7", name: "Edmonton Oilers" },
+            ],
           },
           {
             id: "p-grinder",
             name: "Grinder Skater",
             position: "F",
             regularGames: 65,
+            teams: [
+              { id: "2", name: "Carolina Hurricanes" },
+              { id: "1", name: "Colorado Avalanche" },
+            ],
           },
         ]);
       });

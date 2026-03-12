@@ -1260,12 +1260,17 @@ export const registerCareerRouteIntegrationTests = (): void => {
               name: "Goalie Grinder",
               position: "G",
               regularGames: 70,
+              teams: [{ id: "5", name: "Montreal Canadiens" }],
             },
             {
               id: "p-grinder",
               name: "Grinder Skater",
               position: "F",
               regularGames: 65,
+              teams: [
+                { id: "2", name: "Carolina Hurricanes" },
+                { id: "1", name: "Colorado Avalanche" },
+              ],
             },
           ],
         });
