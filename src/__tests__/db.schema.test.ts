@@ -113,6 +113,26 @@ describe("db schema migration", () => {
 
       await migrateDb(db);
 
+      const tables = await db.execute(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'table'
+           AND name IN (
+             'claim_events',
+             'claim_event_items',
+             'trade_source_blocks',
+             'trade_block_items'
+           )
+         ORDER BY name ASC`,
+      );
+
+      expect(tables.rows).toEqual([
+        { name: "claim_event_items" },
+        { name: "claim_events" },
+        { name: "trade_block_items" },
+        { name: "trade_source_blocks" },
+      ]);
+
       let result = await db.execute(
         `SELECT fantrax_id, name, position, first_seen_season, last_seen_season
          FROM fantrax_entities
@@ -198,7 +218,21 @@ describe("db schema migration", () => {
       const sql = typeof statement === "string" ? statement : statement.sql;
 
       if (sql === "SELECT value FROM import_metadata WHERE key = ?") {
-        return { rows: [{ value: "5" }] };
+        return { rows: [{ value: "7" }] };
+      }
+
+      if (sql === "PRAGMA table_info(claim_event_items)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "claim_event_id" },
+            { name: null },
+            { name: "season" },
+            { name: "team_id" },
+            { name: "occurred_at" },
+            { name: "sequence" },
+          ],
+        };
       }
 
       if (sql === "SELECT COUNT(*) AS count FROM fantrax_entities") {
@@ -235,7 +269,20 @@ describe("db schema migration", () => {
       const sql = typeof statement === "string" ? statement : statement.sql;
 
       if (sql === "SELECT value FROM import_metadata WHERE key = ?") {
-        return { rows: [{ value: "5" }] };
+        return { rows: [{ value: "7" }] };
+      }
+
+      if (sql === "PRAGMA table_info(claim_event_items)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "claim_event_id" },
+            { name: "season" },
+            { name: "team_id" },
+            { name: "occurred_at" },
+            { name: "sequence" },
+          ],
+        };
       }
 
       if (sql === "SELECT COUNT(*) AS count FROM fantrax_entities") {
@@ -265,5 +312,97 @@ describe("db schema migration", () => {
           sql.includes("FROM goalies g"),
       ),
     ).toBe(true);
+  });
+
+  test("adds denormalized claim item columns when upgrading an existing transaction schema", async () => {
+    const { db, cleanup } = await createLegacyDb();
+
+    try {
+      await db.execute(`CREATE TABLE claim_events (
+        id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+        season             INTEGER NOT NULL,
+        team_id            TEXT NOT NULL,
+        occurred_at        TEXT NOT NULL,
+        source_file        TEXT NOT NULL,
+        source_group_index INTEGER NOT NULL,
+        UNIQUE(source_file, source_group_index)
+      )`);
+      await db.execute(`CREATE TABLE fantrax_entities (
+        fantrax_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        position TEXT,
+        first_seen_season INTEGER NOT NULL,
+        last_seen_season INTEGER NOT NULL
+      )`);
+      await db.execute(`CREATE TABLE claim_event_items (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        claim_event_id    INTEGER NOT NULL,
+        sequence          INTEGER NOT NULL,
+        action_type       TEXT NOT NULL,
+        fantrax_entity_id TEXT,
+        raw_name          TEXT NOT NULL,
+        raw_position      TEXT,
+        match_status      TEXT NOT NULL,
+        match_strategy    TEXT NOT NULL,
+        UNIQUE(claim_event_id, sequence),
+        FOREIGN KEY (claim_event_id) REFERENCES claim_events(id) ON DELETE CASCADE,
+        FOREIGN KEY (fantrax_entity_id) REFERENCES fantrax_entities(fantrax_id)
+      )`);
+      await db.execute({
+        sql: `INSERT INTO claim_events (
+                id, season, team_id, occurred_at, source_file, source_group_index
+              ) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [1, 2025, "7", "2026-03-05T16:38:00.000Z", "claims-2025-2026.csv", 0],
+      });
+      await db.execute({
+        sql: `INSERT INTO claim_event_items (
+                claim_event_id, sequence, action_type, fantrax_entity_id, raw_name,
+                raw_position, match_status, match_strategy
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [1, 0, "claim", null, "Claim Target", "F", "matched", "exact_name_position"],
+      });
+      await db.execute({
+        sql: "INSERT INTO import_metadata (key, value) VALUES (?, ?)",
+        args: ["schema_version", "6"],
+      });
+
+      await migrateDb(db);
+
+      const columns = await db.execute("PRAGMA table_info(claim_event_items)");
+      const columnNames = columns.rows.map((row) =>
+        String((row as unknown as { name: string }).name),
+      );
+
+      expect(columnNames).toEqual(
+        expect.arrayContaining(["season", "team_id", "occurred_at"]),
+      );
+
+      const indexes = await db.execute(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index'
+           AND name IN ('idx_claim_event_items_season_date', 'idx_claim_event_items_team_date')
+         ORDER BY name ASC`,
+      );
+      expect(indexes.rows).toEqual([
+        { name: "idx_claim_event_items_season_date" },
+        { name: "idx_claim_event_items_team_date" },
+      ]);
+
+      const item = await db.execute(
+        `SELECT season, team_id, occurred_at
+         FROM claim_event_items
+         WHERE claim_event_id = 1`,
+      );
+      expect(item.rows).toEqual([
+        {
+          season: null,
+          team_id: null,
+          occurred_at: null,
+        },
+      ]);
+    } finally {
+      await cleanup();
+    }
   });
 });

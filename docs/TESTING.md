@@ -154,11 +154,12 @@ src/
     ├── services.career.fixtures.ts # Shared career-service row builders
     ├── services.*.test.ts # Domain-focused service unit suites (season/combined, career detail/list, leaderboard)
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
+    ├── transactions.import.test.ts # Transaction entity matching, grouping, and DB import behavior
     ├── transactions.test.ts # Transaction file naming, URL building, and year-selection helpers
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, canonical Fantrax identity behavior is split between helper-level merge/upsert tests and a DB-backed schema migration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, canonical Fantrax identity behavior is split between helper-level merge/upsert tests and a DB-backed schema migration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, transaction import coverage now separately pins down entity matching, grouping, commissioner-fix exclusion, and season reimport behavior, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
 
 ---
 
