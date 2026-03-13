@@ -1,12 +1,15 @@
 import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
+  getTransactionLeaderboardData,
 } from "../services";
 import {
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
   getRegularSeasons,
+  getTransactionLeaderboard,
+  getTransactionSeasons,
 } from "../db/queries";
 import { TEAMS } from "../constants";
 
@@ -490,6 +493,168 @@ describe("services", () => {
         expect(result[0].seasons[0].regularTrophy).toBe(false);
         expect(result[0].seasons[1].season).toBe(2024);
         expect(result[0].seasons[1].regularTrophy).toBe(true);
+      });
+    });
+
+    describe("getTransactionLeaderboardData", () => {
+      const mockGetTransactionLeaderboard =
+        getTransactionLeaderboard as jest.MockedFunction<
+          typeof getTransactionLeaderboard
+        >;
+      const mockGetTransactionSeasons =
+        getTransactionSeasons as jest.MockedFunction<
+          typeof getTransactionSeasons
+        >;
+
+      beforeEach(() => {
+        mockGetTransactionSeasons.mockResolvedValue([]);
+      });
+
+      test("resolves teamName from TEAMS and sets tieRank false for first entry", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([
+          {
+            teamId: "1",
+            claims: 50,
+            drops: 48,
+            trades: 12,
+          },
+        ]);
+
+        const result = await getTransactionLeaderboardData();
+
+        expect(result[0]).toMatchObject({
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          claims: 50,
+          drops: 48,
+          trades: 12,
+          seasons: [],
+          tieRank: false,
+        });
+      });
+
+      test("sets tieRank true when claims, drops, and trades match previous entry", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([
+          {
+            teamId: "1",
+            claims: 40,
+            drops: 39,
+            trades: 11,
+          },
+          {
+            teamId: "4",
+            claims: 40,
+            drops: 39,
+            trades: 11,
+          },
+        ]);
+
+        const result = await getTransactionLeaderboardData();
+
+        expect(result[0].tieRank).toBe(false);
+        expect(result[1].tieRank).toBe(true);
+      });
+
+      test("falls back to teamId when team is not found in TEAMS", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([
+          {
+            teamId: "999",
+            claims: 3,
+            drops: 2,
+            trades: 1,
+          },
+        ]);
+
+        const result = await getTransactionLeaderboardData();
+
+        expect(result[0].teamName).toBe("999");
+      });
+
+      test("adds zero rows for teams missing from transaction data", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([
+          {
+            teamId: "1",
+            claims: 50,
+            drops: 48,
+            trades: 12,
+          },
+        ]);
+
+        const result = await getTransactionLeaderboardData();
+        const missingTeam = TEAMS.find((entry) => entry.id === "7");
+        const missingRow = result.find((entry) => entry.teamId === "7");
+
+        expect(result).toHaveLength(TEAMS.length);
+        expect(missingRow).toEqual(
+          expect.objectContaining({
+            teamId: "7",
+            teamName: missingTeam?.presentName,
+            claims: 0,
+            drops: 0,
+            trades: 0,
+            seasons: [],
+          }),
+        );
+      });
+
+      test("returns all TEAMS with zero values when no transaction data exists", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([]);
+
+        const result = await getTransactionLeaderboardData();
+
+        expect(result).toHaveLength(TEAMS.length);
+        expect(result[0]).toMatchObject({
+          claims: 0,
+          drops: 0,
+          trades: 0,
+          seasons: [],
+          tieRank: false,
+        });
+        expect(result[1].tieRank).toBe(true);
+      });
+
+      test("adds per-season transaction breakdown for each team", async () => {
+        mockGetTransactionLeaderboard.mockResolvedValue([
+          {
+            teamId: "1",
+            claims: 9,
+            drops: 8,
+            trades: 3,
+          },
+        ]);
+        mockGetTransactionSeasons.mockResolvedValue([
+          {
+            teamId: "1",
+            season: 2024,
+            claims: 4,
+            drops: 3,
+            trades: 1,
+          },
+          {
+            teamId: "1",
+            season: 2025,
+            claims: 5,
+            drops: 5,
+            trades: 2,
+          },
+        ]);
+
+        const result = await getTransactionLeaderboardData();
+
+        expect(result[0].seasons).toEqual([
+          {
+            season: 2024,
+            claims: 4,
+            drops: 3,
+            trades: 1,
+          },
+          {
+            season: 2025,
+            claims: 5,
+            drops: 5,
+            trades: 2,
+          },
+        ]);
       });
     });
   });

@@ -1173,6 +1173,54 @@ components:
         pointsPercent:
           type: number
 
+    TransactionLeaderboardEntry:
+      type: object
+      required:
+        - teamId
+        - teamName
+        - claims
+        - drops
+        - trades
+        - seasons
+        - tieRank
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        claims:
+          type: integer
+        drops:
+          type: integer
+        trades:
+          type: integer
+          description: Count of distinct trade participations by `season + occurred_at`.
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionLeaderboardSeason"
+        tieRank:
+          type: boolean
+          description: True when this entry's record matches the previous entry's record.
+
+    TransactionLeaderboardSeason:
+      type: object
+      required:
+        - season
+        - claims
+        - drops
+        - trades
+      properties:
+        season:
+          type: integer
+        claims:
+          type: integer
+        drops:
+          type: integer
+        trades:
+          type: integer
+          description: Count of distinct trade participations by `season + occurred_at`.
+
 security:
   - apiKey: []
 
@@ -1624,5 +1672,23 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RegularLeaderboardEntry"
+        "401":
+          description: Missing or invalid API key.
+
+  /leaderboard/transactions:
+    get:
+      summary: All-time transaction leaderboard
+      description: |
+        Returns each team's total claim, drop, and trade counts with a per-season breakdown.
+        Trade totals count distinct team participations by `season + occurred_at`.
+      responses:
+        "200":
+          description: Transaction leaderboard entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransactionLeaderboardEntry"
         "401":
           description: Missing or invalid API key.

@@ -16,6 +16,7 @@ import {
   getSnapshotManifestKey,
   getSnapshotObjectKey,
   getSnapshotPrefix,
+  getTransactionsLeaderboardSnapshotKey,
   isR2SnapshotConfigAvailable,
   loadSnapshot,
   resetSnapshotCacheForTests,
@@ -101,6 +102,9 @@ describe("snapshots", () => {
     );
     expect(getRegularLeaderboardSnapshotKey()).toBe("leaderboard/regular");
     expect(getPlayoffsLeaderboardSnapshotKey()).toBe("leaderboard/playoffs");
+    expect(getTransactionsLeaderboardSnapshotKey()).toBe(
+      "leaderboard/transactions",
+    );
     expect(getCombinedSnapshotKey("players", "both", "7")).toBe(
       "players/combined/both/team-7",
     );

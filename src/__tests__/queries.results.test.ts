@@ -11,6 +11,8 @@ import {
   getPlayoffSeasons,
   getRegularLeaderboard,
   getRegularSeasons,
+  getTransactionLeaderboard,
+  getTransactionSeasons,
 } from "../db/queries";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
@@ -230,6 +232,100 @@ describe("db/queries", () => {
       test("returns empty array when no regular season rows exist", async () => {
         mockExecute.mockResolvedValue({ rows: [] });
         const result = await getRegularSeasons();
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe("getTransactionLeaderboard", () => {
+      test("returns mapped transaction leaderboard rows sorted by SQL order", async () => {
+        const rows = [
+          {
+            team_id: "1",
+            claims: 100,
+            drops: 95,
+            trades: 20,
+          },
+          {
+            team_id: "4",
+            claims: 99,
+            drops: 80,
+            trades: 20,
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getTransactionLeaderboard();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("claim_event_items"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("trade_source_blocks"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("SELECT DISTINCT"),
+        );
+        expect(result).toEqual([
+          {
+            teamId: "1",
+            claims: 100,
+            drops: 95,
+            trades: 20,
+          },
+          {
+            teamId: "4",
+            claims: 99,
+            drops: 80,
+            trades: 20,
+          },
+        ]);
+      });
+
+      test("returns empty array when no transaction rows exist", async () => {
+        mockExecute.mockResolvedValue({ rows: [] });
+
+        const result = await getTransactionLeaderboard();
+
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe("getTransactionSeasons", () => {
+      test("returns mapped per-season transaction rows", async () => {
+        const rows = [
+          {
+            team_id: "1",
+            season: 2024,
+            claims: 12,
+            drops: 11,
+            trades: 4,
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getTransactionSeasons();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("FROM transaction_counts"),
+        );
+        expect(result).toEqual([
+          {
+            teamId: "1",
+            season: 2024,
+            claims: 12,
+            drops: 11,
+            trades: 4,
+          },
+        ]);
+      });
+
+      test("returns empty array when no transaction season rows exist", async () => {
+        mockExecute.mockResolvedValue({ rows: [] });
+
+        const result = await getTransactionSeasons();
+
         expect(result).toEqual([]);
       });
     });

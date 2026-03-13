@@ -51,10 +51,13 @@ import {
   getPlayoffSeasons,
   getRegularLeaderboard,
   getRegularSeasons,
+  getTransactionLeaderboard,
+  getTransactionSeasons,
   type PlayerCareerRow,
   type GoalieCareerRow,
   type PlayoffSeasonDbEntry,
   type RegularSeasonDbEntry,
+  type TransactionSeasonDbEntry,
 } from "./db/queries";
 import type {
   PlayoffLeaderboardEntry,
@@ -62,6 +65,8 @@ import type {
   PlayoffRoundKey,
   RegularLeaderboardEntry,
   RegularLeaderboardSeason,
+  TransactionLeaderboardEntry,
+  TransactionLeaderboardSeason,
 } from "./types";
 
 // Parser wants seasons as an array even in one-season cases
@@ -1430,6 +1435,62 @@ export const getRegularLeaderboardData = async (): Promise<
       divWinPercent,
       pointsPercent,
       seasons: buildRegularSeasons(row.teamId),
+    };
+  });
+};
+
+export const getTransactionLeaderboardData = async (): Promise<
+  TransactionLeaderboardEntry[]
+> => {
+  const rows = await getTransactionLeaderboard();
+  const seasonsByTeam = await getTransactionSeasons();
+
+  const seasonsByTeamId = new Map<string, TransactionSeasonDbEntry[]>();
+  for (const seasonEntry of seasonsByTeam) {
+    const list = seasonsByTeamId.get(seasonEntry.teamId);
+    if (list) {
+      list.push(seasonEntry);
+    } else {
+      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
+    }
+  }
+
+  const missingTeams = TEAMS.filter((team) => !rows.some((row) => row.teamId === team.id));
+  const allRows = [
+    ...rows,
+    ...missingTeams.map((team) => ({
+      teamId: team.id,
+      claims: 0,
+      drops: 0,
+      trades: 0,
+    })),
+  ];
+
+  const buildTransactionSeasons = (
+    teamId: string,
+  ): TransactionLeaderboardSeason[] =>
+    (seasonsByTeamId.get(teamId) ?? []).map((row) => ({
+      season: row.season,
+      claims: row.claims,
+      drops: row.drops,
+      trades: row.trades,
+    }));
+
+  return allRows.map((row, i) => {
+    const team = TEAMS.find((entry) => entry.id === row.teamId);
+    const teamName = team?.presentName ?? row.teamId;
+    const prev = i > 0 ? allRows[i - 1] : null;
+    const tieRank =
+      prev !== null &&
+      prev.claims === row.claims &&
+      prev.drops === row.drops &&
+      prev.trades === row.trades;
+
+    return {
+      ...row,
+      teamName,
+      seasons: buildTransactionSeasons(row.teamId),
+      tieRank,
     };
   });
 };

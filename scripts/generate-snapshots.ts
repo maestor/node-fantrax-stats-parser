@@ -13,6 +13,10 @@ import path from "path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/constants";
 import {
+  resolveSnapshotGenerationConfig,
+  type SnapshotGenerationConfig,
+} from "./snapshot-generation";
+import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
@@ -20,6 +24,7 @@ import {
   getPlayoffLeaderboardData,
   getPlayersStatsCombined,
   getRegularLeaderboardData,
+  getTransactionLeaderboardData,
 } from "../src/services";
 import {
   createSnapshotR2Client,
@@ -33,11 +38,11 @@ import {
   getSnapshotFilePath,
   getSnapshotManifestKey,
   getSnapshotObjectKey,
+  getTransactionsLeaderboardSnapshotKey,
   isR2SnapshotConfigAvailable,
+  loadSnapshot,
 } from "../src/snapshots";
 import { getLastModifiedFromDb } from "../src/db/queries";
-
-type SnapshotReport = "regular" | "playoffs" | "both";
 
 type SnapshotEntry = {
   bytes: number;
@@ -54,12 +59,6 @@ type SnapshotManifest = {
     key: string;
   }>;
 };
-
-const SNAPSHOT_REPORTS: readonly SnapshotReport[] = [
-  "regular",
-  "playoffs",
-  "both",
-];
 
 const shouldUploadToR2 = (): boolean => process.env.USE_R2_SNAPSHOTS === "true";
 
@@ -93,64 +92,139 @@ const uploadSnapshotFile = async (
   );
 };
 
-const buildSnapshotEntries = async (): Promise<SnapshotEntry[]> => {
+const buildSnapshotEntries = async (
+  config: SnapshotGenerationConfig,
+): Promise<SnapshotEntry[]> => {
   const entries: SnapshotEntry[] = [];
 
-  entries.push({
-    key: getCareerPlayersSnapshotKey(),
-    data: await getCareerPlayersData(),
-    bytes: 0,
-  });
-  entries.push({
-    key: getCareerGoaliesSnapshotKey(),
-    data: await getCareerGoaliesData(),
-    bytes: 0,
-  });
-  for (const type of CAREER_HIGHLIGHT_TYPES) {
+  if (config.scopes.includes("career")) {
     entries.push({
-      key: getCareerHighlightsSnapshotKey(type),
-      data: await getCareerHighlightsData(type),
+      key: getCareerPlayersSnapshotKey(),
+      data: await getCareerPlayersData(),
+      bytes: 0,
+    });
+    entries.push({
+      key: getCareerGoaliesSnapshotKey(),
+      data: await getCareerGoaliesData(),
       bytes: 0,
     });
   }
-  entries.push({
-    key: getRegularLeaderboardSnapshotKey(),
-    data: await getRegularLeaderboardData(),
-    bytes: 0,
-  });
-  entries.push({
-    key: getPlayoffsLeaderboardSnapshotKey(),
-    data: await getPlayoffLeaderboardData(),
-    bytes: 0,
-  });
 
-  for (const team of TEAMS) {
-    for (const report of SNAPSHOT_REPORTS) {
+  if (config.scopes.includes("career-highlights")) {
+    for (const type of CAREER_HIGHLIGHT_TYPES) {
       entries.push({
-        key: getCombinedSnapshotKey("players", report, team.id),
-        data: await getPlayersStatsCombined(report, team.id),
+        key: getCareerHighlightsSnapshotKey(type),
+        data: await getCareerHighlightsData(type),
         bytes: 0,
       });
-      entries.push({
-        key: getCombinedSnapshotKey("goalies", report, team.id),
-        data: await getGoaliesStatsCombined(report, team.id),
-        bytes: 0,
-      });
+    }
+  }
+
+  if (config.scopes.includes("leaderboard-regular")) {
+    entries.push({
+      key: getRegularLeaderboardSnapshotKey(),
+      data: await getRegularLeaderboardData(),
+      bytes: 0,
+    });
+  }
+
+  if (config.scopes.includes("leaderboard-playoffs")) {
+    entries.push({
+      key: getPlayoffsLeaderboardSnapshotKey(),
+      data: await getPlayoffLeaderboardData(),
+      bytes: 0,
+    });
+  }
+
+  if (config.scopes.includes("transactions")) {
+    entries.push({
+      key: getTransactionsLeaderboardSnapshotKey(),
+      data: await getTransactionLeaderboardData(),
+      bytes: 0,
+    });
+  }
+
+  if (config.scopes.includes("stats")) {
+    for (const team of TEAMS) {
+      for (const reportType of config.statsReportTypes) {
+        entries.push({
+          key: getCombinedSnapshotKey("players", reportType, team.id),
+          data: await getPlayersStatsCombined(reportType, team.id),
+          bytes: 0,
+        });
+        entries.push({
+          key: getCombinedSnapshotKey("goalies", reportType, team.id),
+          data: await getGoaliesStatsCombined(reportType, team.id),
+          bytes: 0,
+        });
+      }
     }
   }
 
   return entries;
 };
 
+const loadExistingManifest = async (): Promise<SnapshotManifest | null> => {
+  try {
+    return await loadSnapshot<SnapshotManifest>(getSnapshotManifestKey());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(
+      `⚠️  Failed to load existing snapshot manifest, continuing without merge: ${message}`,
+    );
+    return null;
+  }
+};
+
+const buildSnapshotManifest = (
+  config: SnapshotGenerationConfig,
+  generatedAt: string,
+  lastModified: string | null,
+  entries: readonly SnapshotEntry[],
+  existingManifest: SnapshotManifest | null,
+): SnapshotManifest => {
+  const mergedSnapshots = new Map<string, { bytes: number; key: string }>();
+
+  if (!config.isFullGeneration) {
+    for (const snapshot of existingManifest?.snapshots ?? []) {
+      mergedSnapshots.set(snapshot.key, snapshot);
+    }
+  }
+
+  for (const entry of entries) {
+    mergedSnapshots.set(entry.key, {
+      key: entry.key,
+      bytes: entry.bytes,
+    });
+  }
+
+  return {
+    schemaVersion: 1,
+    generatedAt,
+    lastModified,
+    snapshots: [...mergedSnapshots.values()].sort((a, b) =>
+      a.key.localeCompare(b.key),
+    ),
+  };
+};
+
 const main = async () => {
+  const config = resolveSnapshotGenerationConfig(process.argv.slice(2));
   const generatedAt = new Date().toISOString();
   const lastModified = await getLastModifiedFromDb();
 
   console.info("📸 Generating API snapshots...");
   console.info(`   Target DB: ${process.env.TURSO_DATABASE_URL}`);
   console.info(`   Upload to R2: ${shouldUploadToR2()}`);
+  console.info(`   Scopes: ${config.scopes.join(", ")}`);
+  if (config.scopes.includes("stats")) {
+    console.info(`   Stats reports: ${config.statsReportTypes.join(", ")}`);
+  }
 
-  const entries = await buildSnapshotEntries();
+  const entries = await buildSnapshotEntries(config);
+  const existingManifest = config.isFullGeneration
+    ? null
+    : await loadExistingManifest();
 
   for (const entry of entries) {
     const body = JSON.stringify(entry.data);
@@ -166,16 +240,13 @@ const main = async () => {
     }
   }
 
-  const manifest: SnapshotManifest = {
-    schemaVersion: 1,
+  const manifest = buildSnapshotManifest(
+    config,
     generatedAt,
     lastModified,
-    snapshots: entries.map((entry) => ({
-      key: entry.key,
-      bytes: entry.bytes,
-    })),
-  };
-
+    entries,
+    existingManifest,
+  );
   const manifestBody = JSON.stringify(manifest, null, 2);
   writeSnapshotFile(getSnapshotManifestKey(), manifestBody);
 

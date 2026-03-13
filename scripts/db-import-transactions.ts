@@ -11,6 +11,7 @@ if (process.env.USE_REMOTE_DB !== "true") {
 console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
 
 import path from "path";
+import { spawnSync } from "child_process";
 
 import { CURRENT_SEASON } from "../src/constants";
 import { getDbClient } from "../src/db/client";
@@ -75,6 +76,21 @@ const main = async (): Promise<void> => {
     `   Ignored commissioner trade blocks: ${summary.ignoredCommissionerBlocks}`,
   );
   console.info(`   Dry run: ${dryRun}`);
+
+  if (!dryRun) {
+    console.info("📸 Regenerating transactions snapshot...");
+    const snapshotRun = spawnSync(
+      "npm",
+      ["run", "snapshot:generate", "--", "--scope=transactions"],
+      {
+        stdio: "inherit",
+        env: process.env,
+      },
+    );
+    if (snapshotRun.status !== 0) {
+      throw new Error("Snapshot generation failed after transaction import");
+    }
+  }
 };
 
 main().catch((error) => {

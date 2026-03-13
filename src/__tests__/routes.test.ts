@@ -11,6 +11,7 @@ import {
   getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
+  getTransactionsLeaderboard,
   resetRouteCachesForTests,
 } from "../routes";
 import {
@@ -21,6 +22,7 @@ import {
   getGoaliesStatsCombined,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
+  getTransactionLeaderboardData,
 } from "../services";
 import {
   reportTypeAvailable,
@@ -49,6 +51,9 @@ jest.mock("../snapshots", () => ({
   ),
   getPlayoffsLeaderboardSnapshotKey: jest.fn(() => "leaderboard/playoffs"),
   getRegularLeaderboardSnapshotKey: jest.fn(() => "leaderboard/regular"),
+  getTransactionsLeaderboardSnapshotKey: jest.fn(
+    () => "leaderboard/transactions",
+  ),
 }));
 
 type RouteReq = Parameters<typeof getSeasons>[0];
@@ -273,6 +278,18 @@ describe("routes", () => {
             (getRegularLeaderboardData as jest.Mock).mockRejectedValue(error);
           },
         },
+        {
+          handler: getTransactionsLeaderboard,
+          req: createRequest({
+            method: "GET",
+            url: "/leaderboard/transactions",
+          }),
+          arrange: (error) => {
+            (getTransactionLeaderboardData as jest.Mock).mockRejectedValue(
+              error,
+            );
+          },
+        },
       ];
 
       for (const routeCase of cases) {
@@ -291,6 +308,43 @@ describe("routes", () => {
           error,
         );
       }
+    });
+  });
+
+  describe("getTransactionsLeaderboard", () => {
+    test("returns leaderboard data from the transaction service", async () => {
+      const payload = [
+        {
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+          claims: 20,
+          drops: 19,
+          trades: 4,
+          seasons: [
+            {
+              season: 2025,
+              claims: 20,
+              drops: 19,
+              trades: 4,
+            },
+          ],
+          tieRank: false,
+        },
+      ];
+      (getTransactionLeaderboardData as jest.Mock).mockResolvedValue(payload);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/transactions",
+      });
+      const res = createResponse();
+
+      await getTransactionsLeaderboard(asRouteReq(req), res);
+
+      expect(getTransactionLeaderboardData).toHaveBeenCalledTimes(1);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expectArraySchema("TransactionLeaderboardEntry", payload);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, payload);
     });
   });
 
