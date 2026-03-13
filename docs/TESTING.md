@@ -151,6 +151,7 @@ src/
     ├── routes.integration.test.ts # Entry point for the categorized route integration suites
     ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
     ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
+    ├── snapshot-generation.test.ts # Snapshot scope/report selection helpers
     ├── services.career.fixtures.ts # Shared career-service row builders
     ├── services.*.test.ts # Domain-focused service unit suites (season/combined, career detail/list, leaderboard)
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior

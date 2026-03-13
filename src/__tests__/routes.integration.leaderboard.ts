@@ -5,6 +5,7 @@ import {
   getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
+  getTransactionsLeaderboard,
 } from "../routes";
 import { HTTP_STATUS } from "../constants";
 import { createIntegrationDb } from "./integration-db";
@@ -17,7 +18,111 @@ import {
 
 type PlayoffsRouteReq = Parameters<typeof getPlayoffsLeaderboard>[0];
 type RegularRouteReq = Parameters<typeof getRegularLeaderboard>[0];
+type TransactionsRouteReq = Parameters<typeof getTransactionsLeaderboard>[0];
 type LastModifiedRouteReq = Parameters<typeof getLastModified>[0];
+
+const insertClaimEventItem = async (
+  db: Awaited<ReturnType<typeof createIntegrationDb>>["db"],
+  row: {
+    season: number;
+    teamId: string;
+    occurredAt: string;
+    sourceFile: string;
+    sourceGroupIndex: number;
+    sequence: number;
+    actionType: "claim" | "drop";
+    rawName: string;
+  },
+): Promise<void> => {
+  const eventResult = await db.execute({
+    sql: `INSERT INTO claim_events (
+            season, team_id, occurred_at, source_file, source_group_index
+          ) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+    args: [
+      row.season,
+      row.teamId,
+      row.occurredAt,
+      row.sourceFile,
+      row.sourceGroupIndex,
+    ],
+  });
+  const eventId = Number(eventResult.rows[0].id);
+
+  await db.execute({
+    sql: `INSERT INTO claim_event_items (
+            claim_event_id, season, team_id, occurred_at, sequence, action_type,
+            fantrax_entity_id, raw_name, raw_position, match_status, match_strategy
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      eventId,
+      row.season,
+      row.teamId,
+      row.occurredAt,
+      row.sequence,
+      row.actionType,
+      null,
+      row.rawName,
+      null,
+      "not_applicable",
+      "not_applicable",
+    ],
+  });
+};
+
+const insertTradeBlock = async (
+  db: Awaited<ReturnType<typeof createIntegrationDb>>["db"],
+  row: {
+    season: number;
+    occurredAt: string;
+    sourceFile: string;
+    sourceBlockIndex: number;
+    sourcePeriod: number;
+    participantSignature: string;
+    sequence: number;
+    fromTeamId: string;
+    toTeamId: string;
+    rawName: string;
+  },
+): Promise<void> => {
+  const blockResult = await db.execute({
+    sql: `INSERT INTO trade_source_blocks (
+            season, occurred_at, source_file, source_block_index, source_period, participant_signature
+          ) VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
+    args: [
+      row.season,
+      row.occurredAt,
+      row.sourceFile,
+      row.sourceBlockIndex,
+      row.sourcePeriod,
+      row.participantSignature,
+    ],
+  });
+  const blockId = Number(blockResult.rows[0].id);
+
+  await db.execute({
+    sql: `INSERT INTO trade_block_items (
+            trade_source_block_id, sequence, from_team_id, to_team_id, asset_type,
+            fantrax_entity_id, raw_name, raw_position, match_status, match_strategy,
+            draft_season, draft_round, draft_original_team_id, raw_asset_text
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      blockId,
+      row.sequence,
+      row.fromTeamId,
+      row.toTeamId,
+      "player",
+      null,
+      row.rawName,
+      "F",
+      "not_applicable",
+      "not_applicable",
+      null,
+      null,
+      null,
+      row.rawName,
+    ],
+  });
+};
 
 export const registerLeaderboardRouteIntegrationTests = (): void => {
   describe("leaderboard and metadata routes", () => {
@@ -290,6 +395,234 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
             regularTrophies: 1,
           }),
         ]);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("builds transaction leaderboard rows from live transaction tables", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await insertClaimEventItem(db.db, {
+          season: 2025,
+          teamId: "1",
+          occurredAt: "2026-03-05T17:00:00.000Z",
+          sourceFile: "claims-2025-2026.csv",
+          sourceGroupIndex: 0,
+          sequence: 0,
+          actionType: "claim",
+          rawName: "Claimed Player",
+        });
+        await insertClaimEventItem(db.db, {
+          season: 2025,
+          teamId: "1",
+          occurredAt: "2026-03-06T17:00:00.000Z",
+          sourceFile: "claims-2025-2026.csv",
+          sourceGroupIndex: 1,
+          sequence: 0,
+          actionType: "drop",
+          rawName: "Dropped Player",
+        });
+        await insertTradeBlock(db.db, {
+          season: 2025,
+          occurredAt: "2026-03-07T17:00:00.000Z",
+          sourceFile: "trades-2025-2026.csv",
+          sourceBlockIndex: 0,
+          sourcePeriod: 150,
+          participantSignature: "1|19",
+          sequence: 0,
+          fromTeamId: "1",
+          toTeamId: "19",
+          rawName: "Trade Asset A",
+        });
+        await insertTradeBlock(db.db, {
+          season: 2025,
+          occurredAt: "2026-03-07T17:00:00.000Z",
+          sourceFile: "trades-2025-2026.csv",
+          sourceBlockIndex: 1,
+          sourcePeriod: 151,
+          participantSignature: "1|19",
+          sequence: 0,
+          fromTeamId: "19",
+          toTeamId: "1",
+          rawName: "Trade Asset B",
+        });
+
+        const req = createRequest({
+          method: "GET",
+          url: "/leaderboard/transactions",
+        });
+        const res = createResponse();
+
+        await getTransactionsLeaderboard(
+          asRouteReq<TransactionsRouteReq>(req),
+          res,
+        );
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        const colorado = body.find((entry) => entry.teamId === "1");
+
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("db");
+        expect(colorado).toEqual(
+          expect.objectContaining({
+            teamId: "1",
+            teamName: "Colorado Avalanche",
+            claims: 1,
+            drops: 1,
+            trades: 1,
+            tieRank: false,
+          }),
+        );
+        expect(colorado?.seasons).toEqual([
+          {
+            season: 2025,
+            claims: 1,
+            drops: 1,
+            trades: 1,
+          },
+        ]);
+        expectArraySchema("TransactionLeaderboardEntry", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns transaction leaderboard zero-state from the live DB when no transaction rows exist", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        const req = createRequest({
+          method: "GET",
+          url: "/leaderboard/transactions",
+        });
+        const res = createResponse();
+
+        await getTransactionsLeaderboard(
+          asRouteReq<TransactionsRouteReq>(req),
+          res,
+        );
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        const colorado = body.find((entry) => entry.teamId === "1");
+
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("db");
+        expect(body).toHaveLength(32);
+        expect(colorado).toEqual(
+          expect.objectContaining({
+            teamId: "1",
+            teamName: "Colorado Avalanche",
+            claims: 0,
+            drops: 0,
+            trades: 0,
+            seasons: [],
+            tieRank: false,
+          }),
+        );
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("serves transaction leaderboard snapshots from local snapshot storage", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        const snapshotPayload = [
+          {
+            teamId: "2",
+            teamName: "Carolina Hurricanes",
+            claims: 77,
+            drops: 70,
+            trades: 15,
+            seasons: [
+              {
+                season: 2025,
+                claims: 12,
+                drops: 11,
+                trades: 3,
+              },
+            ],
+            tieRank: false,
+          },
+        ];
+        await writeSnapshot(
+          db.snapshotDir,
+          "leaderboard/transactions",
+          snapshotPayload,
+        );
+
+        const req = createRequest({
+          method: "GET",
+          url: "/leaderboard/transactions",
+        });
+        const res = createResponse();
+
+        await getTransactionsLeaderboard(
+          asRouteReq<TransactionsRouteReq>(req),
+          res,
+        );
+
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+        expect(getJsonBody(res)).toEqual(snapshotPayload);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("falls back to live transaction leaderboard data when the snapshot file is malformed", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await insertClaimEventItem(db.db, {
+          season: 2025,
+          teamId: "1",
+          occurredAt: "2026-03-05T17:00:00.000Z",
+          sourceFile: "claims-2025-2026.csv",
+          sourceGroupIndex: 0,
+          sequence: 0,
+          actionType: "claim",
+          rawName: "Claimed Player",
+        });
+
+        const malformedSnapshotPath = path.join(
+          db.snapshotDir,
+          "leaderboard",
+          "transactions.json",
+        );
+        await fs.mkdir(path.dirname(malformedSnapshotPath), {
+          recursive: true,
+        });
+        await fs.writeFile(malformedSnapshotPath, "{ invalid json", "utf8");
+
+        const req = createRequest({
+          method: "GET",
+          url: "/leaderboard/transactions",
+        });
+        const res = createResponse();
+
+        await getTransactionsLeaderboard(
+          asRouteReq<TransactionsRouteReq>(req),
+          res,
+        );
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("db");
+        expect(body).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              teamId: "1",
+              teamName: "Colorado Avalanche",
+              claims: 1,
+              drops: 0,
+              trades: 0,
+            }),
+          ]),
+        );
       } finally {
         await db.cleanup();
       }

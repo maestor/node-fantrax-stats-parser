@@ -98,11 +98,15 @@ const main = async () => {
   console.log(`✅  Imported playoff results from ${PLAYOFFS_PATH}`);
   console.log(`   Upserted: ${upserted}  Skipped (no round data): ${skipped}`);
 
-  console.log("📸  Regenerating API snapshots...");
-  const snapshotRun = spawnSync("npm", ["run", "snapshot:generate"], {
-    stdio: "inherit",
-    env: process.env,
-  });
+  console.log("📸  Regenerating playoff leaderboard snapshot...");
+  const snapshotRun = spawnSync(
+    "npm",
+    ["run", "snapshot:generate", "--", "--scope=leaderboard-playoffs"],
+    {
+      stdio: "inherit",
+      env: process.env,
+    },
+  );
   if (snapshotRun.status !== 0) {
     throw new Error("Snapshot generation failed after playoff results import");
   }

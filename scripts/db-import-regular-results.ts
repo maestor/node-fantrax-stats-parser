@@ -106,11 +106,15 @@ const main = async () => {
   console.info(`✅  Imported regular results from ${REGULAR_PATH}`);
   console.info(`   Upserted: ${upserted}`);
 
-  console.info("📸  Regenerating API snapshots...");
-  const snapshotRun = spawnSync("npm", ["run", "snapshot:generate"], {
-    stdio: "inherit",
-    env: process.env,
-  });
+  console.info("📸  Regenerating regular leaderboard snapshot...");
+  const snapshotRun = spawnSync(
+    "npm",
+    ["run", "snapshot:generate", "--", "--scope=leaderboard-regular"],
+    {
+      stdio: "inherit",
+      env: process.env,
+    },
+  );
   if (snapshotRun.status !== 0) {
     throw new Error("Snapshot generation failed after regular results import");
   }

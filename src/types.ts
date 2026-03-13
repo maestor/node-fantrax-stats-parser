@@ -519,3 +519,20 @@ export type RegularLeaderboardEntry = {
   seasons: RegularLeaderboardSeason[];
   tieRank: boolean;
 };
+
+export type TransactionLeaderboardSeason = {
+  season: number;
+  claims: number;
+  drops: number;
+  trades: number;
+};
+
+export type TransactionLeaderboardEntry = {
+  teamId: string;
+  teamName: string;
+  claims: number;
+  drops: number;
+  trades: number;
+  seasons: TransactionLeaderboardSeason[];
+  tieRank: boolean;
+};

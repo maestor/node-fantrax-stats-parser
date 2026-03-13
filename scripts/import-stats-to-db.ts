@@ -16,6 +16,7 @@ import path from "path";
 import os from "os";
 import { spawnSync } from "child_process";
 import csv from "csvtojson";
+import type { InStatement } from "@libsql/client";
 import { TEAMS, CURRENT_SEASON } from "../src/constants";
 import {
   buildFantraxEntityUpsertStatements,
@@ -23,7 +24,6 @@ import {
 } from "../src/fantrax-entities";
 import { mapPlayerData, mapGoalieData } from "../src/mappings";
 import { getDbClient } from "../src/db/client";
-import type { InStatement } from "@libsql/client";
 
 type ReportType = "regular" | "playoffs";
 
@@ -253,8 +253,17 @@ const main = async () => {
     });
 
     console.log("");
-    console.log("📸 Regenerating API snapshots...");
-    const snapshotRun = spawnSync("npm", ["run", "snapshot:generate"], {
+    console.log("📸 Regenerating combined stats snapshots...");
+    const snapshotArgs = [
+      "run",
+      "snapshot:generate",
+      "--",
+      "--scope=stats",
+    ];
+    if (reportTypeFilter !== null) {
+      snapshotArgs.push(`--report-type=${reportTypeFilter}`);
+    }
+    const snapshotRun = spawnSync("npm", snapshotArgs, {
       stdio: "inherit",
       env: process.env,
     });

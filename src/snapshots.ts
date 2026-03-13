@@ -186,6 +186,9 @@ export const getRegularLeaderboardSnapshotKey = (): string =>
 export const getPlayoffsLeaderboardSnapshotKey = (): string =>
   "leaderboard/playoffs";
 
+export const getTransactionsLeaderboardSnapshotKey = (): string =>
+  "leaderboard/transactions";
+
 export const getCombinedSnapshotKey = (
   kind: "players" | "goalies",
   report: Report,

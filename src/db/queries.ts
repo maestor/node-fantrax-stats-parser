@@ -490,3 +490,138 @@ export const getRegularSeasons = async (): Promise<RegularSeasonDbEntry[]> => {
     divTies: row.div_ties,
   }));
 };
+
+interface TransactionLeaderboardRow {
+  team_id: string;
+  claims: number;
+  drops: number;
+  trades: number;
+}
+
+export type TransactionLeaderboardDbEntry = Omit<
+  import("../types").TransactionLeaderboardEntry,
+  "teamName" | "seasons" | "tieRank"
+>;
+
+interface TransactionSeasonRow {
+  team_id: string;
+  season: number;
+  claims: number;
+  drops: number;
+  trades: number;
+}
+
+export type TransactionSeasonDbEntry = import("../types").TransactionLeaderboardSeason & {
+  teamId: string;
+};
+
+const TRANSACTION_COUNTS_CTE = `WITH claim_drop_counts AS (
+       SELECT
+         team_id,
+         season,
+         SUM(CASE WHEN action_type = 'claim' THEN 1 ELSE 0 END) AS claims,
+         SUM(CASE WHEN action_type = 'drop' THEN 1 ELSE 0 END) AS drops
+       FROM claim_event_items
+       GROUP BY team_id, season
+     ),
+     trade_participation AS (
+       SELECT DISTINCT
+         tsb.season AS season,
+         tsb.occurred_at AS occurred_at,
+         tbi.from_team_id AS team_id
+       FROM trade_source_blocks tsb
+       JOIN trade_block_items tbi ON tbi.trade_source_block_id = tsb.id
+       UNION
+       SELECT DISTINCT
+         tsb.season AS season,
+         tsb.occurred_at AS occurred_at,
+         tbi.to_team_id AS team_id
+       FROM trade_source_blocks tsb
+       JOIN trade_block_items tbi ON tbi.trade_source_block_id = tsb.id
+     ),
+     trade_counts AS (
+       SELECT
+         team_id,
+         season,
+         COUNT(*) AS trades
+       FROM trade_participation
+       GROUP BY team_id, season
+     ),
+     all_team_seasons AS (
+       SELECT team_id, season FROM claim_drop_counts
+       UNION
+       SELECT team_id, season FROM trade_counts
+     ),
+     transaction_counts AS (
+       SELECT
+         ats.team_id,
+         ats.season,
+         COALESCE(cdc.claims, 0) AS claims,
+         COALESCE(cdc.drops, 0) AS drops,
+         COALESCE(tc.trades, 0) AS trades
+       FROM all_team_seasons ats
+       LEFT JOIN claim_drop_counts cdc
+         ON cdc.team_id = ats.team_id
+        AND cdc.season = ats.season
+       LEFT JOIN trade_counts tc
+         ON tc.team_id = ats.team_id
+        AND tc.season = ats.season
+     )`;
+
+const mapTransactionLeaderboardRow = (
+  row: TransactionLeaderboardRow,
+): TransactionLeaderboardDbEntry => ({
+  teamId: row.team_id,
+  claims: row.claims,
+  drops: row.drops,
+  trades: row.trades,
+});
+
+export const getTransactionLeaderboard = async (): Promise<
+  TransactionLeaderboardDbEntry[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `${TRANSACTION_COUNTS_CTE}
+     SELECT
+       team_id,
+       SUM(claims) AS claims,
+       SUM(drops) AS drops,
+       SUM(trades) AS trades
+     FROM transaction_counts
+     GROUP BY team_id
+     ORDER BY
+       SUM(claims + drops + trades) DESC,
+       SUM(trades) DESC,
+       SUM(claims) DESC,
+       SUM(drops) DESC,
+       team_id ASC`,
+  );
+  return castRows<TransactionLeaderboardRow>(result.rows).map(
+    mapTransactionLeaderboardRow,
+  );
+};
+
+export const getTransactionSeasons = async (): Promise<
+  TransactionSeasonDbEntry[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `${TRANSACTION_COUNTS_CTE}
+     SELECT
+       team_id,
+       season,
+       claims,
+       drops,
+       trades
+     FROM transaction_counts
+     ORDER BY team_id ASC, season ASC`,
+  );
+  return castRows<TransactionSeasonRow>(result.rows).map((row) => ({
+    teamId: row.team_id,
+    season: row.season,
+    claims: row.claims,
+    drops: row.drops,
+    trades: row.trades,
+  }));
+};

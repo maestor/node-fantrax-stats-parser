@@ -21,6 +21,7 @@ import {
   getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
+  getTransactionsLeaderboard,
 } from "./routes";
 import { getOpenApiSpec, getSwaggerUi } from "./openapi";
 
@@ -56,6 +57,7 @@ module.exports = cors(
     get("/career/goalie/:id", protectedRoute(getCareerGoalie)),
     get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
     get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
+    get("/leaderboard/transactions", protectedRoute(getTransactionsLeaderboard)),
     get("/openapi.json", getOpenApiSpec),
     get("/api-docs", getSwaggerUi),
     get("/*", notFound)

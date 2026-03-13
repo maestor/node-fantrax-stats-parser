@@ -35,6 +35,7 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 
 The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
+Leaderboard routes are `/leaderboard/regular`, `/leaderboard/playoffs`, and `/leaderboard/transactions`.
 The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, and `regular-grinder-without-playoffs`.
 `reunion-king` items include stint ranges as `fromSeason` / `toSeason` pairs for each return stint.
 `regular-grinder-without-playoffs` items include the played fantasy `teams` list in addition to `regularGames`.
@@ -446,6 +447,7 @@ curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/players/combi
 # Leaderboards
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/regular
 curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/playoffs
+curl -H "x-api-key: <your-key>" https://ffhl-stats-api.vercel.app/leaderboard/transactions
 
 # Filter by season (startFrom parameter)
 curl -H "x-api-key: <your-key>" "https://ffhl-stats-api.vercel.app/seasons?startFrom=2020"
@@ -465,6 +467,9 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
   - `seasons`: one item per season year
   - each item has `season`, `round`, and `key`
   - if a season has no DB row for that team, it is returned as `round: 0` and `key: "notQualified"`
+- `GET /leaderboard/transactions` returns all-time claim/drop/trade totals plus:
+  - `seasons`: one item per season year with `claims`, `drops`, and `trades`
+  - `trades` counts distinct team participations by `season + occurredAt`
 
 ## Cloud Storage (Cloudflare R2)
 
@@ -573,22 +578,31 @@ Currently snapshotted response families are:
 - `/career/highlights/{type}` for all four supported highlight types
 - `/leaderboard/regular`
 - `/leaderboard/playoffs`
+- `/leaderboard/transactions`
 - `/players/combined/{reportType}?teamId=<id>` when `startFrom` is omitted or matches the team's default start season
 - `/goalies/combined/{reportType}?teamId=<id>` when `startFrom` is omitted or matches the team's default start season
 
 Behavior:
 
-- Successful stats and results import scripts refresh `import_metadata.last_modified` and then run `npm run snapshot:generate`
-- `db:import:transactions` refreshes `import_metadata.last_modified`
+- `db:import:stats` refreshes `import_metadata.last_modified` and then runs `npm run snapshot:generate -- --scope=stats`
+- `db:import:stats -- --report-type=regular` regenerates `regular` and `both` combined player/goalie snapshots
+- `db:import:stats -- --report-type=playoffs` regenerates `playoffs` and `both` combined player/goalie snapshots
+- `db:import:playoff-results` refreshes only `/leaderboard/playoffs`
+- `db:import:regular-results` refreshes only `/leaderboard/regular`
+- `db:import:transactions` refreshes `import_metadata.last_modified` and then refreshes only `/leaderboard/transactions`
 - snapshots are written locally to `generated/snapshots/`
 - if `USE_R2_SNAPSHOTS=true`, the same generation step also uploads JSON snapshots to R2
 - at runtime the API tries local snapshots first, then R2, and finally falls back to live DB queries
 - successful responses expose `x-stats-data-source: snapshot` or `x-stats-data-source: db`
+- career and career-highlight snapshots are intentionally manual-only after stats imports; existing snapshots continue serving until you regenerate them
 
 Manual generation:
 
 ```bash
 npm run snapshot:generate
+npm run snapshot:generate -- --scope=stats --report-type=regular
+npm run snapshot:generate -- --scope=career --scope=career-highlights
+npm run snapshot:generate -- --scope=transactions
 ```
 
 ## Database (Turso/SQLite)
@@ -642,7 +656,7 @@ npm run db:import:stats -- --season=2018 --report-type=regular # Import only reg
 npm run db:import:transactions  # Import all transaction CSVs into remote Turso
 ```
 
-Successful stats and results imports regenerate API snapshots after the database update completes.
+Successful imports regenerate only the snapshot scopes they directly affect. Career and career-highlight snapshots are manual unless you run `npm run snapshot:generate` with the matching scopes.
 
 Get credentials from the [Turso dashboard](https://turso.tech).
 

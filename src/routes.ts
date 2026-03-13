@@ -14,6 +14,7 @@ import {
   getCareerHighlightsData,
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
+  getTransactionLeaderboardData,
 } from "./services";
 import { CareerHighlightType, Report } from "./types";
 import {
@@ -39,6 +40,7 @@ import {
   getCombinedSnapshotKey,
   getPlayoffsLeaderboardSnapshotKey,
   getRegularLeaderboardSnapshotKey,
+  getTransactionsLeaderboardSnapshotKey,
   loadSnapshot,
 } from "./snapshots";
 import {
@@ -436,6 +438,17 @@ export const getRegularLeaderboard: AugmentedRequestHandler = async (
   await withErrorHandlingCached(req, res, () =>
     loadSnapshotOrFallback(getRegularLeaderboardSnapshotKey(), () =>
       getRegularLeaderboardData(),
+    ),
+  );
+};
+
+export const getTransactionsLeaderboard: AugmentedRequestHandler = async (
+  req,
+  res,
+) => {
+  await withErrorHandlingCached(req, res, () =>
+    loadSnapshotOrFallback(getTransactionsLeaderboardSnapshotKey(), () =>
+      getTransactionLeaderboardData(),
     ),
   );
 };
