@@ -279,6 +279,113 @@ export const getAllGoalieCareerRowsFromDb = async (): Promise<GoalieCareerRow[]>
   return castRows<GoalieCareerRow>(result.rows);
 };
 
+interface CareerTransactionHighlightSqlRow {
+  entity_id: string;
+  name: string;
+  position: string | null;
+  team_id: string;
+  transaction_count: number;
+}
+
+export type CareerTransactionHighlightDbRow = {
+  id: string;
+  name: string;
+  position: string | null;
+  teamId: string;
+  transactionCount: number;
+};
+
+const mapCareerTransactionHighlightRow = (
+  row: CareerTransactionHighlightSqlRow,
+): CareerTransactionHighlightDbRow => ({
+  id: row.entity_id,
+  name: row.name,
+  position: row.position,
+  teamId: row.team_id,
+  transactionCount: row.transaction_count,
+});
+
+export const getClaimTransactionHighlightRowsFromDb = async (): Promise<
+  CareerTransactionHighlightDbRow[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       cei.fantrax_entity_id AS entity_id,
+       COALESCE(fe.name, cei.raw_name) AS name,
+       COALESCE(fe.position, cei.raw_position) AS position,
+       cei.team_id,
+       COUNT(*) AS transaction_count
+     FROM claim_event_items cei
+     LEFT JOIN fantrax_entities fe ON fe.fantrax_id = cei.fantrax_entity_id
+     WHERE cei.action_type = 'claim'
+       AND cei.fantrax_entity_id IS NOT NULL
+     GROUP BY
+       cei.fantrax_entity_id,
+       COALESCE(fe.name, cei.raw_name),
+       COALESCE(fe.position, cei.raw_position),
+       cei.team_id
+     ORDER BY name ASC, entity_id ASC, cei.team_id ASC`,
+  );
+  return castRows<CareerTransactionHighlightSqlRow>(result.rows).map(
+    mapCareerTransactionHighlightRow,
+  );
+};
+
+export const getDropTransactionHighlightRowsFromDb = async (): Promise<
+  CareerTransactionHighlightDbRow[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       cei.fantrax_entity_id AS entity_id,
+       COALESCE(fe.name, cei.raw_name) AS name,
+       COALESCE(fe.position, cei.raw_position) AS position,
+       cei.team_id,
+       COUNT(*) AS transaction_count
+     FROM claim_event_items cei
+     LEFT JOIN fantrax_entities fe ON fe.fantrax_id = cei.fantrax_entity_id
+     WHERE cei.action_type = 'drop'
+       AND cei.fantrax_entity_id IS NOT NULL
+     GROUP BY
+       cei.fantrax_entity_id,
+       COALESCE(fe.name, cei.raw_name),
+       COALESCE(fe.position, cei.raw_position),
+       cei.team_id
+     ORDER BY name ASC, entity_id ASC, cei.team_id ASC`,
+  );
+  return castRows<CareerTransactionHighlightSqlRow>(result.rows).map(
+    mapCareerTransactionHighlightRow,
+  );
+};
+
+export const getTradeTransactionHighlightRowsFromDb = async (): Promise<
+  CareerTransactionHighlightDbRow[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       tbi.fantrax_entity_id AS entity_id,
+       COALESCE(fe.name, tbi.raw_name) AS name,
+       COALESCE(fe.position, tbi.raw_position) AS position,
+       tbi.from_team_id AS team_id,
+       COUNT(*) AS transaction_count
+     FROM trade_block_items tbi
+     LEFT JOIN fantrax_entities fe ON fe.fantrax_id = tbi.fantrax_entity_id
+     WHERE tbi.asset_type = 'player'
+       AND tbi.fantrax_entity_id IS NOT NULL
+     GROUP BY
+       tbi.fantrax_entity_id,
+       COALESCE(fe.name, tbi.raw_name),
+       COALESCE(fe.position, tbi.raw_position),
+       tbi.from_team_id
+     ORDER BY name ASC, entity_id ASC, tbi.from_team_id ASC`,
+  );
+  return castRows<CareerTransactionHighlightSqlRow>(result.rows).map(
+    mapCareerTransactionHighlightRow,
+  );
+};
+
 export const getAvailableSeasonsFromDb = async (
   teamId: string,
   reportType: CsvReport
