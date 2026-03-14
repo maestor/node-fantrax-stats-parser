@@ -37,7 +37,8 @@ The API includes team-scoped season/combined leaderboards plus career endpoints 
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
 Leaderboard routes are `/leaderboard/regular`, `/leaderboard/playoffs`, and `/leaderboard/transactions`.
 The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, `regular-grinder-without-playoffs`, `most-trades`, `most-claims`, and `most-drops`.
-`reunion-king` items include stint ranges as `fromSeason` / `toSeason` pairs for each return stint.
+Each career highlight page also includes `minAllowed`, the backend threshold used for that highlight leaderboard.
+`reunion-king` items include a `reunions` array of `{ date, type }` entries, where `type` is `claim` or `trade`.
 `regular-grinder-without-playoffs` items include the played fantasy `teams` list in addition to `regularGames`.
 Transaction highlight items include total `transactionCount` plus a per-team `teams` breakdown with per-team `count` values sorted descending; `most-trades` uses the fantasy team that traded the player away.
 Current highlight minimums are: `most-teams-played` 4, `most-teams-owned` 5, `same-team-seasons-played` 8, `same-team-seasons-owned` 10, `most-stanley-cups` 2, `reunion-king` 2, `stash-king` 10, `regular-grinder-without-playoffs` 60, `most-trades` 4, and `most-claims` / `most-drops` 3.

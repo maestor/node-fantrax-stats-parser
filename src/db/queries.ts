@@ -287,12 +287,30 @@ interface CareerTransactionHighlightSqlRow {
   transaction_count: number;
 }
 
+interface CareerReunionHighlightSqlRow {
+  entity_id: string;
+  name: string;
+  position: string | null;
+  team_id: string;
+  reunion_date: string;
+  reunion_type: "claim" | "trade";
+}
+
 export type CareerTransactionHighlightDbRow = {
   id: string;
   name: string;
   position: string | null;
   teamId: string;
   transactionCount: number;
+};
+
+export type CareerReunionHighlightDbRow = {
+  id: string;
+  name: string;
+  position: string | null;
+  teamId: string;
+  date: string;
+  type: "claim" | "trade";
 };
 
 const mapCareerTransactionHighlightRow = (
@@ -303,6 +321,17 @@ const mapCareerTransactionHighlightRow = (
   position: row.position,
   teamId: row.team_id,
   transactionCount: row.transaction_count,
+});
+
+const mapCareerReunionHighlightRow = (
+  row: CareerReunionHighlightSqlRow,
+): CareerReunionHighlightDbRow => ({
+  id: row.entity_id,
+  name: row.name,
+  position: row.position,
+  teamId: row.team_id,
+  date: row.reunion_date,
+  type: row.reunion_type,
 });
 
 export const getClaimTransactionHighlightRowsFromDb = async (): Promise<
@@ -383,6 +412,75 @@ export const getTradeTransactionHighlightRowsFromDb = async (): Promise<
   );
   return castRows<CareerTransactionHighlightSqlRow>(result.rows).map(
     mapCareerTransactionHighlightRow,
+  );
+};
+
+export const getReunionTransactionHighlightRowsFromDb = async (): Promise<
+  CareerReunionHighlightDbRow[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `WITH drop_baselines AS (
+       SELECT
+         cei.fantrax_entity_id AS entity_id,
+         cei.team_id,
+         MIN(cei.occurred_at) AS first_drop_at
+       FROM claim_event_items cei
+       WHERE cei.action_type = 'drop'
+         AND cei.fantrax_entity_id IS NOT NULL
+       GROUP BY cei.fantrax_entity_id, cei.team_id
+     ),
+     reunion_events AS (
+       SELECT
+         cei.fantrax_entity_id AS entity_id,
+         COALESCE(fe.name, cei.raw_name) AS name,
+         COALESCE(fe.position, cei.raw_position) AS position,
+         cei.team_id,
+         cei.occurred_at AS reunion_date,
+         'claim' AS reunion_type
+       FROM claim_event_items cei
+       JOIN drop_baselines db
+         ON db.entity_id = cei.fantrax_entity_id
+        AND db.team_id = cei.team_id
+       LEFT JOIN fantrax_entities fe ON fe.fantrax_id = cei.fantrax_entity_id
+       WHERE cei.action_type = 'claim'
+         AND cei.fantrax_entity_id IS NOT NULL
+         AND cei.occurred_at > db.first_drop_at
+       UNION ALL
+       SELECT
+         tbi.fantrax_entity_id AS entity_id,
+         COALESCE(fe.name, tbi.raw_name) AS name,
+         COALESCE(fe.position, tbi.raw_position) AS position,
+         tbi.to_team_id AS team_id,
+         tsb.occurred_at AS reunion_date,
+         'trade' AS reunion_type
+       FROM trade_block_items tbi
+       JOIN trade_source_blocks tsb ON tsb.id = tbi.trade_source_block_id
+       JOIN drop_baselines db
+         ON db.entity_id = tbi.fantrax_entity_id
+        AND db.team_id = tbi.to_team_id
+       LEFT JOIN fantrax_entities fe ON fe.fantrax_id = tbi.fantrax_entity_id
+       WHERE tbi.asset_type = 'player'
+         AND tbi.fantrax_entity_id IS NOT NULL
+         AND tsb.occurred_at > db.first_drop_at
+     )
+     SELECT
+       entity_id,
+       name,
+       position,
+       team_id,
+       reunion_date,
+       reunion_type
+     FROM reunion_events
+     ORDER BY
+       name ASC,
+       entity_id ASC,
+       team_id ASC,
+       reunion_date ASC,
+       CASE reunion_type WHEN 'claim' THEN 0 ELSE 1 END ASC`,
+  );
+  return castRows<CareerReunionHighlightSqlRow>(result.rows).map(
+    mapCareerReunionHighlightRow,
   );
 };
 

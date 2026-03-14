@@ -44,6 +44,7 @@ import {
   loadSnapshot,
 } from "./snapshots";
 import {
+  CAREER_HIGHLIGHT_CONFIG,
   CAREER_HIGHLIGHT_TYPES,
   DEFAULT_CAREER_HIGHLIGHT_SKIP,
   DEFAULT_CAREER_HIGHLIGHT_TAKE,
@@ -400,6 +401,7 @@ export const getCareerHighlights: AugmentedRequestHandler = async (req, res) => 
     return {
       data: {
         type: rawType,
+        minAllowed: CAREER_HIGHLIGHT_CONFIG[rawType].minCount,
         skip: resolvedSkip,
         take: resolvedTake,
         total: result.data.length,

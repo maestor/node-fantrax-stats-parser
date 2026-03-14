@@ -28,8 +28,9 @@ import {
   CareerSameTeamHighlightItem,
   CareerStanleyCupHighlightItem,
   CareerStanleyCupHighlightCup,
-  CareerReunionHighlightStint,
+  CareerReunionHighlightReunion,
   CareerReunionHighlightItem,
+  CareerReunionType,
   CareerStashHighlightItem,
   CareerRegularGrinderHighlightItem,
   CareerTransactionHighlightItem,
@@ -53,11 +54,13 @@ import {
   getDropTransactionHighlightRowsFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
+  getReunionTransactionHighlightRowsFromDb,
   getRegularLeaderboard,
   getRegularSeasons,
   getTradeTransactionHighlightRowsFromDb,
   getTransactionLeaderboard,
   getTransactionSeasons,
+  type CareerReunionHighlightDbRow,
   type CareerTransactionHighlightDbRow,
   type PlayerCareerRow,
   type GoalieCareerRow,
@@ -563,6 +566,15 @@ type CareerTransactionHighlightRow = {
   transactionCount: number;
 };
 
+type CareerReunionHighlightRow = {
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  date: string;
+  type: CareerReunionType;
+};
+
 type TeamFirstSeason = CareerHighlightTeam & {
   firstSeason: number;
 };
@@ -622,10 +634,37 @@ const mapCareerTransactionHighlightRows = (
     transactionCount: row.transactionCount,
   }));
 
+const mapCareerReunionHighlightRows = (
+  rows: readonly CareerReunionHighlightDbRow[],
+): CareerReunionHighlightRow[] =>
+  rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    position: requirePlayerPosition(row.position),
+    teamId: row.teamId,
+    date: row.date,
+    type: row.type,
+  }));
+
 const groupCareerTransactionHighlightRows = (
   rows: readonly CareerTransactionHighlightRow[],
 ): Map<string, CareerTransactionHighlightRow[]> => {
   const grouped = new Map<string, CareerTransactionHighlightRow[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.id);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.id, [row]);
+    }
+  }
+  return grouped;
+};
+
+const groupCareerReunionHighlightRows = (
+  rows: readonly CareerReunionHighlightRow[],
+): Map<string, CareerReunionHighlightRow[]> => {
+  const grouped = new Map<string, CareerReunionHighlightRow[]>();
   for (const row of rows) {
     const list = grouped.get(row.id);
     if (list) {
@@ -814,49 +853,35 @@ const buildCareerStanleyCupHighlightItem = (
   };
 };
 
-const buildSeasonStints = (
-  seasons: ReadonlySet<number>,
-): CareerReunionHighlightStint[] => {
-  const [firstSeason, ...remainingSeasons] = [...seasons].sort(
-    (left, right) => left - right,
-  );
-  const stints: CareerReunionHighlightStint[] = [];
-  let fromSeason = firstSeason as number;
-  let previousSeason = firstSeason as number;
-
-  for (const season of remainingSeasons) {
-    if (season !== previousSeason + 1) {
-      stints.push({ fromSeason, toSeason: previousSeason });
-      fromSeason = season;
-    }
-    previousSeason = season;
-  }
-
-  stints.push({ fromSeason, toSeason: previousSeason });
-  return stints;
-};
+const sortCareerReunionHighlightReunions = (
+  reunions: readonly CareerReunionHighlightReunion[],
+): CareerReunionHighlightReunion[] =>
+  reunions.slice().sort((left, right) => {
+    const byDate = left.date.localeCompare(right.date);
+    if (byDate !== 0) return byDate;
+    return left.type.localeCompare(right.type);
+  });
 
 const buildCareerReunionHighlightItems = (
-  rows: readonly CareerHighlightRow[],
+  rows: readonly CareerReunionHighlightRow[],
   minReunionCount: number,
 ): CareerReunionHighlightItem[] => {
-  const seasonsByTeam = new Map<string, Set<number>>();
-
+  const reunionsByTeam = new Map<string, CareerReunionHighlightReunion[]>();
   for (const row of rows) {
-    const seasons = seasonsByTeam.get(row.teamId);
-    if (seasons) {
-      seasons.add(row.season);
+    const reunions = reunionsByTeam.get(row.teamId);
+    const reunion = { date: row.date, type: row.type };
+    if (reunions) {
+      reunions.push(reunion);
     } else {
-      seasonsByTeam.set(row.teamId, new Set([row.season]));
+      reunionsByTeam.set(row.teamId, [reunion]);
     }
   }
 
-  const reunionCounts = [...seasonsByTeam.entries()].map(([teamId, seasons]) => {
-    const stints = buildSeasonStints(seasons);
+  const reunionCounts = [...reunionsByTeam.entries()].map(([teamId, reunions]) => {
     return {
       teamId,
-      reunionCount: stints.length,
-      stints,
+      reunionCount: reunions.length,
+      reunions: sortCareerReunionHighlightReunions(reunions),
     };
   });
   const maxReunionCount = Math.max(
@@ -870,7 +895,7 @@ const buildCareerReunionHighlightItems = (
 
   return reunionCounts
     .filter((entry) => entry.reunionCount === maxReunionCount)
-    .map(({ teamId, reunionCount, stints }) => ({
+    .map(({ teamId, reunionCount, reunions }) => ({
       id: rows[0].id,
       name: rows[0].name,
       position: rows[0].position,
@@ -879,7 +904,7 @@ const buildCareerReunionHighlightItems = (
         id: teamId,
         name: getTeamName(teamId),
       },
-      stints,
+      reunions,
     }))
     .sort((left, right) => left.team.name.localeCompare(right.team.name));
 };
@@ -1095,6 +1120,10 @@ const getCareerTransactionHighlightRows = async (
   mapCareerTransactionHighlightRows(
     await CAREER_TRANSACTION_HIGHLIGHT_LOADERS[transactionType](),
   );
+
+const getCareerReunionHighlightRows = async (): Promise<
+  CareerReunionHighlightRow[]
+> => mapCareerReunionHighlightRows(await getReunionTransactionHighlightRowsFromDb());
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
@@ -1316,6 +1345,17 @@ export const getCareerHighlightsData = async (
     );
   }
 
+  if (config.kind === "reunion-count") {
+    const rows = await getCareerReunionHighlightRows();
+    const grouped = groupCareerReunionHighlightRows(rows);
+
+    return sortCareerReunionHighlightItems(
+      [...grouped.values()].flatMap((groupRows) =>
+        buildCareerReunionHighlightItems(groupRows, config.minCount),
+      ),
+    );
+  }
+
   const [playerRows, goalieRows] = await Promise.all([
     getAllPlayerCareerRowsFromDb(),
     getAllGoalieCareerRowsFromDb(),
@@ -1376,14 +1416,6 @@ export const getCareerHighlightsData = async (
             item,
           ): item is CareerStanleyCupHighlightItem => item !== null,
         ),
-    );
-  }
-
-  if (config.kind === "reunion-count") {
-    return sortCareerReunionHighlightItems(
-      [...grouped.values()].flatMap((rows) =>
-        buildCareerReunionHighlightItems(rows, config.minCount),
-      ),
     );
   }
 
