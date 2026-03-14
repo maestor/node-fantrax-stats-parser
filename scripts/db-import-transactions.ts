@@ -22,11 +22,25 @@ const main = async (): Promise<void> => {
   const args = process.argv.slice(2);
   const seasonArg = args.find((arg) => arg.startsWith("--season="));
   const outDirArg = args.find((arg) => arg.startsWith("--dir="));
+  const importAll = args.includes("--all");
+  const full = args.includes("--full");
   const currentOnly = args.includes("--current-only");
   const dryRun = args.includes("--dry-run");
 
+  if (seasonArg && importAll) {
+    throw new Error("Use either --season or --all, not both.");
+  }
   if (seasonArg && currentOnly) {
     throw new Error("Use either --season or --current-only, not both.");
+  }
+  if (seasonArg && full) {
+    throw new Error("Use --season by itself; it already runs a full season import.");
+  }
+  if (importAll && currentOnly) {
+    throw new Error("Use either --all or --current-only, not both.");
+  }
+  if (importAll && full) {
+    throw new Error("Use either --all or --full, not both.");
   }
 
   const seasonFilter =
@@ -42,22 +56,43 @@ const main = async (): Promise<void> => {
       ? path.resolve(outDirArg.split("=")[1])
       : DEFAULT_TRANSACTIONS_OUT_DIR;
 
+  const incremental =
+    seasonFilter === undefined &&
+    !importAll &&
+    !full;
+  const seasons =
+    seasonFilter !== undefined
+      ? [seasonFilter]
+      : importAll
+        ? undefined
+        : [CURRENT_SEASON];
+  const modeLabel =
+    seasonFilter !== undefined
+      ? `Full season ${seasonFilter}-${seasonFilter + 1}`
+      : importAll
+        ? "Full all seasons"
+        : full
+          ? `Full current season (${CURRENT_SEASON}-${CURRENT_SEASON + 1})`
+          : `Incremental current season (${CURRENT_SEASON}-${CURRENT_SEASON + 1})`;
+
   const db = getDbClient();
   const summary = await importTransactionsToDb({
     db,
     csvDir,
-    seasons: seasonFilter !== undefined ? [seasonFilter] : undefined,
-    currentOnly,
+    seasons,
+    currentOnly: currentOnly || incremental,
     dryRun,
+    incremental,
   });
 
   console.info("✅ Transaction import complete");
   console.info(`   CSV dir: ${csvDir}`);
+  console.info(`   Mode: ${modeLabel}`);
   console.info(
     `   Seasons: ${
       summary.importedSeasons.length
         ? summary.importedSeasons.join(", ")
-        : currentOnly
+        : currentOnly || incremental
           ? String(CURRENT_SEASON)
           : "none"
     }`,

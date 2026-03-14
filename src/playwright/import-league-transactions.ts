@@ -32,6 +32,7 @@ type ImportLeagueTransactionsOptions = {
   retryDelayMs: number;
   outDir: string;
   seasons: LeagueYearInfo[];
+  autoImportToDb: boolean;
 };
 
 const parseImportLeagueTransactionsOptions = (
@@ -50,6 +51,7 @@ const parseImportLeagueTransactionsOptions = (
   const importAll = hasFlag(argv, "--all");
   const requestedYear =
     parseStringArg(argv, "--year") ?? argv.find((arg) => !arg.startsWith("-"));
+  const autoImportToDb = !requestedYear && !importAll;
 
   const leagueSeasons = readLeagueYearInfos();
   const selectedYears = resolveTransactionImportYears({
@@ -82,7 +84,42 @@ const parseImportLeagueTransactionsOptions = (
     retryDelayMs,
     outDir,
     seasons,
+    autoImportToDb,
   };
+};
+
+const getPackageJsonScripts = (repoRoot: string): Record<string, string> | undefined => {
+  const packageJsonPath = path.resolve(repoRoot, "package.json");
+  const packageJsonRaw = readFileSync(packageJsonPath, "utf8");
+  const packageJsonParsed: unknown = JSON.parse(packageJsonRaw);
+
+  return typeof packageJsonParsed === "object" && packageJsonParsed
+    ? (packageJsonParsed as { scripts?: Record<string, string> }).scripts
+    : undefined;
+};
+
+const runPackageScript = (repoRoot: string, scriptName: string, scriptArgs: string[]): void => {
+  const packageJsonScripts = getPackageJsonScripts(repoRoot);
+
+  if (!packageJsonScripts?.[scriptName]) {
+    throw new Error(`Missing npm script ${scriptName} in package.json.`);
+  }
+
+  console.info(`Running npm run ${scriptName} ...`);
+  const result = spawnSync("npm", ["run", scriptName, ...scriptArgs], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: process.env,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+  if (typeof result.status === "number" && result.status !== 0) {
+    throw new Error(
+      `npm run ${scriptName} failed with exit code ${result.status}`,
+    );
+  }
 };
 
 const downloadTransactionCsvWithRetry = async (args: {
@@ -183,36 +220,32 @@ const runTransactionsUploadIfEnabled = (
     return;
   }
 
-  const packageJsonPath = path.resolve(repoRoot, "package.json");
-  const packageJsonRaw = readFileSync(packageJsonPath, "utf8");
-  const packageJsonParsed: unknown = JSON.parse(packageJsonRaw);
-  const packageJsonScripts =
-    typeof packageJsonParsed === "object" && packageJsonParsed
-      ? (packageJsonParsed as { scripts?: Record<string, string> }).scripts
-      : undefined;
-
-  if (!packageJsonScripts?.["r2:upload:transactions"]) {
-    throw new Error("Missing npm script r2:upload:transactions in package.json.");
-  }
-
   const scriptArgs =
     seasons.length === 1 ? ["--", `--season=${seasons[0].year}`] : [];
+  runPackageScript(repoRoot, "r2:upload:transactions", scriptArgs);
+};
 
-  console.info("Running npm run r2:upload:transactions ...");
-  const result = spawnSync("npm", ["run", "r2:upload:transactions", ...scriptArgs], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    env: process.env,
-  });
-
-  if (result.error) {
-    throw result.error;
+const runTransactionsDbImportIfEnabled = (
+  outDir: string,
+  autoImportToDb: boolean,
+): void => {
+  if (!autoImportToDb) {
+    return;
   }
-  if (typeof result.status === "number" && result.status !== 0) {
-    throw new Error(
-      `npm run r2:upload:transactions failed with exit code ${result.status}`,
+
+  const repoRoot = process.cwd();
+  const expectedOutDir = DEFAULT_TRANSACTIONS_OUT_DIR;
+  const resolvedOutDir = path.resolve(outDir);
+
+  if (resolvedOutDir !== expectedOutDir) {
+    console.info(
+      `Skipping post-import DB import because --out is ${resolvedOutDir} (expected ${expectedOutDir}). ` +
+        `Run npm run db:import:transactions manually if you want to import a custom directory.`,
     );
+    return;
   }
+
+  runPackageScript(repoRoot, "db:import:transactions", []);
 };
 
 const main = async (): Promise<void> => {
@@ -256,6 +289,7 @@ const main = async (): Promise<void> => {
   }
 
   runTransactionsUploadIfEnabled(options.outDir, options.seasons);
+  runTransactionsDbImportIfEnabled(options.outDir, options.autoImportToDb);
 };
 
 void main();
