@@ -790,6 +790,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.getHeader("x-stats-data-source")).toBe("db");
         expect(body).toEqual({
           type: "most-teams-played",
+          minAllowed: 4,
           skip: 0,
           take: 1,
           total: 2,
@@ -897,6 +898,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "most-teams-owned",
+          minAllowed: 5,
           skip: 0,
           take: 10,
           total: 1,
@@ -983,6 +985,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "same-team-seasons-played",
+          minAllowed: 8,
           skip: 0,
           take: 10,
           total: 3,
@@ -1046,6 +1049,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "same-team-seasons-owned",
+          minAllowed: 10,
           skip: 0,
           take: 10,
           total: 1,
@@ -1146,6 +1150,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "most-stanley-cups",
+          minAllowed: 2,
           skip: 0,
           take: 10,
           total: 2,
@@ -1194,49 +1199,224 @@ export const registerCareerRouteIntegrationTests = (): void => {
       }
     });
 
-    test("returns reunion-king highlights from separated same-team season blocks", async () => {
+    test("returns reunion-king highlights from transaction reunion events", async () => {
       const db = await createIntegrationDb();
 
       try {
         await db.insertPlayers([
-          ...[2018, 2020, 2022].map((season) => ({
+          {
             teamId: "7",
-            season,
-            reportType: "regular" as const,
+            season: 2024,
+            reportType: "regular",
             playerId: "p-reunion",
             name: "Reunion Skater",
             position: "F",
             games: 0,
-          })),
-          ...[2019, 2020, 2022, 2024].map((season) => ({
-            teamId: "19",
-            season,
-            reportType: "regular" as const,
-            playerId: "p-reunion",
-            name: "Reunion Skater",
-            position: "F",
-            games: 0,
-          })),
-          ...[2020, 2022].map((season) => ({
+          },
+          {
             teamId: "1",
-            season,
-            reportType: "regular" as const,
+            season: 2024,
+            reportType: "regular",
             playerId: "p-two",
             name: "Two Reunion",
             position: "D",
             games: 0,
-          })),
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "p-short",
+            name: "Short Reunion",
+            position: "D",
+            games: 0,
+          },
         ]);
-        await db.insertGoalies(
-          [2017, 2019, 2021, 2023].map((season) => ({
+        await db.insertGoalies([
+          {
             teamId: "3",
-            season,
-            reportType: "regular" as const,
+            season: 2024,
+            reportType: "regular",
             goalieId: "g-reunion",
             name: "Reunion Goalie",
             games: 0,
-          })),
-        );
+          },
+        ]);
+        await insertClaimHighlightSeeds(db.db, [
+          {
+            season: 2023,
+            teamId: "3",
+            occurredAt: "2023-01-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2023,
+            teamId: "3",
+            occurredAt: "2023-02-01T12:00:00.000Z",
+            actionType: "drop",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2023,
+            teamId: "3",
+            occurredAt: "2023-03-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            teamId: "3",
+            occurredAt: "2025-01-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2024,
+            teamId: "7",
+            occurredAt: "2024-05-01T12:00:00.000Z",
+            actionType: "drop",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            teamId: "7",
+            occurredAt: "2024-10-09T13:19:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2025,
+            teamId: "7",
+            occurredAt: "2025-09-29T12:47:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            teamId: "19",
+            occurredAt: "2024-01-15T12:00:00.000Z",
+            actionType: "drop",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            teamId: "19",
+            occurredAt: "2024-03-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            teamId: "19",
+            occurredAt: "2024-04-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            teamId: "1",
+            occurredAt: "2024-01-15T12:00:00.000Z",
+            actionType: "drop",
+            fantraxEntityId: "p-two",
+            rawName: "Two Reunion",
+            rawPosition: "D",
+          },
+          {
+            season: 2024,
+            teamId: "1",
+            occurredAt: "2024-02-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-two",
+            rawName: "Two Reunion",
+            rawPosition: "D",
+          },
+          {
+            season: 2024,
+            teamId: "1",
+            occurredAt: "2024-01-01T12:00:00.000Z",
+            actionType: "drop",
+            fantraxEntityId: "p-short",
+            rawName: "Short Reunion",
+            rawPosition: "D",
+          },
+          {
+            season: 2024,
+            teamId: "1",
+            occurredAt: "2024-02-01T12:00:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-short",
+            rawName: "Short Reunion",
+            rawPosition: "D",
+          },
+        ]);
+        await insertTradeHighlightSeeds(db.db, [
+          {
+            season: 2024,
+            fromTeamId: "2",
+            toTeamId: "3",
+            occurredAt: "2024-01-01T12:00:00.000Z",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            fromTeamId: "5",
+            toTeamId: "3",
+            occurredAt: "2025-02-01T12:00:00.000Z",
+            fantraxEntityId: "g-reunion",
+            rawName: "Reunion Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2024,
+            fromTeamId: "2",
+            toTeamId: "19",
+            occurredAt: "2024-02-01T12:00:00.000Z",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            fromTeamId: "2",
+            toTeamId: "7",
+            occurredAt: "2025-01-15T06:10:00.000Z",
+            fantraxEntityId: "p-reunion",
+            rawName: "Reunion Skater",
+            rawPosition: "F",
+          },
+          {
+            season: 2024,
+            fromTeamId: "2",
+            toTeamId: "1",
+            occurredAt: "2024-03-01T12:00:00.000Z",
+            fantraxEntityId: "p-two",
+            rawName: "Two Reunion",
+            rawPosition: "D",
+          },
+        ]);
 
         const req = createRequest({
           method: "GET",
@@ -1251,6 +1431,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "reunion-king",
+          minAllowed: 2,
           skip: 0,
           take: 10,
           total: 4,
@@ -1261,11 +1442,11 @@ export const registerCareerRouteIntegrationTests = (): void => {
               position: "G",
               reunionCount: 4,
               team: { id: "3", name: "Calgary Flames" },
-              stints: [
-                { fromSeason: 2017, toSeason: 2017 },
-                { fromSeason: 2019, toSeason: 2019 },
-                { fromSeason: 2021, toSeason: 2021 },
-                { fromSeason: 2023, toSeason: 2023 },
+              reunions: [
+                { date: "2023-03-01T12:00:00.000Z", type: "claim" },
+                { date: "2024-01-01T12:00:00.000Z", type: "trade" },
+                { date: "2025-01-01T12:00:00.000Z", type: "claim" },
+                { date: "2025-02-01T12:00:00.000Z", type: "trade" },
               ],
             },
             {
@@ -1274,10 +1455,10 @@ export const registerCareerRouteIntegrationTests = (): void => {
               position: "F",
               reunionCount: 3,
               team: { id: "7", name: "Edmonton Oilers" },
-              stints: [
-                { fromSeason: 2018, toSeason: 2018 },
-                { fromSeason: 2020, toSeason: 2020 },
-                { fromSeason: 2022, toSeason: 2022 },
+              reunions: [
+                { date: "2024-10-09T13:19:00.000Z", type: "claim" },
+                { date: "2025-01-15T06:10:00.000Z", type: "trade" },
+                { date: "2025-09-29T12:47:00.000Z", type: "claim" },
               ],
             },
             {
@@ -1286,10 +1467,10 @@ export const registerCareerRouteIntegrationTests = (): void => {
               position: "F",
               reunionCount: 3,
               team: { id: "19", name: "Toronto Maple Leafs" },
-              stints: [
-                { fromSeason: 2019, toSeason: 2020 },
-                { fromSeason: 2022, toSeason: 2022 },
-                { fromSeason: 2024, toSeason: 2024 },
+              reunions: [
+                { date: "2024-02-01T12:00:00.000Z", type: "trade" },
+                { date: "2024-03-01T12:00:00.000Z", type: "claim" },
+                { date: "2024-04-01T12:00:00.000Z", type: "claim" },
               ],
             },
             {
@@ -1298,9 +1479,9 @@ export const registerCareerRouteIntegrationTests = (): void => {
               position: "D",
               reunionCount: 2,
               team: { id: "1", name: "Colorado Avalanche" },
-              stints: [
-                { fromSeason: 2020, toSeason: 2020 },
-                { fromSeason: 2022, toSeason: 2022 },
+              reunions: [
+                { date: "2024-02-01T12:00:00.000Z", type: "claim" },
+                { date: "2024-03-01T12:00:00.000Z", type: "trade" },
               ],
             },
           ],
@@ -1386,6 +1567,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "stash-king",
+          minAllowed: 10,
           skip: 0,
           take: 10,
           total: 2,
@@ -1487,6 +1669,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "regular-grinder-without-playoffs",
+          minAllowed: 60,
           skip: 0,
           take: 10,
           total: 2,
@@ -1629,6 +1812,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "most-claims",
+          minAllowed: 3,
           skip: 0,
           take: 10,
           total: 2,
@@ -1771,6 +1955,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(body).toEqual({
           type: "most-trades",
+          minAllowed: 4,
           skip: 0,
           take: 10,
           total: 2,
@@ -1847,6 +2032,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
         expect(getJsonBody(res)).toEqual({
           type: "most-teams-played",
+          minAllowed: 4,
           skip: 1,
           take: 1,
           total: 2,

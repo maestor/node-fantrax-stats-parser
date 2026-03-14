@@ -13,6 +13,7 @@ import {
   getDropTransactionHighlightRowsFromDb,
   getGoalieCareerRowsFromDb,
   getPlayerCareerRowsFromDb,
+  getReunionTransactionHighlightRowsFromDb,
   getTradeTransactionHighlightRowsFromDb,
 } from "../db/queries";
 
@@ -339,6 +340,67 @@ describe("db/queries", () => {
             position: "D",
             teamId: "1",
             transactionCount: 5,
+          },
+        ]);
+      });
+    });
+
+    describe("getReunionTransactionHighlightRowsFromDb", () => {
+      test("returns matched claim and trade-in reunion rows after the first drop", async () => {
+        const rows = [
+          {
+            entity_id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            team_id: "7",
+            reunion_date: "2024-10-09T13:19:00.000Z",
+            reunion_type: "claim",
+          },
+          {
+            entity_id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            team_id: "7",
+            reunion_date: "2025-01-15T06:10:00.000Z",
+            reunion_type: "trade",
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getReunionTransactionHighlightRowsFromDb();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("WITH drop_baselines AS"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("cei.action_type = 'drop'"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("cei.action_type = 'claim'"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("tbi.to_team_id AS team_id"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("tsb.occurred_at > db.first_drop_at"),
+        );
+        expect(result).toEqual([
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "7",
+            date: "2024-10-09T13:19:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "7",
+            date: "2025-01-15T06:10:00.000Z",
+            type: "trade",
           },
         ]);
       });

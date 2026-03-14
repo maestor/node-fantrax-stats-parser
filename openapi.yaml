@@ -527,7 +527,7 @@ components:
 
     CareerReunionHighlightItem:
       type: object
-      required: [id, name, position, reunionCount, team, stints]
+      required: [id, name, position, reunionCount, team, reunions]
       properties:
         id:
           type: string
@@ -539,19 +539,20 @@ components:
           type: integer
         team:
           $ref: "#/components/schemas/CareerHighlightTeam"
-        stints:
+        reunions:
           type: array
           items:
-            $ref: "#/components/schemas/CareerReunionHighlightStint"
+            $ref: "#/components/schemas/CareerReunionHighlightReunion"
 
-    CareerReunionHighlightStint:
+    CareerReunionHighlightReunion:
       type: object
-      required: [fromSeason, toSeason]
+      required: [date, type]
       properties:
-        fromSeason:
-          type: integer
-        toSeason:
-          type: integer
+        date:
+          type: string
+        type:
+          type: string
+          enum: [claim, trade]
 
     CareerStashHighlightItem:
       type: object
@@ -615,11 +616,13 @@ components:
 
     CareerTeamCountHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [most-teams-played, most-teams-owned]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -633,11 +636,13 @@ components:
 
     CareerSameTeamHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [same-team-seasons-played, same-team-seasons-owned]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -651,11 +656,13 @@ components:
 
     CareerStanleyCupHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [most-stanley-cups]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -669,11 +676,13 @@ components:
 
     CareerReunionHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [reunion-king]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -687,11 +696,13 @@ components:
 
     CareerStashHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [stash-king]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -705,11 +716,13 @@ components:
 
     CareerRegularGrinderHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [regular-grinder-without-playoffs]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -723,11 +736,13 @@ components:
 
     CareerTransactionHighlightPage:
       type: object
-      required: [type, skip, take, total, items]
+      required: [type, minAllowed, skip, take, total, items]
       properties:
         type:
           type: string
           enum: [most-trades, most-claims, most-drops]
+        minAllowed:
+          type: integer
         skip:
           type: integer
         take:
@@ -1645,11 +1660,13 @@ paths:
       summary: Career highlights leaderboard
       description: |
         Returns a paged mixed skater + goalie career highlights leaderboard.
+        Each page includes `minAllowed`, the active backend threshold for that highlight type.
         `most-teams-played` and `most-teams-owned` return team-count rows.
         `same-team-seasons-played` and `same-team-seasons-owned` return one row per top team, so the same person can appear multiple times on tied same-team results.
         `most-stanley-cups` returns one row per player/goalie with cup seasons and fantasy teams.
         `reunion-king` returns one row per top reunion team, so the same person can appear multiple
-        times on tied reunion results, and includes stint ranges for each return.
+        times on tied reunion results, and includes reunion transactions with ISO dates plus whether
+        the player returned by claim or trade.
         `stash-king` returns the top same-team zero-game season counts, similar to
         `same-team-seasons-owned` but counting only team seasons where both regular and playoff
         games stayed at zero.
@@ -1660,7 +1677,7 @@ paths:
         traded the player away.
         Minimum cutoffs are 4 teams for `most-teams-played`, 5 teams for `most-teams-owned`,
         8 same-team seasons for `same-team-seasons-played`, 10 same-team seasons for
-        `same-team-seasons-owned`, 2 cups for `most-stanley-cups`, 2 reunion stints for
+        `same-team-seasons-owned`, 2 cups for `most-stanley-cups`, 2 reunions for
         `reunion-king`, 10 stash counts for `stash-king`, 60 games for
         `regular-grinder-without-playoffs`, 4 trades for `most-trades`, and 3 claims/drops for
         `most-claims` / `most-drops`.

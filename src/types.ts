@@ -290,9 +290,11 @@ export type CareerStanleyCupHighlightItem = {
   cups: CareerStanleyCupHighlightCup[];
 };
 
-export type CareerReunionHighlightStint = {
-  fromSeason: number;
-  toSeason: number;
+export type CareerReunionType = "claim" | "trade";
+
+export type CareerReunionHighlightReunion = {
+  date: string;
+  type: CareerReunionType;
 };
 
 export type CareerReunionHighlightItem = {
@@ -301,7 +303,7 @@ export type CareerReunionHighlightItem = {
   position: string;
   reunionCount: number;
   team: CareerHighlightTeam;
-  stints: CareerReunionHighlightStint[];
+  reunions: CareerReunionHighlightReunion[];
 };
 
 export type CareerStashHighlightItem = {
@@ -330,6 +332,7 @@ export type CareerTransactionHighlightItem = {
 
 export type CareerTeamCountHighlightPage = {
   type: "most-teams-played" | "most-teams-owned";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -338,6 +341,7 @@ export type CareerTeamCountHighlightPage = {
 
 export type CareerSameTeamHighlightPage = {
   type: "same-team-seasons-played" | "same-team-seasons-owned";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -346,6 +350,7 @@ export type CareerSameTeamHighlightPage = {
 
 export type CareerStanleyCupHighlightPage = {
   type: "most-stanley-cups";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -354,6 +359,7 @@ export type CareerStanleyCupHighlightPage = {
 
 export type CareerReunionHighlightPage = {
   type: "reunion-king";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -362,6 +368,7 @@ export type CareerReunionHighlightPage = {
 
 export type CareerStashHighlightPage = {
   type: "stash-king";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -370,6 +377,7 @@ export type CareerStashHighlightPage = {
 
 export type CareerRegularGrinderHighlightPage = {
   type: "regular-grinder-without-playoffs";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;
@@ -378,6 +386,7 @@ export type CareerRegularGrinderHighlightPage = {
 
 export type CareerTransactionHighlightPage = {
   type: "most-trades" | "most-claims" | "most-drops";
+  minAllowed: number;
   skip: number;
   take: number;
   total: number;

@@ -9,6 +9,7 @@ import {
   getClaimTransactionHighlightRowsFromDb,
   getDropTransactionHighlightRowsFromDb,
   getPlayoffSeasons,
+  getReunionTransactionHighlightRowsFromDb,
   getTradeTransactionHighlightRowsFromDb,
 } from "../db/queries";
 import {
@@ -273,6 +274,10 @@ describe("services", () => {
       const mockGetTradeTransactionHighlightRowsFromDb =
         getTradeTransactionHighlightRowsFromDb as jest.MockedFunction<
           typeof getTradeTransactionHighlightRowsFromDb
+        >;
+      const mockGetReunionTransactionHighlightRowsFromDb =
+        getReunionTransactionHighlightRowsFromDb as jest.MockedFunction<
+          typeof getReunionTransactionHighlightRowsFromDb
         >;
 
       test("builds most-teams-played highlights with mixed skater and goalie entries", async () => {
@@ -1012,64 +1017,140 @@ describe("services", () => {
         ]);
       });
 
-      test("builds reunion-king highlights from separate same-team season blocks", async () => {
-        mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
-          ...[2018, 2020, 2022].map((season) =>
-            createPlayerCareerRow({
-              player_id: "p-reunion",
-              name: "Reunion Skater",
-              position: "F",
-              team_id: "7",
-              season,
-              games: 0,
-            }),
-          ),
-          ...[2019, 2020, 2022, 2024].map((season) =>
-            createPlayerCareerRow({
-              player_id: "p-reunion",
-              name: "Reunion Skater",
-              position: "F",
-              team_id: "19",
-              season,
-              games: 0,
-            }),
-          ),
-          ...[2020, 2022].map((season) =>
-            createPlayerCareerRow({
-              player_id: "p-two",
-              name: "Two Reunion",
-              position: "D",
-              team_id: "1",
-              season,
-              games: 0,
-            }),
-          ),
-          ...[2020, 2021, 2022].map((season) =>
-            createPlayerCareerRow({
-              player_id: "p-short",
-              name: "Short Reunion",
-              position: "D",
-              team_id: "1",
-              season,
-              games: 0,
-            }),
-          ),
+      test("builds reunion-king highlights from transaction reunion events", async () => {
+        mockGetReunionTransactionHighlightRowsFromDb.mockResolvedValue([
+          {
+            id: "g-reunion",
+            name: "Reunion Goalie",
+            position: "G",
+            teamId: "3",
+            date: "2023-03-01T12:00:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "g-reunion",
+            name: "Reunion Goalie",
+            position: "G",
+            teamId: "3",
+            date: "2024-01-01T12:00:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "g-reunion",
+            name: "Reunion Goalie",
+            position: "G",
+            teamId: "3",
+            date: "2025-01-01T12:00:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "g-reunion",
+            name: "Reunion Goalie",
+            position: "G",
+            teamId: "3",
+            date: "2025-02-01T12:00:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "7",
+            date: "2024-10-09T13:19:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "7",
+            date: "2025-01-15T06:10:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "7",
+            date: "2025-09-29T12:47:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "19",
+            date: "2024-02-01T12:00:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "19",
+            date: "2024-03-01T12:00:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-reunion",
+            name: "Reunion Skater",
+            position: "F",
+            teamId: "19",
+            date: "2024-04-01T12:00:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-two",
+            name: "Two Reunion",
+            position: "D",
+            teamId: "1",
+            date: "2024-02-01T12:00:00.000Z",
+            type: "claim",
+          },
+          {
+            id: "p-two",
+            name: "Two Reunion",
+            position: "D",
+            teamId: "1",
+            date: "2024-03-01T12:00:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "p-short",
+            name: "Short Reunion",
+            position: "D",
+            teamId: "1",
+            date: "2024-02-01T12:00:00.000Z",
+            type: "claim",
+          },
         ]);
-        mockGetAllGoalieCareerRowsFromDb.mockResolvedValue([]);
 
         const result = await getCareerHighlightsData("reunion-king");
 
         expect(result).toEqual([
+          {
+            id: "g-reunion",
+            name: "Reunion Goalie",
+            position: "G",
+            reunionCount: 4,
+            team: { id: "3", name: "Calgary Flames" },
+            reunions: [
+              { date: "2023-03-01T12:00:00.000Z", type: "claim" },
+              { date: "2024-01-01T12:00:00.000Z", type: "trade" },
+              { date: "2025-01-01T12:00:00.000Z", type: "claim" },
+              { date: "2025-02-01T12:00:00.000Z", type: "trade" },
+            ],
+          },
           {
             id: "p-reunion",
             name: "Reunion Skater",
             position: "F",
             reunionCount: 3,
             team: { id: "7", name: "Edmonton Oilers" },
-            stints: [
-              { fromSeason: 2018, toSeason: 2018 },
-              { fromSeason: 2020, toSeason: 2020 },
-              { fromSeason: 2022, toSeason: 2022 },
+            reunions: [
+              { date: "2024-10-09T13:19:00.000Z", type: "claim" },
+              { date: "2025-01-15T06:10:00.000Z", type: "trade" },
+              { date: "2025-09-29T12:47:00.000Z", type: "claim" },
             ],
           },
           {
@@ -1078,10 +1159,10 @@ describe("services", () => {
             position: "F",
             reunionCount: 3,
             team: { id: "19", name: "Toronto Maple Leafs" },
-            stints: [
-              { fromSeason: 2019, toSeason: 2020 },
-              { fromSeason: 2022, toSeason: 2022 },
-              { fromSeason: 2024, toSeason: 2024 },
+            reunions: [
+              { date: "2024-02-01T12:00:00.000Z", type: "trade" },
+              { date: "2024-03-01T12:00:00.000Z", type: "claim" },
+              { date: "2024-04-01T12:00:00.000Z", type: "claim" },
             ],
           },
           {
@@ -1090,9 +1171,48 @@ describe("services", () => {
             position: "D",
             reunionCount: 2,
             team: { id: "1", name: "Colorado Avalanche" },
-            stints: [
-              { fromSeason: 2020, toSeason: 2020 },
-              { fromSeason: 2022, toSeason: 2022 },
+            reunions: [
+              { date: "2024-02-01T12:00:00.000Z", type: "claim" },
+              { date: "2024-03-01T12:00:00.000Z", type: "trade" },
+            ],
+          },
+        ]);
+        expect(mockGetAllPlayerCareerRowsFromDb).not.toHaveBeenCalled();
+        expect(mockGetAllGoalieCareerRowsFromDb).not.toHaveBeenCalled();
+      });
+
+      test("sorts same-date reunion events by type", async () => {
+        mockGetReunionTransactionHighlightRowsFromDb.mockResolvedValue([
+          {
+            id: "p-same-date",
+            name: "Same Date Skater",
+            position: "F",
+            teamId: "1",
+            date: "2024-10-09T13:19:00.000Z",
+            type: "trade",
+          },
+          {
+            id: "p-same-date",
+            name: "Same Date Skater",
+            position: "F",
+            teamId: "1",
+            date: "2024-10-09T13:19:00.000Z",
+            type: "claim",
+          },
+        ]);
+
+        const result = await getCareerHighlightsData("reunion-king");
+
+        expect(result).toEqual([
+          {
+            id: "p-same-date",
+            name: "Same Date Skater",
+            position: "F",
+            reunionCount: 2,
+            team: { id: "1", name: "Colorado Avalanche" },
+            reunions: [
+              { date: "2024-10-09T13:19:00.000Z", type: "claim" },
+              { date: "2024-10-09T13:19:00.000Z", type: "trade" },
             ],
           },
         ]);
