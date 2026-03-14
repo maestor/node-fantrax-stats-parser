@@ -247,11 +247,18 @@ export type CareerHighlightType =
   | "most-stanley-cups"
   | "reunion-king"
   | "stash-king"
-  | "regular-grinder-without-playoffs";
+  | "regular-grinder-without-playoffs"
+  | "most-trades"
+  | "most-claims"
+  | "most-drops";
 
 export type CareerHighlightTeam = {
   id: string;
   name: string;
+};
+
+export type CareerTransactionHighlightTeam = CareerHighlightTeam & {
+  count: number;
 };
 
 export type CareerTeamCountHighlightItem = {
@@ -313,6 +320,14 @@ export type CareerRegularGrinderHighlightItem = {
   teams: CareerHighlightTeam[];
 };
 
+export type CareerTransactionHighlightItem = {
+  id: string;
+  name: string;
+  position: string;
+  transactionCount: number;
+  teams: CareerTransactionHighlightTeam[];
+};
+
 export type CareerTeamCountHighlightPage = {
   type: "most-teams-played" | "most-teams-owned";
   skip: number;
@@ -361,13 +376,22 @@ export type CareerRegularGrinderHighlightPage = {
   items: CareerRegularGrinderHighlightItem[];
 };
 
+export type CareerTransactionHighlightPage = {
+  type: "most-trades" | "most-claims" | "most-drops";
+  skip: number;
+  take: number;
+  total: number;
+  items: CareerTransactionHighlightItem[];
+};
+
 export type CareerHighlightsPage =
   | CareerTeamCountHighlightPage
   | CareerSameTeamHighlightPage
   | CareerStanleyCupHighlightPage
   | CareerReunionHighlightPage
   | CareerStashHighlightPage
-  | CareerRegularGrinderHighlightPage;
+  | CareerRegularGrinderHighlightPage
+  | CareerTransactionHighlightPage;
 
 export type PlayerFields =
   | "name"

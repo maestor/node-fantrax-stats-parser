@@ -454,6 +454,9 @@ components:
         - reunion-king
         - stash-king
         - regular-grinder-without-playoffs
+        - most-trades
+        - most-claims
+        - most-drops
 
     CareerHighlightTeam:
       type: object
@@ -582,6 +585,34 @@ components:
           items:
             $ref: "#/components/schemas/CareerHighlightTeam"
 
+    CareerTransactionHighlightTeam:
+      type: object
+      required: [id, name, count]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        count:
+          type: integer
+
+    CareerTransactionHighlightItem:
+      type: object
+      required: [id, name, position, transactionCount, teams]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+        transactionCount:
+          type: integer
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerTransactionHighlightTeam"
+
     CareerTeamCountHighlightPage:
       type: object
       required: [type, skip, take, total, items]
@@ -689,6 +720,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CareerRegularGrinderHighlightItem"
+
+    CareerTransactionHighlightPage:
+      type: object
+      required: [type, skip, take, total, items]
+      properties:
+        type:
+          type: string
+          enum: [most-trades, most-claims, most-drops]
+        skip:
+          type: integer
+        take:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerTransactionHighlightItem"
 
     CareerGoalie:
       type: object
@@ -1606,11 +1655,15 @@ paths:
         games stayed at zero.
         `regular-grinder-without-playoffs` returns total regular-season games plus the played fantasy teams
         for players/goalies who never recorded a playoff appearance.
+        `most-trades`, `most-claims`, and `most-drops` return total matched player/goalie transaction counts
+        plus per-team breakdowns sorted by descending transaction count. Trade counts use the fantasy team that
+        traded the player away.
         Minimum cutoffs are 4 teams for `most-teams-played`, 5 teams for `most-teams-owned`,
         8 same-team seasons for `same-team-seasons-played`, 10 same-team seasons for
         `same-team-seasons-owned`, 2 cups for `most-stanley-cups`, 2 reunion stints for
-        `reunion-king`, 10 stash counts for `stash-king`, and 60 games for
-        `regular-grinder-without-playoffs`.
+        `reunion-king`, 10 stash counts for `stash-king`, 60 games for
+        `regular-grinder-without-playoffs`, 4 trades for `most-trades`, and 3 claims/drops for
+        `most-claims` / `most-drops`.
       parameters:
         - name: type
           in: path
@@ -1633,6 +1686,7 @@ paths:
                   - $ref: "#/components/schemas/CareerReunionHighlightPage"
                   - $ref: "#/components/schemas/CareerStashHighlightPage"
                   - $ref: "#/components/schemas/CareerRegularGrinderHighlightPage"
+                  - $ref: "#/components/schemas/CareerTransactionHighlightPage"
         "400":
           description: Invalid highlight type or paging params.
         "401":

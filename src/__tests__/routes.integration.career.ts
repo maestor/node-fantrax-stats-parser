@@ -20,6 +20,122 @@ type CareerGoalieReq = Parameters<typeof getCareerGoalie>[0];
 type CareerPlayersReq = Parameters<typeof getCareerPlayers>[0];
 type CareerGoaliesReq = Parameters<typeof getCareerGoalies>[0];
 type CareerHighlightsReq = Parameters<typeof getCareerHighlights>[0];
+type IntegrationDbClient = Awaited<ReturnType<typeof createIntegrationDb>>["db"];
+
+type ClaimHighlightSeed = {
+  season: number;
+  teamId: string;
+  occurredAt: string;
+  actionType: "claim" | "drop";
+  fantraxEntityId: string;
+  rawName: string;
+  rawPosition: string;
+};
+
+type TradeHighlightSeed = {
+  season: number;
+  fromTeamId: string;
+  toTeamId: string;
+  occurredAt: string;
+  fantraxEntityId: string;
+  rawName: string;
+  rawPosition: string;
+};
+
+const toInsertId = (
+  value: bigint | number | string | null | undefined,
+): number => {
+  if (value === null || value === undefined) {
+    throw new Error("Missing insert id");
+  }
+  return Number(value);
+};
+
+const insertClaimHighlightSeeds = async (
+  db: IntegrationDbClient,
+  rows: readonly ClaimHighlightSeed[],
+): Promise<void> => {
+  for (const [index, row] of rows.entries()) {
+    const eventResult = await db.execute({
+      sql: `INSERT INTO claim_events (
+              season, team_id, occurred_at, source_file, source_group_index
+            ) VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        row.season,
+        row.teamId,
+        row.occurredAt,
+        `claims-${row.season}-${row.season + 1}.csv`,
+        index,
+      ],
+    });
+
+    await db.execute({
+      sql: `INSERT INTO claim_event_items (
+              claim_event_id, season, team_id, occurred_at, sequence, action_type,
+              fantrax_entity_id, raw_name, raw_position, match_status, match_strategy
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        toInsertId(eventResult.lastInsertRowid),
+        row.season,
+        row.teamId,
+        row.occurredAt,
+        0,
+        row.actionType,
+        row.fantraxEntityId,
+        row.rawName,
+        row.rawPosition,
+        "matched",
+        "exact_name_position",
+      ],
+    });
+  }
+};
+
+const insertTradeHighlightSeeds = async (
+  db: IntegrationDbClient,
+  rows: readonly TradeHighlightSeed[],
+): Promise<void> => {
+  for (const [index, row] of rows.entries()) {
+    const blockResult = await db.execute({
+      sql: `INSERT INTO trade_source_blocks (
+              season, occurred_at, source_file, source_block_index, source_period,
+              participant_signature
+            ) VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [
+        row.season,
+        row.occurredAt,
+        `trades-${row.season}-${row.season + 1}.csv`,
+        index,
+        index + 1,
+        [row.fromTeamId, row.toTeamId].sort().join("|"),
+      ],
+    });
+
+    await db.execute({
+      sql: `INSERT INTO trade_block_items (
+              trade_source_block_id, sequence, from_team_id, to_team_id, asset_type,
+              fantrax_entity_id, raw_name, raw_position, match_status, match_strategy,
+              draft_season, draft_round, draft_original_team_id, raw_asset_text
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        toInsertId(blockResult.lastInsertRowid),
+        0,
+        row.fromTeamId,
+        row.toTeamId,
+        "player",
+        row.fantraxEntityId,
+        row.rawName,
+        row.rawPosition,
+        "matched",
+        "exact_name_position",
+        null,
+        null,
+        null,
+        row.rawName,
+      ],
+    });
+  }
+};
 
 export const registerCareerRouteIntegrationTests = (): void => {
   describe("career routes", () => {
@@ -1395,6 +1511,287 @@ export const registerCareerRouteIntegrationTests = (): void => {
           ],
         });
         expectObjectSchema("CareerRegularGrinderHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns most-claims highlights with per-team transaction counts from the live DB", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2025,
+            reportType: "regular",
+            playerId: "p-claim",
+            name: "Claim King",
+            position: "F",
+            games: 1,
+          },
+          {
+            teamId: "7",
+            season: 2025,
+            reportType: "regular",
+            playerId: "p-claim",
+            name: "Claim King",
+            position: "F",
+            games: 1,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "5",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "g-claim",
+            name: "Goalie Claimer",
+            games: 1,
+          },
+        ]);
+        await insertClaimHighlightSeeds(db.db, [
+          {
+            season: 2025,
+            teamId: "7",
+            occurredAt: "2026-03-05T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-claim",
+            rawName: "Claim King",
+            rawPosition: "F",
+          },
+          {
+            season: 2025,
+            teamId: "7",
+            occurredAt: "2026-03-06T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-claim",
+            rawName: "Claim King",
+            rawPosition: "F",
+          },
+          {
+            season: 2025,
+            teamId: "7",
+            occurredAt: "2026-03-07T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-claim",
+            rawName: "Claim King",
+            rawPosition: "F",
+          },
+          {
+            season: 2025,
+            teamId: "1",
+            occurredAt: "2026-03-08T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "p-claim",
+            rawName: "Claim King",
+            rawPosition: "F",
+          },
+          {
+            season: 2025,
+            teamId: "5",
+            occurredAt: "2026-03-09T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-claim",
+            rawName: "Goalie Claimer",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            teamId: "5",
+            occurredAt: "2026-03-10T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-claim",
+            rawName: "Goalie Claimer",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            teamId: "5",
+            occurredAt: "2026-03-11T16:38:00.000Z",
+            actionType: "claim",
+            fantraxEntityId: "g-claim",
+            rawName: "Goalie Claimer",
+            rawPosition: "G",
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-claims",
+          params: { type: "most-claims" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "most-claims",
+          skip: 0,
+          take: 10,
+          total: 2,
+          items: [
+            {
+              id: "p-claim",
+              name: "Claim King",
+              position: "F",
+              transactionCount: 4,
+              teams: [
+                { id: "7", name: "Edmonton Oilers", count: 3 },
+                { id: "1", name: "Colorado Avalanche", count: 1 },
+              ],
+            },
+            {
+              id: "g-claim",
+              name: "Goalie Claimer",
+              position: "G",
+              transactionCount: 3,
+              teams: [{ id: "5", name: "Montreal Canadiens", count: 3 }],
+            },
+          ],
+        });
+        expectObjectSchema("CareerTransactionHighlightPage", body);
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns most-trades highlights using traded-away team counts from the live DB", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "2",
+            season: 2025,
+            reportType: "regular",
+            playerId: "p-trade",
+            name: "Trade Skater",
+            position: "D",
+            games: 1,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "5",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "g-trade",
+            name: "Trade Goalie",
+            games: 1,
+          },
+        ]);
+        await insertTradeHighlightSeeds(db.db, [
+          {
+            season: 2025,
+            fromTeamId: "2",
+            toTeamId: "7",
+            occurredAt: "2026-03-05T13:12:00.000Z",
+            fantraxEntityId: "p-trade",
+            rawName: "Trade Skater",
+            rawPosition: "D",
+          },
+          {
+            season: 2025,
+            fromTeamId: "2",
+            toTeamId: "8",
+            occurredAt: "2026-03-06T13:12:00.000Z",
+            fantraxEntityId: "p-trade",
+            rawName: "Trade Skater",
+            rawPosition: "D",
+          },
+          {
+            season: 2025,
+            fromTeamId: "2",
+            toTeamId: "9",
+            occurredAt: "2026-03-07T13:12:00.000Z",
+            fantraxEntityId: "p-trade",
+            rawName: "Trade Skater",
+            rawPosition: "D",
+          },
+          {
+            season: 2025,
+            fromTeamId: "2",
+            toTeamId: "10",
+            occurredAt: "2026-03-08T13:12:00.000Z",
+            fantraxEntityId: "p-trade",
+            rawName: "Trade Skater",
+            rawPosition: "D",
+          },
+          {
+            season: 2025,
+            fromTeamId: "5",
+            toTeamId: "1",
+            occurredAt: "2026-03-09T13:12:00.000Z",
+            fantraxEntityId: "g-trade",
+            rawName: "Trade Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            fromTeamId: "5",
+            toTeamId: "2",
+            occurredAt: "2026-03-10T13:12:00.000Z",
+            fantraxEntityId: "g-trade",
+            rawName: "Trade Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            fromTeamId: "5",
+            toTeamId: "3",
+            occurredAt: "2026-03-11T13:12:00.000Z",
+            fantraxEntityId: "g-trade",
+            rawName: "Trade Goalie",
+            rawPosition: "G",
+          },
+          {
+            season: 2025,
+            fromTeamId: "5",
+            toTeamId: "4",
+            occurredAt: "2026-03-12T13:12:00.000Z",
+            fantraxEntityId: "g-trade",
+            rawName: "Trade Goalie",
+            rawPosition: "G",
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/career/highlights/most-trades",
+          params: { type: "most-trades" },
+        });
+        const res = createResponse();
+
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+
+        const body = getJsonBody<Record<string, unknown>>(res);
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(body).toEqual({
+          type: "most-trades",
+          skip: 0,
+          take: 10,
+          total: 2,
+          items: [
+            {
+              id: "g-trade",
+              name: "Trade Goalie",
+              position: "G",
+              transactionCount: 4,
+              teams: [{ id: "5", name: "Montreal Canadiens", count: 4 }],
+            },
+            {
+              id: "p-trade",
+              name: "Trade Skater",
+              position: "D",
+              transactionCount: 4,
+              teams: [{ id: "2", name: "Carolina Hurricanes", count: 4 }],
+            },
+          ],
+        });
+        expectObjectSchema("CareerTransactionHighlightPage", body);
       } finally {
         await db.cleanup();
       }

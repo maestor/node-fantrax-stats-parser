@@ -6,7 +6,10 @@ import {
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
+  getClaimTransactionHighlightRowsFromDb,
+  getDropTransactionHighlightRowsFromDb,
   getPlayoffSeasons,
+  getTradeTransactionHighlightRowsFromDb,
 } from "../db/queries";
 import {
   createGoalieCareerRow,
@@ -257,8 +260,20 @@ describe("services", () => {
         getAllGoalieCareerRowsFromDb as jest.MockedFunction<
           typeof getAllGoalieCareerRowsFromDb
         >;
+      const mockGetClaimTransactionHighlightRowsFromDb =
+        getClaimTransactionHighlightRowsFromDb as jest.MockedFunction<
+          typeof getClaimTransactionHighlightRowsFromDb
+        >;
+      const mockGetDropTransactionHighlightRowsFromDb =
+        getDropTransactionHighlightRowsFromDb as jest.MockedFunction<
+          typeof getDropTransactionHighlightRowsFromDb
+        >;
       const mockGetPlayoffSeasons =
         getPlayoffSeasons as jest.MockedFunction<typeof getPlayoffSeasons>;
+      const mockGetTradeTransactionHighlightRowsFromDb =
+        getTradeTransactionHighlightRowsFromDb as jest.MockedFunction<
+          typeof getTradeTransactionHighlightRowsFromDb
+        >;
 
       test("builds most-teams-played highlights with mixed skater and goalie entries", async () => {
         mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
@@ -1345,6 +1360,123 @@ describe("services", () => {
         ]);
       });
 
+      test("builds most-claims highlights with per-team counts sorted descending", async () => {
+        mockGetClaimTransactionHighlightRowsFromDb.mockResolvedValue([
+          {
+            id: "p-claim",
+            name: "Claim King",
+            position: "F",
+            teamId: "1",
+            transactionCount: 1,
+          },
+          {
+            id: "p-claim",
+            name: "Claim King",
+            position: "F",
+            teamId: "7",
+            transactionCount: 3,
+          },
+          {
+            id: "g-claim",
+            name: "Goalie Claimer",
+            position: "G",
+            teamId: "5",
+            transactionCount: 3,
+          },
+          {
+            id: "p-filtered",
+            name: "Filtered Claim",
+            position: "D",
+            teamId: "2",
+            transactionCount: 2,
+          },
+        ]);
+
+        const result = await getCareerHighlightsData("most-claims");
+
+        expect(result).toEqual([
+          {
+            id: "p-claim",
+            name: "Claim King",
+            position: "F",
+            transactionCount: 4,
+            teams: [
+              { id: "7", name: "Edmonton Oilers", count: 3 },
+              { id: "1", name: "Colorado Avalanche", count: 1 },
+            ],
+          },
+          {
+            id: "g-claim",
+            name: "Goalie Claimer",
+            position: "G",
+            transactionCount: 3,
+            teams: [{ id: "5", name: "Montreal Canadiens", count: 3 }],
+          },
+        ]);
+      });
+
+      test("builds most-trades highlights from source teams and sorts ties by identity", async () => {
+        mockGetTradeTransactionHighlightRowsFromDb.mockResolvedValue([
+          {
+            id: "p002",
+            name: "Same Name",
+            position: "F",
+            teamId: "7",
+            transactionCount: 2,
+          },
+          {
+            id: "p002",
+            name: "Same Name",
+            position: "F",
+            teamId: "1",
+            transactionCount: 2,
+          },
+          {
+            id: "p001",
+            name: "Same Name",
+            position: "D",
+            teamId: "2",
+            transactionCount: 4,
+          },
+          {
+            id: "g001",
+            name: "Trade Goalie",
+            position: "G",
+            teamId: "5",
+            transactionCount: 4,
+          },
+        ]);
+
+        const result = await getCareerHighlightsData("most-trades");
+
+        expect(result).toEqual([
+          {
+            id: "p001",
+            name: "Same Name",
+            position: "D",
+            transactionCount: 4,
+            teams: [{ id: "2", name: "Carolina Hurricanes", count: 4 }],
+          },
+          {
+            id: "p002",
+            name: "Same Name",
+            position: "F",
+            transactionCount: 4,
+            teams: [
+              { id: "1", name: "Colorado Avalanche", count: 2 },
+              { id: "7", name: "Edmonton Oilers", count: 2 },
+            ],
+          },
+          {
+            id: "g001",
+            name: "Trade Goalie",
+            position: "G",
+            transactionCount: 4,
+            teams: [{ id: "5", name: "Montreal Canadiens", count: 4 }],
+          },
+        ]);
+      });
+
       test("throws when a player highlight row is missing position", async () => {
         mockGetAllPlayerCareerRowsFromDb.mockResolvedValue([
           createPlayerCareerRow({
@@ -1360,6 +1492,22 @@ describe("services", () => {
         await expect(
           getCareerHighlightsData("most-teams-played"),
         ).rejects.toThrow("Player position missing");
+      });
+
+      test("throws when a transaction highlight row is missing position", async () => {
+        mockGetDropTransactionHighlightRowsFromDb.mockResolvedValue([
+          {
+            id: "p-broken-drop",
+            name: "Broken Drop",
+            position: null,
+            teamId: "1",
+            transactionCount: 3,
+          },
+        ]);
+
+        await expect(getCareerHighlightsData("most-drops")).rejects.toThrow(
+          "Player position missing",
+        );
       });
     });
   });

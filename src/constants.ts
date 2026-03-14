@@ -21,6 +21,9 @@ export const CAREER_HIGHLIGHT_TYPES = [
   "reunion-king",
   "stash-king",
   "regular-grinder-without-playoffs",
+  "most-trades",
+  "most-claims",
+  "most-drops",
 ] as const satisfies readonly CareerHighlightType[];
 
 export const DEFAULT_CAREER_HIGHLIGHT_SKIP = 0;
@@ -63,11 +66,31 @@ export const CAREER_HIGHLIGHT_CONFIG = {
     kind: "regular-games-without-playoffs",
     minCount: 60,
   },
+  "most-trades": {
+    kind: "transaction-count",
+    transactionType: "trade",
+    minCount: 4,
+  },
+  "most-claims": {
+    kind: "transaction-count",
+    transactionType: "claim",
+    minCount: 3,
+  },
+  "most-drops": {
+    kind: "transaction-count",
+    transactionType: "drop",
+    minCount: 3,
+  },
 } as const satisfies Record<
   CareerHighlightType,
   | {
       kind: "team-count" | "same-team-season-count";
       playedOnly: boolean;
+      minCount: number;
+    }
+  | {
+      kind: "transaction-count";
+      transactionType: "claim" | "drop" | "trade";
       minCount: number;
     }
   | {

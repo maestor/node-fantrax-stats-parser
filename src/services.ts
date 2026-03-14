@@ -32,6 +32,8 @@ import {
   CareerReunionHighlightItem,
   CareerStashHighlightItem,
   CareerRegularGrinderHighlightItem,
+  CareerTransactionHighlightItem,
+  CareerTransactionHighlightTeam,
 } from "./types";
 import {
   CAREER_HIGHLIGHT_CONFIG,
@@ -47,12 +49,16 @@ import {
   getGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
   getAllGoalieCareerRowsFromDb,
+  getClaimTransactionHighlightRowsFromDb,
+  getDropTransactionHighlightRowsFromDb,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
   getRegularSeasons,
+  getTradeTransactionHighlightRowsFromDb,
   getTransactionLeaderboard,
   getTransactionSeasons,
+  type CareerTransactionHighlightDbRow,
   type PlayerCareerRow,
   type GoalieCareerRow,
   type PlayoffSeasonDbEntry,
@@ -549,6 +555,14 @@ type CareerHighlightRow = {
   games: number;
 };
 
+type CareerTransactionHighlightRow = {
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  transactionCount: number;
+};
+
 type TeamFirstSeason = CareerHighlightTeam & {
   firstSeason: number;
 };
@@ -597,6 +611,32 @@ const groupCareerHighlightRows = (
   return grouped;
 };
 
+const mapCareerTransactionHighlightRows = (
+  rows: readonly CareerTransactionHighlightDbRow[],
+): CareerTransactionHighlightRow[] =>
+  rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    position: requirePlayerPosition(row.position),
+    teamId: row.teamId,
+    transactionCount: row.transactionCount,
+  }));
+
+const groupCareerTransactionHighlightRows = (
+  rows: readonly CareerTransactionHighlightRow[],
+): Map<string, CareerTransactionHighlightRow[]> => {
+  const grouped = new Map<string, CareerTransactionHighlightRow[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.id);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.id, [row]);
+    }
+  }
+  return grouped;
+};
+
 const sortCareerHighlightTeams = (
   teams: readonly TeamFirstSeason[],
 ): CareerHighlightTeam[] =>
@@ -624,6 +664,37 @@ const buildCareerHighlightTeams = (
       id,
       name: getTeamName(id),
       firstSeason,
+    })),
+  );
+};
+
+const sortCareerTransactionHighlightTeams = (
+  teams: readonly CareerTransactionHighlightTeam[],
+): CareerTransactionHighlightTeam[] =>
+  teams
+    .slice()
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        `${left.name}:${left.id}`.localeCompare(`${right.name}:${right.id}`),
+    );
+
+const buildCareerTransactionHighlightTeams = (
+  rows: readonly CareerTransactionHighlightRow[],
+): CareerTransactionHighlightTeam[] => {
+  const countsByTeam = new Map<string, number>();
+  for (const row of rows) {
+    countsByTeam.set(
+      row.teamId,
+      (countsByTeam.get(row.teamId) ?? 0) + row.transactionCount,
+    );
+  }
+
+  return sortCareerTransactionHighlightTeams(
+    [...countsByTeam.entries()].map(([id, count]) => ({
+      id,
+      name: getTeamName(id),
+      count,
     })),
   );
 };
@@ -901,6 +972,25 @@ const buildCareerRegularGrinderHighlightItem = (
   };
 };
 
+const buildCareerTransactionHighlightItem = (
+  rows: readonly CareerTransactionHighlightRow[],
+  minTransactionCount: number,
+): CareerTransactionHighlightItem | null => {
+  const teams = buildCareerTransactionHighlightTeams(rows);
+  const transactionCount = teams.reduce((sum, team) => sum + team.count, 0);
+  if (transactionCount < minTransactionCount) {
+    return null;
+  }
+
+  return {
+    id: rows[0].id,
+    name: rows[0].name,
+    position: rows[0].position,
+    transactionCount,
+    teams,
+  };
+};
+
 const sortCareerTeamCountHighlightItems = (
   items: readonly CareerTeamCountHighlightItem[],
 ): CareerTeamCountHighlightItem[] =>
@@ -981,6 +1071,30 @@ const sortCareerRegularGrinderHighlightItems = (
         right.regularGames - left.regularGames ||
         compareCareerHighlightIdentity(left, right),
     );
+
+const sortCareerTransactionHighlightItems = (
+  items: readonly CareerTransactionHighlightItem[],
+): CareerTransactionHighlightItem[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        right.transactionCount - left.transactionCount ||
+        compareCareerHighlightIdentity(left, right),
+    );
+
+const CAREER_TRANSACTION_HIGHLIGHT_LOADERS = {
+  claim: getClaimTransactionHighlightRowsFromDb,
+  drop: getDropTransactionHighlightRowsFromDb,
+  trade: getTradeTransactionHighlightRowsFromDb,
+} as const;
+
+const getCareerTransactionHighlightRows = async (
+  transactionType: keyof typeof CAREER_TRANSACTION_HIGHLIGHT_LOADERS,
+): Promise<CareerTransactionHighlightRow[]> =>
+  mapCareerTransactionHighlightRows(
+    await CAREER_TRANSACTION_HIGHLIGHT_LOADERS[transactionType](),
+  );
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,
@@ -1181,7 +1295,27 @@ export const getCareerHighlightsData = async (
   | CareerReunionHighlightItem[]
   | CareerStashHighlightItem[]
   | CareerRegularGrinderHighlightItem[]
+  | CareerTransactionHighlightItem[]
 > => {
+  const config = CAREER_HIGHLIGHT_CONFIG[type];
+
+  if (config.kind === "transaction-count") {
+    const rows = await getCareerTransactionHighlightRows(config.transactionType);
+    const grouped = groupCareerTransactionHighlightRows(rows);
+
+    return sortCareerTransactionHighlightItems(
+      [...grouped.values()]
+        .map((groupRows) =>
+          buildCareerTransactionHighlightItem(groupRows, config.minCount),
+        )
+        .filter(
+          (
+            item,
+          ): item is CareerTransactionHighlightItem => item !== null,
+        ),
+    );
+  }
+
   const [playerRows, goalieRows] = await Promise.all([
     getAllPlayerCareerRowsFromDb(),
     getAllGoalieCareerRowsFromDb(),
@@ -1190,8 +1324,6 @@ export const getCareerHighlightsData = async (
     ...mapPlayerCareerHighlightRows(playerRows),
     ...mapGoalieCareerHighlightRows(goalieRows),
   ]);
-
-  const config = CAREER_HIGHLIGHT_CONFIG[type];
 
   if (config.kind === "team-count") {
     return sortCareerTeamCountHighlightItems(

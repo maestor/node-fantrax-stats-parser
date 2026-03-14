@@ -9,8 +9,11 @@ import { getDbClient } from "../db/client";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
+  getClaimTransactionHighlightRowsFromDb,
+  getDropTransactionHighlightRowsFromDb,
   getGoalieCareerRowsFromDb,
   getPlayerCareerRowsFromDb,
+  getTradeTransactionHighlightRowsFromDb,
 } from "../db/queries";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
@@ -230,6 +233,114 @@ describe("db/queries", () => {
           expect.stringContaining("ORDER BY name ASC"),
         );
         expect(result).toEqual(rows);
+      });
+    });
+
+    describe("getClaimTransactionHighlightRowsFromDb", () => {
+      test("returns grouped matched claim rows with canonical metadata", async () => {
+        const rows = [
+          {
+            entity_id: "p-claim",
+            name: "Claim King",
+            position: "F",
+            team_id: "7",
+            transaction_count: 3,
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getClaimTransactionHighlightRowsFromDb();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("FROM claim_event_items cei"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("cei.action_type = 'claim'"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("LEFT JOIN fantrax_entities fe"),
+        );
+        expect(result).toEqual([
+          {
+            id: "p-claim",
+            name: "Claim King",
+            position: "F",
+            teamId: "7",
+            transactionCount: 3,
+          },
+        ]);
+      });
+    });
+
+    describe("getDropTransactionHighlightRowsFromDb", () => {
+      test("returns grouped matched drop rows", async () => {
+        const rows = [
+          {
+            entity_id: "g-drop",
+            name: "Drop Goalie",
+            position: "G",
+            team_id: "5",
+            transaction_count: 4,
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getDropTransactionHighlightRowsFromDb();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("cei.action_type = 'drop'"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("cei.fantrax_entity_id IS NOT NULL"),
+        );
+        expect(result).toEqual([
+          {
+            id: "g-drop",
+            name: "Drop Goalie",
+            position: "G",
+            teamId: "5",
+            transactionCount: 4,
+          },
+        ]);
+      });
+    });
+
+    describe("getTradeTransactionHighlightRowsFromDb", () => {
+      test("returns traded-away rows grouped by source team", async () => {
+        const rows = [
+          {
+            entity_id: "p-trade",
+            name: "Trade Skater",
+            position: "D",
+            team_id: "1",
+            transaction_count: 5,
+          },
+        ];
+
+        mockExecute.mockResolvedValue({ rows });
+
+        const result = await getTradeTransactionHighlightRowsFromDb();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("FROM trade_block_items tbi"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("tbi.from_team_id AS team_id"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("tbi.asset_type = 'player'"),
+        );
+        expect(result).toEqual([
+          {
+            id: "p-trade",
+            name: "Trade Skater",
+            position: "D",
+            teamId: "1",
+            transactionCount: 5,
+          },
+        ]);
       });
     });
   });
