@@ -181,6 +181,7 @@ export type ImportTransactionsToDbArgs = {
   seasons?: readonly number[];
   currentOnly?: boolean;
   dryRun?: boolean;
+  incremental?: boolean;
 };
 
 const normalizeSpacesLower = (value: string): string =>
@@ -359,6 +360,198 @@ const resolveRequestedSeasons = (
 
   return availableSeasons;
 };
+
+const getMaxOccurredAtForClaimSourceFile = async (
+  db: DbExecutor,
+  sourceFile: string,
+): Promise<string | null> => {
+  const result = await db.execute({
+    sql: `SELECT MAX(occurred_at) AS max_occurred_at
+          FROM claim_events
+          WHERE source_file = ?`,
+    args: [sourceFile],
+  });
+
+  const value = (
+    result.rows[0] as unknown as { max_occurred_at?: string | null } | undefined
+  )?.max_occurred_at;
+  return value == null ? null : String(value);
+};
+
+const getMaxOccurredAtForTradeSourceFile = async (
+  db: DbExecutor,
+  sourceFile: string,
+): Promise<string | null> => {
+  const [tradeResult, dropResult] = await Promise.all([
+    db.execute({
+      sql: `SELECT MAX(occurred_at) AS max_occurred_at
+            FROM trade_source_blocks
+            WHERE source_file = ?`,
+      args: [sourceFile],
+    }),
+    db.execute({
+      sql: `SELECT MAX(occurred_at) AS max_occurred_at
+            FROM claim_events
+            WHERE source_file = ?`,
+      args: [sourceFile],
+    }),
+  ]);
+
+  const tradeValue = (
+    tradeResult.rows[0] as unknown as {
+      max_occurred_at?: string | null;
+    } | undefined
+  )?.max_occurred_at;
+  const dropValue = (
+    dropResult.rows[0] as unknown as {
+      max_occurred_at?: string | null;
+    } | undefined
+  )?.max_occurred_at;
+
+  return [tradeValue, dropValue]
+    .filter((value): value is string => value != null)
+    .sort()
+    .at(-1) ?? null;
+};
+
+const getSourceFileWatermark = async (
+  db: DbExecutor,
+  file: ParsedTransactionFile,
+): Promise<string | null> =>
+  file.type === "claims"
+    ? getMaxOccurredAtForClaimSourceFile(db, file.fileName)
+    : getMaxOccurredAtForTradeSourceFile(db, file.fileName);
+
+const getNextClaimSourceGroupIndex = async (
+  db: DbExecutor,
+  sourceFile: string,
+): Promise<number> => {
+  const result = await db.execute({
+    sql: `SELECT MAX(source_group_index) AS max_source_group_index
+          FROM claim_events
+          WHERE source_file = ?`,
+    args: [sourceFile],
+  });
+
+  const value = (
+    result.rows[0] as unknown as {
+      max_source_group_index?: number | string | bigint | null;
+    } | undefined
+  )?.max_source_group_index;
+
+  return value == null ? 0 : Number(value) + 1;
+};
+
+const getNextTradeSourceBlockIndex = async (
+  db: DbExecutor,
+  sourceFile: string,
+): Promise<number> => {
+  const result = await db.execute({
+    sql: `SELECT MAX(source_block_index) AS max_source_block_index
+          FROM trade_source_blocks
+          WHERE source_file = ?`,
+    args: [sourceFile],
+  });
+
+  const value = (
+    result.rows[0] as unknown as {
+      max_source_block_index?: number | string | bigint | null;
+    } | undefined
+  )?.max_source_block_index;
+
+  return value == null ? 0 : Number(value) + 1;
+};
+
+const deleteClaimSourceFileFromWatermark = async (
+  db: DbExecutor,
+  sourceFile: string,
+  occurredAt: string,
+): Promise<void> => {
+  await db.execute({
+    sql: `DELETE FROM claim_event_items
+          WHERE claim_event_id IN (
+            SELECT id
+            FROM claim_events
+            WHERE source_file = ?
+              AND occurred_at >= ?
+          )`,
+    args: [sourceFile, occurredAt],
+  });
+  await db.execute({
+    sql: `DELETE FROM claim_events
+          WHERE source_file = ?
+            AND occurred_at >= ?`,
+    args: [sourceFile, occurredAt],
+  });
+};
+
+const deleteTradeSourceFileFromWatermark = async (
+  db: DbExecutor,
+  sourceFile: string,
+  occurredAt: string,
+): Promise<void> => {
+  await deleteClaimSourceFileFromWatermark(db, sourceFile, occurredAt);
+  await db.execute({
+    sql: `DELETE FROM trade_block_items
+          WHERE trade_source_block_id IN (
+            SELECT id
+            FROM trade_source_blocks
+            WHERE source_file = ?
+              AND occurred_at >= ?
+          )`,
+    args: [sourceFile, occurredAt],
+  });
+  await db.execute({
+    sql: `DELETE FROM trade_source_blocks
+          WHERE source_file = ?
+            AND occurred_at >= ?`,
+    args: [sourceFile, occurredAt],
+  });
+};
+
+const filterClaimRowsByWatermark = (
+  rows: readonly ClaimCsvRow[],
+  watermark: string | null,
+): ClaimCsvRow[] => {
+  if (!watermark) {
+    return [...rows];
+  }
+
+  return rows.filter(
+    (row) => parseTransactionDateToIso(row["Date (EDT)"]) >= watermark,
+  );
+};
+
+const filterTradeRowsByWatermark = (
+  rows: readonly TradeCsvRow[],
+  watermark: string | null,
+): TradeCsvRow[] => {
+  if (!watermark) {
+    return [...rows];
+  }
+
+  return rows.filter(
+    (row) => parseTransactionDateToIso(row["Date (EDT)"]) >= watermark,
+  );
+};
+
+const offsetClaimEventIndexes = (
+  events: readonly ClaimEventSeed[],
+  startIndex: number,
+): ClaimEventSeed[] =>
+  events.map((event, index) => ({
+    ...event,
+    sourceGroupIndex: startIndex + index,
+  }));
+
+const offsetTradeBlockIndexes = (
+  blocks: readonly TradeSourceBlockSeed[],
+  startIndex: number,
+): TradeSourceBlockSeed[] =>
+  blocks.map((block, index) => ({
+    ...block,
+    sourceBlockIndex: startIndex + index,
+  }));
 
 const buildClaimEntityKey = (
   name: string,
@@ -1127,6 +1320,14 @@ export const importTransactionsToDb = async (
 ): Promise<TransactionImportSummary> => {
   const files = listTransactionCsvFiles(args.csvDir);
   const seasons = resolveRequestedSeasons(files, args);
+  if (
+    args.incremental &&
+    (seasons.length !== 1 || seasons[0] !== CURRENT_SEASON)
+  ) {
+    throw new Error(
+      "Incremental transaction import is only supported for the current season.",
+    );
+  }
   const seasonSet = new Set(seasons);
   const selectedFiles = files.filter((file) => seasonSet.has(file.seasonStartYear));
   const resolver = createTransactionEntityResolver(args.db);
@@ -1144,7 +1345,7 @@ export const importTransactionsToDb = async (
     ignoredCommissionerBlocks: 0,
   };
 
-  if (!args.dryRun) {
+  if (!args.dryRun && !args.incremental) {
     for (const season of seasons) {
       await deleteSeasonTransactions(args.db, season);
     }
@@ -1152,18 +1353,41 @@ export const importTransactionsToDb = async (
 
   for (const file of selectedFiles) {
     const rawRows = await csv().fromFile(file.filePath);
+    const watermark =
+      args.incremental && !args.dryRun
+        ? await getSourceFileWatermark(args.db, file)
+        : null;
+
+    if (!args.dryRun && args.incremental && watermark) {
+      if (file.type === "claims") {
+        await deleteClaimSourceFileFromWatermark(args.db, file.fileName, watermark);
+      } else {
+        await deleteTradeSourceFileFromWatermark(args.db, file.fileName, watermark);
+      }
+    }
 
     if (file.type === "claims") {
+      const filteredRows = filterClaimRowsByWatermark(
+        rawRows as ClaimCsvRow[],
+        watermark,
+      );
       const result = await buildClaimEvents({
-        rows: rawRows as ClaimCsvRow[],
+        rows: filteredRows,
         season: file.seasonStartYear,
         sourceFile: file.fileName,
         resolver,
       });
+      const events =
+        args.incremental && !args.dryRun
+          ? offsetClaimEventIndexes(
+              result.events,
+              await getNextClaimSourceGroupIndex(args.db, file.fileName),
+            )
+          : result.events;
 
       summary.ignoredLineupChanges += result.ignoredLineupChanges;
 
-      for (const event of result.events) {
+      for (const event of events) {
         summary.claimEvents++;
         summary.claimItems += event.items.length;
         summary.unresolvedClaimItems += event.items.filter(
@@ -1178,16 +1402,34 @@ export const importTransactionsToDb = async (
       continue;
     }
 
+    const filteredRows = filterTradeRowsByWatermark(
+      rawRows as TradeCsvRow[],
+      watermark,
+    );
     const result = await buildTradeImportData({
-      rows: rawRows as TradeCsvRow[],
+      rows: filteredRows,
       season: file.seasonStartYear,
       sourceFile: file.fileName,
       resolver,
     });
+    const dropEvents =
+      args.incremental && !args.dryRun
+        ? offsetClaimEventIndexes(
+            result.dropEvents,
+            await getNextClaimSourceGroupIndex(args.db, file.fileName),
+          )
+        : result.dropEvents;
+    const tradeBlocks =
+      args.incremental && !args.dryRun
+        ? offsetTradeBlockIndexes(
+            result.tradeBlocks,
+            await getNextTradeSourceBlockIndex(args.db, file.fileName),
+          )
+        : result.tradeBlocks;
 
     summary.ignoredCommissionerBlocks += result.ignoredCommissionerBlocks;
 
-    for (const event of result.dropEvents) {
+    for (const event of dropEvents) {
       summary.claimEvents++;
       summary.claimItems += event.items.length;
       summary.unresolvedClaimItems += event.items.filter(
@@ -1199,7 +1441,7 @@ export const importTransactionsToDb = async (
       }
     }
 
-    for (const block of result.tradeBlocks) {
+    for (const block of tradeBlocks) {
       summary.tradeBlocks++;
       summary.tradeItems += block.items.length;
       summary.unresolvedTradeItems += block.items.filter(

@@ -268,6 +268,7 @@ Notes:
 - Filenames follow: `claims-YYYY-YYYY.csv` and `trades-YYYY-YYYY.csv`.
 - Transaction files are refreshed in place so the current season can be scraped repeatedly without manual cleanup.
 - Each file download retries automatically by default (`--retries=2`, meaning 3 total attempts).
+- If run without `--year` or `--all` and output dir is the default `./csv/transactions/`, the importer also runs `npm run db:import:transactions` automatically after scraping.
 - If `USE_R2_STORAGE=true` and output dir is the default `./csv/transactions/`, the importer runs `npm run r2:upload:transactions` automatically after scraping.
 
 Useful options:
@@ -291,8 +292,11 @@ npm run db:import:transactions
 
 Notes:
 
-- Imports all matching `claims-YYYY-YYYY.csv` and `trades-YYYY-YYYY.csv` files from `csv/transactions/` by default.
-- Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--dir=/custom/path`.
+- Defaults to current-season incremental import, so only current-season rows at or after the latest imported timestamp are reprocessed.
+- Use `--full` to force a full current-season replace.
+- Use `--all` for a full all-seasons rebuild.
+- Use `--season=YYYY` for a full import of one explicit season.
+- Also supports `--current-only`, `--dry-run`, and `--dir=/custom/path`.
 - Stores claim/drop groups in `claim_events` + `claim_event_items`, with `claim_event_items` also mirroring `season`, `team_id`, and `occurred_at` for direct feed-style queries.
 - Stores trade rows in `trade_source_blocks` + `trade_block_items`.
 - Ignores `Lineup Change` rows.
@@ -622,7 +626,9 @@ npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into local DB
 npm run db:import:stats -- --report-type=playoffs # Import only playoffs
-npm run db:import:transactions  # Import all transaction CSVs into local DB
+npm run db:import:transactions  # Incrementally import current-season transaction rows
+npm run db:import:transactions -- --full
+npm run db:import:transactions -- --all
 npm run db:import:transactions -- --season=2025
 ```
 
@@ -653,7 +659,8 @@ npm run db:import:stats         # Import all CSV files into remote Turso
 npm run db:import:stats:current # Import only current season into remote Turso
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into remote Turso
 npm run db:import:stats -- --season=2018 --report-type=regular # Import only regular from one season
-npm run db:import:transactions  # Import all transaction CSVs into remote Turso
+npm run db:import:transactions  # Incrementally import current-season transaction rows into remote Turso
+npm run db:import:transactions -- --all
 ```
 
 Successful imports regenerate only the snapshot scopes they directly affect. Career and career-highlight snapshots are manual unless you run `npm run snapshot:generate` with the matching scopes.
