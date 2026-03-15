@@ -494,6 +494,8 @@ R2_BUCKET_NAME=ffhl-stats-csv
 USE_R2_SNAPSHOTS=false
 # R2_SNAPSHOT_BUCKET_NAME=ffhl-stats-snapshots  # Optional; defaults to R2_BUCKET_NAME
 # R2_SNAPSHOT_PREFIX=snapshots                  # Optional object prefix
+# R2_SNAPSHOT_MAX_ATTEMPTS=4                    # Optional retry cap for transient snapshot R2 failures
+# R2_SNAPSHOT_RETRY_BASE_DELAY_MS=250           # Optional exponential backoff base delay for snapshot R2 retries
 # SNAPSHOT_DIR=generated/snapshots              # Optional local snapshot directory
 # SNAPSHOT_CACHE_TTL_MS=60000                   # Optional in-memory snapshot cache ttl
 ```
@@ -597,7 +599,10 @@ Behavior:
 - `db:import:regular-results` refreshes only `/leaderboard/regular`
 - `db:import:transactions` refreshes `import_metadata.last_modified` and then refreshes only `/leaderboard/transactions`
 - snapshots are written locally to `generated/snapshots/`
-- if `USE_R2_SNAPSHOTS=true`, the same generation step also uploads JSON snapshots to R2
+- if `USE_R2_SNAPSHOTS=true`, the same generation step uploads each snapshot JSON to `R2_SNAPSHOT_BUCKET_NAME` (or `R2_BUCKET_NAME`) under `R2_SNAPSHOT_PREFIX/...`, then uploads `manifest.json` last
+- snapshot uploads store `Content-Type: application/json` plus `generated-at` object metadata
+- transient snapshot R2 failures (including TLS/network hiccups) are retried automatically with exponential backoff; tune with `R2_SNAPSHOT_MAX_ATTEMPTS` and `R2_SNAPSHOT_RETRY_BASE_DELAY_MS`
+- when R2 snapshot upload is enabled, the generator logs each successful object upload with progress counters so long runs show forward movement
 - at runtime the API tries local snapshots first, then R2, and finally falls back to live DB queries
 - successful responses expose `x-stats-data-source: snapshot` or `x-stats-data-source: db`
 - career and career-highlight snapshots are intentionally manual-only after stats imports; existing snapshots continue serving until you regenerate them
