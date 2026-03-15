@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Phase 2 completed, Phase 3 not started
+**Status:** Phase 3 completed, Phase 4 not started
 
 ## Goal
 
@@ -163,10 +163,10 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 
 ### Phase 3: Split `helpers.ts` and `mappings.ts`
 
-- [ ] Move scoring logic into `src/features/stats/scoring.ts`
-- [ ] Move CSV mapping logic into `src/features/stats/mapping.ts`
-- [ ] Move season/team utility logic into `src/shared/`
-- [ ] Remove mixed-purpose helper buckets as soon as imports are migrated
+- [x] Move scoring logic into `src/features/stats/scoring.ts`
+- [x] Move CSV mapping logic into `src/features/stats/mapping.ts`
+- [x] Move season/team utility logic into `src/shared/`
+- [x] Keep `src/helpers.ts` and `src/mappings.ts` as temporary compatibility barrels until later phases migrate call sites fully
 
 ### Phase 4: Split `services.ts` and `routes.ts`
 

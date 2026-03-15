@@ -22,7 +22,10 @@ import {
   buildFantraxEntityUpsertStatements,
   collectFantraxEntitiesFromStats,
 } from "../src/fantrax-entities";
-import { mapPlayerData, mapGoalieData } from "../src/mappings";
+import {
+  mapPlayerData,
+  mapGoalieData,
+} from "../src/mappings";
 import { getDbClient } from "../src/db/client";
 
 type ReportType = "regular" | "playoffs";

@@ -1,9 +1,9 @@
 import {
   sortItemsByStatField,
-  availableSeasons,
   applyPlayerScores,
   applyPlayerScoresByPosition,
   applyGoalieScores,
+  availableSeasons,
 } from "./helpers";
 import {
   mapAvailableSeasons,

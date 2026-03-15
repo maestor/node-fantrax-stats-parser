@@ -24,7 +24,6 @@ import {
   resolveTeamId,
   getTeamsWithData,
 } from "./helpers";
-import { HTTP_STATUS, ERROR_MESSAGES } from "./constants";
 import {
   buildCacheKey,
   isIfNoneMatchHit,
@@ -48,6 +47,8 @@ import {
   CAREER_HIGHLIGHT_TYPES,
   DEFAULT_CAREER_HIGHLIGHT_SKIP,
   DEFAULT_CAREER_HIGHLIGHT_TAKE,
+  ERROR_MESSAGES,
+  HTTP_STATUS,
   MAX_CAREER_HIGHLIGHT_TAKE,
   START_SEASON,
   TEAMS,

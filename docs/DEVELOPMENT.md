@@ -132,7 +132,7 @@ npm run verify
 
 ### Database (Turso/SQLite)
 
-- `/teams` and `regular` / `both` season availability are derived from `src/constants.ts`, not runtime DB lookups. Only playoff season availability remains DB-backed.
+- `/teams` and `regular` / `both` season availability are derived from code-owned config and shared utilities (`src/config/settings.ts` and `src/shared/seasons.ts`), not runtime DB lookups. Only playoff season availability remains DB-backed.
 - `npm run db:migrate` - Create/update database schema and performance indexes, including career lookup indexes on `player_id` and `goalie_id`
 - `fantrax_entities` is the canonical global Fantrax identity registry (`fantrax_id`, `name`, `position`, `first_seen_season`, `last_seen_season`). `db:migrate` backfills it when upgrading an older database or rebuilding an empty registry, and `db:import:stats` keeps it current with incremental UPSERTs so import order does not change the seen-season range semantics. Career queries now prefer canonical metadata from this table instead of trusting the first stats row for a player/goalie.
 - Transaction CSV imports normalize into `claim_events` / `claim_event_items` and `trade_source_blocks` / `trade_block_items`. Claim/drop and trade storage are intentionally separate, transaction CSV files remain the raw source of truth in `csv/transactions/` / R2, and player links are best-effort via `fantrax_entities` plus same-season fantasy-team context from `players` / `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs. `claim_event_items` mirrors `season`, `team_id`, and `occurred_at` from `claim_events` so common claim/drop queries can hit one table directly.
@@ -351,6 +351,6 @@ if (!reportTypeAvailable(report)) {
 - Source code: `src/`
 - Tests: `src/__tests__/`
 - Database layer: `src/db/`
-- CSV/data mappings: `src/mappings.ts` (used by import scripts)
+- CSV/data mappings: `src/features/stats/mapping.ts` (`src/mappings.ts` remains a temporary compatibility re-export used by legacy imports and scripts)
 - Build output: `lib/` (gitignored)
 - Import scripts: `scripts/`

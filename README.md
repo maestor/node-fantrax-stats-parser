@@ -427,7 +427,7 @@ Multi-team CSV layout (local or R2):
 - `<teamId>/regular-YYYY-YYYY.csv`
 - `<teamId>/playoffs-YYYY-YYYY.csv`
 
-Team configuration is defined in `src/constants.ts` (`TEAMS` and `DEFAULT_TEAM_ID`).
+Team configuration is defined in `src/config/settings.ts` (`TEAMS` and `DEFAULT_TEAM_ID`).
 
 
 ### Example requests
@@ -760,8 +760,8 @@ Scoring is calculated in three steps:
 1. **Per‑stat normalization**
    - For most non‑negative fields (goals, assists, points, penalties, shots, ppp, shp, hits, blocks), scoring normalizes from a baseline of 0 up to the maximum value observed in the current result set. A value of 0 maps to 0, the maximum maps to 100, and values in between are placed linearly between them.
    - For `plusMinus`, scoring uses the minimum and maximum values observed in the result set, and the minimum can be negative. The worst `plusMinus` maps to 0, the best to 100, and values in between are placed linearly between them (for example, with max = 20 and min = -10, `plusMinus` 5 is halfway between and scores 50.0 for that component).
-   - For goalies, base stats (`wins`, `saves`, `shutouts`) use **dampened scoring** to avoid extreme gaps when only 2-3 goalies exist. Instead of linear scaling, scoring uses `Math.pow(value / max, 0.5) * 100` (square root dampening). This compresses the score range while preserving rank order (e.g., with max 26 wins, 14 wins scores 73.4 instead of 53.8). The dampening exponent is configured by `GOALIE_SCORING_DAMPENING_EXPONENT` in `src/constants.ts`.
-   - For goalies, `savePercent` and `gaa` are scored relative to the best value in the dataset using more stable scaling rather than raw min/max. For `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in `src/constants.ts` (default .850) maps to 0 points and the best save% in the result set maps to 100, with other values placed linearly between; for `gaa`, the lowest GAA maps to 100 and other goalies are down‑weighted linearly based on how much worse they are than the best, up to a configurable cutoff defined by `GOALIE_GAA_MAX_DIFF_RATIO` in `src/constants.ts` (default 0.75, meaning 75% worse = 0 points). This avoids extreme 0/100 scores when all available goalies have very similar advanced stats.
+   - For goalies, base stats (`wins`, `saves`, `shutouts`) use **dampened scoring** to avoid extreme gaps when only 2-3 goalies exist. Instead of linear scaling, scoring uses `Math.pow(value / max, 0.5) * 100` (square root dampening). This compresses the score range while preserving rank order (e.g., with max 26 wins, 14 wins scores 73.4 instead of 53.8). The dampening exponent is configured by `GOALIE_SCORING_DAMPENING_EXPONENT` in `src/config/settings.ts`.
+   - For goalies, `savePercent` and `gaa` are scored relative to the best value in the dataset using more stable scaling rather than raw min/max. For `savePercent`, a fixed baseline defined by `GOALIE_SAVE_PERCENT_BASELINE` in `src/config/settings.ts` (default .850) maps to 0 points and the best save% in the result set maps to 100, with other values placed linearly between; for `gaa`, the lowest GAA maps to 100 and other goalies are down‑weighted linearly based on how much worse they are than the best, up to a configurable cutoff defined by `GOALIE_GAA_MAX_DIFF_RATIO` in `src/config/settings.ts` (default `0.6`, meaning 60% worse = 0 points). This avoids extreme 0/100 scores when all available goalies have very similar advanced stats.
 
 2. **Overall score (per item)**
    - For each item, scores from all scoring fields are summed and divided by the number of fields that actually contributed for that item (for goalies this means `gaa` and `savePercent` are only counted when present).
@@ -773,9 +773,9 @@ Scoring is calculated in three steps:
 
 4. **Games‑adjusted score (`scoreAdjustedByGames`)**
    - `scoreAdjustedByGames` is a pace metric. It uses per-game values instead of totals.
-   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/constants.ts`, default 1) still get `scoreAdjustedByGames = 0`.
+   - Players and goalies with fewer than `MIN_GAMES_FOR_ADJUSTED_SCORE` games (configured in `src/config/settings.ts`, default 1) still get `scoreAdjustedByGames = 0`.
    - To avoid one-game spikes dominating rare categories, each eligible per-game stat is stabilized toward the pool-average rate for that category before scoring. The pool-average rate is weighted by total games in the current result set.
-   - Stabilization strength is controlled by category-specific prior-game constants in `src/constants.ts`:
+   - Stabilization strength is controlled by category-specific prior-game constants in `src/config/settings.ts`:
      `PLAYER_ADJUSTED_SCORE_PRIOR_GAMES` for skaters and `GOALIE_ADJUSTED_SCORE_PRIOR_GAMES` for goalies.
    - Rare stats such as `shp` use a stronger prior than common stats such as `shots`, so short-sample spikes are dampened more aggressively while real pace over larger samples still shows through.
    - For players, stabilized per-game values are normalized using the same stat rules as the main score (including `plusMinus` range scoring). For goalies, `scoreAdjustedByGames` uses stabilized per-game `wins`, `saves`, and `shutouts`; advanced stats (`gaa`, `savePercent`) still do not contribute.
@@ -798,7 +798,7 @@ For the combined endpoints (`/players/combined` and `/goalies/combined`), the ro
 
 By default every scoring field has weight `1.0` (full value), so they all contribute equally.
 
-Weights are defined in `src/constants.ts`:
+Weights are defined in `src/config/settings.ts`:
 
 - `PLAYER_SCORE_WEIGHTS` controls player fields.
 - `GOALIE_SCORE_WEIGHTS` controls goalie fields.
@@ -811,7 +811,7 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 ## Future roadmap
 
-- Reorganize `src/` iteratively so the root keeps only obvious entrypoints while domain code moves under stable `config` / `features` / `db` / `infra` / `playwright` / `shared` buckets. Status: Phase 2 completed, Phase 3 not started. See [docs/plans/2026-03-15-reorganizing-codebase.md](docs/plans/2026-03-15-reorganizing-codebase.md).
+- Reorganize `src/` iteratively so the root keeps only obvious entrypoints while domain code moves under stable `config` / `features` / `db` / `infra` / `playwright` / `shared` buckets. Status: Phase 3 completed, Phase 4 not started. See [docs/plans/2026-03-15-reorganizing-codebase.md](docs/plans/2026-03-15-reorganizing-codebase.md).
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
