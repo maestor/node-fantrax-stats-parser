@@ -1,4 +1,4 @@
-import { CURRENT_SEASON, START_SEASON, TEAMS } from "../../constants";
+import { CURRENT_SEASON, START_SEASON, TEAMS } from "../../config";
 import {
   getPlayoffLeaderboard,
   getPlayoffSeasons,
@@ -18,12 +18,40 @@ import type {
   RegularLeaderboardSeason,
   TransactionLeaderboardEntry,
   TransactionLeaderboardSeason,
-} from "../../types";
+} from "./types";
+
+type PlayoffLeaderboardRowData = Pick<
+  PlayoffLeaderboardEntry,
+  | "teamId"
+  | "championships"
+  | "finals"
+  | "conferenceFinals"
+  | "secondRound"
+  | "firstRound"
+>;
+
+type RegularLeaderboardRowData = Pick<
+  RegularLeaderboardEntry,
+  | "teamId"
+  | "wins"
+  | "losses"
+  | "ties"
+  | "points"
+  | "divWins"
+  | "divLosses"
+  | "divTies"
+  | "regularTrophies"
+>;
+
+type TransactionLeaderboardRowData = Pick<
+  TransactionLeaderboardEntry,
+  "teamId" | "claims" | "drops" | "trades"
+>;
 
 export const getPlayoffLeaderboardData = async (): Promise<
   PlayoffLeaderboardEntry[]
 > => {
-  const rows = await getPlayoffLeaderboard();
+  const rows: PlayoffLeaderboardRowData[] = await getPlayoffLeaderboard();
   const seasonsByTeam = await getPlayoffSeasons();
   const latestPlayoffSeason =
     seasonsByTeam.length > 0
@@ -31,7 +59,7 @@ export const getPlayoffLeaderboardData = async (): Promise<
       : CURRENT_SEASON;
 
   const missingTeams = TEAMS.filter((t) => !rows.some((r) => r.teamId === t.id));
-  const allRows = [
+  const allRows: PlayoffLeaderboardRowData[] = [
     ...rows,
     ...missingTeams.map((t) => ({
       teamId: t.id,
@@ -135,7 +163,7 @@ const computeRegularSeasonPercents = (
 export const getRegularLeaderboardData = async (): Promise<
   RegularLeaderboardEntry[]
 > => {
-  const rows = await getRegularLeaderboard();
+  const rows: RegularLeaderboardRowData[] = await getRegularLeaderboard();
   const seasonsByTeam = await getRegularSeasons();
 
   const seasonsByTeamId = new Map<string, RegularSeasonDbEntry[]>();
@@ -192,7 +220,7 @@ export const getRegularLeaderboardData = async (): Promise<
 export const getTransactionLeaderboardData = async (): Promise<
   TransactionLeaderboardEntry[]
 > => {
-  const rows = await getTransactionLeaderboard();
+  const rows: TransactionLeaderboardRowData[] = await getTransactionLeaderboard();
   const seasonsByTeam = await getTransactionSeasons();
 
   const seasonsByTeamId = new Map<string, TransactionSeasonDbEntry[]>();
@@ -208,7 +236,7 @@ export const getTransactionLeaderboardData = async (): Promise<
   const missingTeams = TEAMS.filter(
     (team) => !rows.some((row) => row.teamId === team.id),
   );
-  const allRows = [
+  const allRows: TransactionLeaderboardRowData[] = [
     ...rows,
     ...missingTeams.map((team) => ({
       teamId: team.id,

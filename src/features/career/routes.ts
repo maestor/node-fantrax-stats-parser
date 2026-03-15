@@ -5,28 +5,27 @@ import {
   getCareerPlayersData,
   getGoalieCareerData,
   getPlayerCareerData,
-} from "../../services";
-import type { CareerHighlightType } from "../../types";
+} from "./service";
 import {
   CAREER_HIGHLIGHT_CONFIG,
   CAREER_HIGHLIGHT_TYPES,
   DEFAULT_CAREER_HIGHLIGHT_SKIP,
   DEFAULT_CAREER_HIGHLIGHT_TAKE,
-  ERROR_MESSAGES,
-  HTTP_STATUS,
   MAX_CAREER_HIGHLIGHT_TAKE,
-} from "../../constants";
+} from "../../config";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http";
 import {
   getCareerGoaliesSnapshotKey,
   getCareerHighlightsSnapshotKey,
   getCareerPlayersSnapshotKey,
-} from "../../snapshots";
+} from "../../infra/snapshots/store";
 import {
   getQueryParam,
   loadSnapshotOrFallback,
   sendNoStore,
   withErrorHandlingCached,
 } from "../../shared/route-utils";
+import type { CareerHighlightType } from "./types";
 
 const isCareerHighlightType = (
   value: string,

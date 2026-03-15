@@ -1,5 +1,8 @@
-import { mapCombinedPlayerData, mapPlayerData } from "../mappings";
-import { applyPlayerScores } from "../helpers";
+import {
+  mapCombinedPlayerData,
+  mapPlayerData,
+} from "../features/stats/mapping";
+import { applyPlayerScores } from "../features/stats/scoring";
 import {
   mockRawDataEmptyName,
   mockRawDataFirstRow,
@@ -9,7 +12,7 @@ import {
   mockRawDataZeroGames,
 } from "./fixtures";
 
-jest.mock("../helpers");
+jest.mock("../features/stats/scoring");
 
 describe("mappings", () => {
   describe("player mappings", () => {

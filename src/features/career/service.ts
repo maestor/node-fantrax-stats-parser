@@ -19,9 +19,9 @@ import type {
   CareerTransactionHighlightItem,
   CareerTransactionHighlightTeam,
   CountSplit,
-  CsvReport,
-} from "../../types";
-import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../constants";
+} from "./types";
+import type { CsvReport } from "../../shared/types/core";
+import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../config";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,

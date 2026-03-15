@@ -1,23 +1,25 @@
 import {
   getAvailableSeasons,
+} from "../features/meta/service";
+import {
   getGoaliesStatsCombined,
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
   getPlayersStatsSeason,
-} from "../services";
+} from "../features/stats/service";
 import {
   applyGoalieScores,
   applyPlayerScores,
   applyPlayerScoresByPosition,
-  availableSeasons,
   sortItemsByStatField,
-} from "../helpers";
+} from "../features/stats/scoring";
 import {
   mapAvailableSeasons,
   mapCombinedGoalieDataFromGoaliesWithSeason,
   mapCombinedPlayerDataFromPlayersWithSeason,
-} from "../mappings";
+} from "../features/stats/mapping";
 import { getGoaliesFromDb, getPlayersFromDb } from "../db/queries";
+import { availableSeasons as listAvailableSeasons } from "../shared/seasons";
 import {
   mockGoalie,
   mockGoalieWithSeason,
@@ -25,9 +27,10 @@ import {
   mockPlayerWithSeason,
 } from "./fixtures";
 
-jest.mock("../helpers");
-jest.mock("../mappings");
+jest.mock("../features/stats/scoring");
+jest.mock("../features/stats/mapping");
 jest.mock("../db/queries");
+jest.mock("../shared/seasons");
 
 describe("services", () => {
   beforeEach(() => {
@@ -42,12 +45,12 @@ describe("services", () => {
           { season: 2013, text: "2013-2014" },
         ];
 
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([2012, 2013]);
         (mapAvailableSeasons as jest.Mock).mockReturnValue(mockSeasons);
 
         const result = await getAvailableSeasons();
 
-        expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+        expect(listAvailableSeasons).toHaveBeenCalledWith("1", "regular");
         expect(mapAvailableSeasons).toHaveBeenCalledWith([2012, 2013]);
         expect(result).toEqual(mockSeasons);
       });
@@ -55,7 +58,7 @@ describe("services", () => {
 
     describe("getPlayersStatsSeason", () => {
       beforeEach(() => {
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
         (getPlayersFromDb as jest.Mock).mockResolvedValue([mockPlayerWithSeason]);
         (applyPlayerScores as jest.Mock).mockImplementation((data) => data);
         (applyPlayerScoresByPosition as jest.Mock).mockImplementation(
@@ -65,7 +68,7 @@ describe("services", () => {
       });
 
       test("returns empty array when season is undefined and no seasons are available", async () => {
-        (availableSeasons as jest.Mock).mockReturnValue([]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([]);
 
         const result = await getPlayersStatsSeason("regular", undefined);
 
@@ -98,7 +101,7 @@ describe("services", () => {
 
     describe("getGoaliesStatsSeason", () => {
       beforeEach(() => {
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2024]);
         (getGoaliesFromDb as jest.Mock).mockResolvedValue([mockGoalieWithSeason]);
         (applyGoalieScores as jest.Mock).mockImplementation((data) => data);
         (sortItemsByStatField as jest.Mock).mockImplementation((data) => data);
@@ -141,7 +144,7 @@ describe("services", () => {
 
     describe("getPlayersStatsCombined", () => {
       beforeEach(() => {
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
         (getPlayersFromDb as jest.Mock).mockResolvedValue([mockPlayerWithSeason]);
         (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue(
           [mockPlayer],
@@ -154,7 +157,7 @@ describe("services", () => {
       });
 
       test("returns empty array when no seasons are available", async () => {
-        (availableSeasons as jest.Mock).mockReturnValue([]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([]);
         (mapCombinedPlayerDataFromPlayersWithSeason as jest.Mock).mockReturnValue(
           [],
         );
@@ -172,14 +175,14 @@ describe("services", () => {
 
         const result = await getPlayersStatsCombined("regular", "1", 2025);
 
-        expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+        expect(listAvailableSeasons).toHaveBeenCalledWith("1", "regular");
         expect(result).toEqual([]);
       });
     });
 
     describe("getGoaliesStatsCombined", () => {
       beforeEach(() => {
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014]);
         (getGoaliesFromDb as jest.Mock).mockResolvedValue([mockGoalieWithSeason]);
         (mapCombinedGoalieDataFromGoaliesWithSeason as jest.Mock).mockReturnValue(
           [mockGoalie],
@@ -191,17 +194,19 @@ describe("services", () => {
       test("uses the default team when startFrom is omitted", async () => {
         const result = await getGoaliesStatsCombined("regular");
 
-        expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+        expect(listAvailableSeasons).toHaveBeenCalledWith("1", "regular");
         expect(getGoaliesFromDb).toHaveBeenCalledTimes(3);
         expect(result).toEqual([mockGoalie]);
       });
 
       test("filters seasons when startFrom is provided", async () => {
-        (availableSeasons as jest.Mock).mockReturnValue([2012, 2013, 2014, 2020]);
+        (listAvailableSeasons as jest.Mock).mockReturnValue([
+          2012, 2013, 2014, 2020,
+        ]);
 
         const result = await getGoaliesStatsCombined("regular", "1", 2020);
 
-        expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+        expect(listAvailableSeasons).toHaveBeenCalledWith("1", "regular");
         expect(getGoaliesFromDb).toHaveBeenCalledTimes(1);
         expect(getGoaliesFromDb).toHaveBeenCalledWith("1", 2020, "regular");
         expect(result).toEqual([mockGoalie]);
@@ -214,7 +219,7 @@ describe("services", () => {
 
         const result = await getGoaliesStatsCombined("regular", "1", 2025);
 
-        expect(availableSeasons).toHaveBeenCalledWith("1", "regular");
+        expect(listAvailableSeasons).toHaveBeenCalledWith("1", "regular");
         expect(result).toEqual([]);
       });
     });

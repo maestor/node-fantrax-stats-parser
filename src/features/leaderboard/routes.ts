@@ -3,12 +3,12 @@ import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../../services";
+} from "./service";
 import {
   getPlayoffsLeaderboardSnapshotKey,
   getRegularLeaderboardSnapshotKey,
   getTransactionsLeaderboardSnapshotKey,
-} from "../../snapshots";
+} from "../../infra/snapshots/store";
 import {
   loadSnapshotOrFallback,
   withErrorHandlingCached,

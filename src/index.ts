@@ -29,7 +29,7 @@ import {
   getTeams,
 } from "./features/meta/routes";
 import { getOpenApiSpec, getSwaggerUi } from "./openapi";
-import { HTTP_STATUS } from "./constants";
+import { HTTP_STATUS } from "./shared/http";
 import { sendNoStore } from "./shared/route-utils";
 
 const service: RequestHandler = async (_req, res) => {

@@ -1,9 +1,7 @@
 describe("type barrels", () => {
-  test("load the root and shared type barrels without runtime exports", async () => {
-    const rootTypes = await import("../types");
+  test("load the shared type barrel without runtime exports", async () => {
     const sharedTypes = await import("../shared/types");
 
-    expect(rootTypes).toBeDefined();
     expect(sharedTypes).toBeDefined();
   });
 });

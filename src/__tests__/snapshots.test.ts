@@ -20,7 +20,7 @@ import {
   isR2SnapshotConfigAvailable,
   loadSnapshot,
   resetSnapshotCacheForTests,
-} from "../snapshots";
+} from "../infra/snapshots/store";
 
 const mockSend = jest.fn();
 

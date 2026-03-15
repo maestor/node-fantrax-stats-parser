@@ -1,15 +1,14 @@
-import { CURRENT_SEASON, TEAMS } from "../constants";
+import { CURRENT_SEASON, TEAMS } from "../config";
 import {
   availableSeasons,
-  getTeamsWithData,
   parseSeasonParam,
   reportTypeAvailable,
-  resolveTeamId,
   seasonAvailable,
-  sortItemsByStatField,
-} from "../helpers";
+} from "../shared/seasons";
+import { getTeamsWithData, resolveTeamId } from "../shared/teams";
+import { sortItemsByStatField } from "../features/stats/scoring";
 import { createGoalie, createPlayer } from "./fixtures";
-import { Goalie, Player, Report } from "../types";
+import type { Goalie, Player, Report } from "../shared/types";
 
 describe("helpers utilities", () => {
   describe("sortItemsByStatField", () => {

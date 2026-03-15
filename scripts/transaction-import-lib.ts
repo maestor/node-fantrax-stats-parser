@@ -3,12 +3,12 @@ import path from "path";
 import csv from "csvtojson";
 import type { Client } from "@libsql/client";
 
-import { CURRENT_SEASON, TEAMS } from "../src/constants";
-import type { Team } from "../src/types";
+import { CURRENT_SEASON, TEAMS } from "../src/config";
+import type { Team } from "../src/shared/types";
 import {
   parseTransactionCsvFileName,
   type TransactionType,
-} from "../src/transactions";
+} from "../src/features/transactions/files";
 
 const DROP_MARKER = "(Drop)";
 

@@ -20,31 +20,38 @@ import { getHealthcheck } from "../index";
 import {
   getAvailableSeasons,
   getLastModifiedData,
+  getTeamsData,
+} from "../features/meta/service";
+import {
   getPlayersStatsSeason,
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+} from "../features/stats/service";
+import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
-  getTeamsData,
   getTransactionLeaderboardData,
-} from "../services";
+} from "../features/leaderboard/service";
 import {
   reportTypeAvailable,
   seasonAvailable,
   parseSeasonParam,
-  resolveTeamId,
-} from "../helpers";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../constants";
+} from "../shared/seasons";
+import { resolveTeamId } from "../shared/teams";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http";
 import { makeEtagForJson } from "../cache";
-import { loadSnapshot } from "../snapshots";
+import { loadSnapshot } from "../infra/snapshots/store";
 import { resetRouteCachesForTests } from "../shared/route-utils";
 import { expectArraySchema } from "./openapi-schema";
 
 jest.mock("micro");
-jest.mock("../services");
-jest.mock("../helpers");
-jest.mock("../snapshots", () => ({
+jest.mock("../features/meta/service");
+jest.mock("../features/stats/service");
+jest.mock("../features/leaderboard/service");
+jest.mock("../shared/seasons");
+jest.mock("../shared/teams");
+jest.mock("../infra/snapshots/store", () => ({
   loadSnapshot: jest.fn(),
   getCareerGoaliesSnapshotKey: jest.fn(() => "career/goalies"),
   getCareerPlayersSnapshotKey: jest.fn(() => "career/players"),

@@ -1,4 +1,10 @@
-import { RawData, Player, Goalie, PlayerWithSeason, GoalieWithSeason } from "../types";
+import type {
+  Goalie,
+  GoalieWithSeason,
+  Player,
+  PlayerWithSeason,
+  RawData,
+} from "../shared/types";
 
 // Raw data fixtures for players
 export const mockRawDataPlayer: RawData = {

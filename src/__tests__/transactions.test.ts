@@ -8,7 +8,7 @@ import {
   formatSeasonSpan,
   parseTransactionCsvFileName,
   resolveTransactionImportYears,
-} from "../transactions";
+} from "../features/transactions/files";
 
 describe("transaction helpers", () => {
   describe("transaction types", () => {

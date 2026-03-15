@@ -3,19 +3,19 @@ import {
   getAvailableSeasons,
   getLastModifiedData,
   getTeamsData,
-} from "../../services";
-import type { Report } from "../../types";
+} from "./service";
 import {
   parseSeasonParam,
   reportTypeAvailable,
-  resolveTeamId,
-} from "../../helpers";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../../constants";
+} from "../../shared/seasons";
+import { resolveTeamId } from "../../shared/teams";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http";
 import {
   getQueryParam,
   sendNoStore,
   withErrorHandlingCached,
 } from "../../shared/route-utils";
+import type { Report } from "../../shared/types";
 
 export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));

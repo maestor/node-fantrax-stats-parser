@@ -2,7 +2,7 @@ import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../services";
+} from "../features/leaderboard/service";
 import {
   getPlayoffLeaderboard,
   getPlayoffSeasons,
@@ -11,7 +11,7 @@ import {
   getTransactionLeaderboard,
   getTransactionSeasons,
 } from "../db/queries";
-import { TEAMS } from "../constants";
+import { TEAMS } from "../config";
 
 jest.mock("../db/queries");
 

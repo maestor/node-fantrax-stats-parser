@@ -2,10 +2,10 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import type { Client } from "@libsql/client";
-import { buildFantraxEntityUpsertStatements } from "../fantrax-entities";
+import { buildFantraxEntityUpsertStatements } from "../features/fantrax/entities";
 import { getDbClient, resetDbClientForTests } from "../db/client";
 import { migrateDb } from "../db/schema";
-import { resetSnapshotCacheForTests } from "../snapshots";
+import { resetSnapshotCacheForTests } from "../infra/snapshots/store";
 import { resetRouteCachesForTests } from "../shared/route-utils";
 
 type PlayerSeed = {

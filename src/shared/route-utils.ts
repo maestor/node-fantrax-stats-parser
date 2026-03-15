@@ -8,8 +8,8 @@ import {
   setCachedOkHeaders,
   setNoStoreHeaders,
 } from "../cache";
-import { HTTP_STATUS } from "../constants";
-import { loadSnapshot } from "../snapshots";
+import { loadSnapshot } from "../infra/snapshots/store";
+import { HTTP_STATUS } from "./http";
 
 export type DataSource = "snapshot" | "db";
 

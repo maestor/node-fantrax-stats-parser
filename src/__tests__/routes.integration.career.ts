@@ -6,7 +6,7 @@ import {
   getCareerPlayer,
   getCareerPlayers,
 } from "../features/career/routes";
-import { HTTP_STATUS } from "../constants";
+import { HTTP_STATUS } from "../shared/http";
 import { createIntegrationDb } from "./integration-db";
 import { expectArraySchema, expectObjectSchema } from "./openapi-schema";
 import {

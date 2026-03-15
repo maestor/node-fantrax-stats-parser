@@ -11,7 +11,7 @@ import {
   applyGoalieScores,
   applyPlayerScores,
   applyPlayerScoresByPosition,
-} from "../../helpers";
+} from "./scoring";
 import { CSV } from "../../config/csv";
 
 // Data have commas in thousands, pre-remove those that Number won't fail

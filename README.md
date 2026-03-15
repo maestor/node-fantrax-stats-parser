@@ -811,7 +811,6 @@ Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https:
 
 ## Future roadmap
 
-- Reorganize `src/` iteratively so the root keeps only obvious entrypoints while domain code moves under stable `config` / `features` / `db` / `infra` / `playwright` / `shared` buckets. Status: Phase 6 completed, Phase 7 not started. See [docs/plans/2026-03-15-reorganizing-codebase.md](docs/plans/2026-03-15-reorganizing-codebase.md).
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further

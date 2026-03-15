@@ -346,17 +346,52 @@ if (!reportTypeAvailable(report)) {
 }
 ```
 
-### File Organization
+### Project structure
 
-- Source code: `src/`
-- Route composition and healthcheck entrypoint: `src/index.ts`
-- Feature services and route handlers: `src/features/*/service.ts` and `src/features/*/routes.ts` (`src/services.ts` remains a temporary compatibility entrypoint during the reorganization)
-- Meta API routes such as seasons, teams, and last-modified: `src/features/meta/routes.ts`
-- Transaction helpers: `src/features/transactions/files.ts` (`src/transactions.ts` remains a temporary compatibility re-export)
-- Fantrax entity registry helpers: `src/features/fantrax/entities.ts` (`src/fantrax-entities.ts` remains a temporary compatibility re-export)
-- Snapshot storage helpers: `src/infra/snapshots/store.ts` (`src/snapshots.ts` remains a temporary compatibility re-export)
-- Tests: `src/__tests__/`
-- Database layer: `src/db/`
-- CSV/data mappings: `src/features/stats/mapping.ts` (`src/mappings.ts` remains a temporary compatibility re-export used by legacy imports and scripts)
-- Build output: `lib/` (gitignored)
-- Import scripts: `scripts/`
+```text
+src/
+  index.ts
+  server.ts
+  openapi.ts
+  auth.ts
+  cache.ts
+  config/
+  features/
+    career/
+    fantrax/
+    leaderboard/
+    meta/
+    stats/
+    transactions/
+  db/
+  infra/
+    r2/
+    snapshots/
+  playwright/
+  shared/
+  __tests__/
+
+scripts/
+```
+
+### Where new code goes
+
+- Keep `src/` root limited to obvious app entrypoints and global runtime modules such as `index.ts`, `server.ts`, `openapi.ts`, `auth.ts`, and `cache.ts`.
+- Put new business or API functionality under `src/features/<feature>/` instead of creating new root files.
+- Add feature-owned route handlers to `src/features/<feature>/routes.ts`.
+- Add feature-owned query/business logic to `src/features/<feature>/service.ts`.
+- Keep feature-specific types beside that feature in `src/features/<feature>/types.ts`.
+- Put API metadata/discovery endpoints that are not tied to one domain model in `src/features/meta/`.
+- Keep editable code-based project settings in `src/config/`. This is the project's lightweight settings surface instead of a database-backed admin UI.
+- Put truly cross-feature helpers in `src/shared/`, such as common HTTP constants, team/season helpers, and shared types.
+- Keep `src/shared/` strict. If logic clearly belongs to one feature, leave it in that feature even if another module imports it.
+- Put database schema, queries, and DB-only helpers in `src/db/`.
+- Put infrastructure integrations in `src/infra/`, such as snapshot storage and R2-specific retry helpers.
+- Keep local Fantrax scraping/import tooling in `src/playwright/`.
+- Keep operational scripts and CLI entrypoints in `scripts/`.
+
+### Feature folder expectations
+
+- A small feature may only need `routes.ts`, `service.ts`, and `types.ts`.
+- Add extra files only when the feature has a clear sub-area, such as `mapping.ts`, `scoring.ts`, `entities.ts`, or `files.ts`.
+- Prefer adding a new folder under `src/features/` for a new capability instead of growing `shared/` or the `src/` root.

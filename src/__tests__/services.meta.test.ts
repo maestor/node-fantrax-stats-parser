@@ -1,7 +1,7 @@
-import { getTeamsData } from "../services";
-import { getTeamsWithData } from "../helpers";
+import { getTeamsData } from "../features/meta/service";
+import { getTeamsWithData } from "../shared/teams";
 
-jest.mock("../helpers");
+jest.mock("../shared/teams");
 
 describe("meta services", () => {
   beforeEach(() => {

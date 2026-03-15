@@ -3,7 +3,7 @@ import {
   getR2SnapshotRetryBaseDelayMs,
   isRetryableR2Error,
   retryR2Operation,
-} from "../r2/retry";
+} from "../infra/r2/retry";
 
 const originalEnv = process.env;
 

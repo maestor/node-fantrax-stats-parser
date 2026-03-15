@@ -1,6 +1,6 @@
 import { createRequest, createResponse } from "node-mocks-http";
 import { getSeasons } from "../features/meta/routes";
-import { HTTP_STATUS } from "../constants";
+import { HTTP_STATUS } from "../shared/http";
 import { createIntegrationDb } from "./integration-db";
 import { expectArraySchema } from "./openapi-schema";
 import { asRouteReq, getJsonBody } from "./routes.integration.helpers";

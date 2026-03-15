@@ -25,8 +25,8 @@ import {
   standingsNameCandidates,
   tryGetRosterTeamIdFromStandingsLink,
 } from "./helpers";
-import type { Team } from "../types";
-import { TEAMS } from "../constants";
+import { TEAMS } from "../config";
+import type { Team } from "../shared/types";
 import { getDbClient } from "../db/client";
 
 import { computeManual2018PlayoffsTeamRuns } from "./compute-manual-data";

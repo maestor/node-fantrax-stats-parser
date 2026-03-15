@@ -2,7 +2,7 @@ import { chromium, type Browser } from "playwright";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 
-import { TEAMS } from "../constants";
+import { TEAMS } from "../config";
 import {
   AUTH_STATE_PATH,
   buildRosterCsvFileName,

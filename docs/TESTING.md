@@ -154,7 +154,7 @@ src/
     ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
     ├── snapshot-generation.test.ts # Snapshot scope/report selection helpers
     ├── services.career.fixtures.ts # Shared career-service row builders
-    ├── services.*.test.ts # Domain-focused service unit suites (season/combined, career detail/list, leaderboard)
+    ├── services.*.test.ts # Domain-focused service unit suites (meta, season/combined, career detail/list, leaderboard)
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── transactions.import.test.ts # Transaction entity matching, grouping, and DB import behavior
     ├── transactions.test.ts # Transaction file naming, URL building, and year-selection helpers

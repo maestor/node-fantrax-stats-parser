@@ -1,8 +1,9 @@
-import { mapAvailableSeasons } from "../../mappings";
-import { DEFAULT_TEAM_ID } from "../../constants";
+import { DEFAULT_TEAM_ID } from "../../config";
 import { getLastModifiedFromDb } from "../../db/queries";
-import { availableSeasons, getTeamsWithData } from "../../helpers";
-import type { Report } from "../../types";
+import { availableSeasons } from "../../shared/seasons";
+import { getTeamsWithData } from "../../shared/teams";
+import type { Report } from "../../shared/types";
+import { mapAvailableSeasons } from "../stats/mapping";
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,

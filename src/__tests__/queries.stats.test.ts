@@ -11,7 +11,10 @@ import {
   getGoaliesFromDb,
   getPlayersFromDb,
 } from "../db/queries";
-import type { GoalieWithSeason, PlayerWithSeason } from "../types";
+import type {
+  GoalieWithSeason,
+  PlayerWithSeason,
+} from "../features/stats/types";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
 
