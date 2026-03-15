@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Phase 4 completed, Phase 5 not started
+**Status:** Phase 5 completed, Phase 6 not started
 
 ## Goal
 
@@ -176,10 +176,10 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 
 ### Phase 5: Move feature-specific root modules
 
-- [ ] Move transactions helpers under `src/features/transactions/`
-- [ ] Move Fantrax entity registry helpers under `src/features/fantrax/`
-- [ ] Move snapshot storage under `src/infra/snapshots/`
-- [ ] Rename imports only after the destination folders already exist
+- [x] Move transactions helpers under `src/features/transactions/`
+- [x] Move Fantrax entity registry helpers under `src/features/fantrax/`
+- [x] Move snapshot storage under `src/infra/snapshots/`
+- [x] Keep `src/transactions.ts`, `src/fantrax-entities.ts`, and `src/snapshots.ts` as temporary compatibility barrels until the final cleanup phase
 
 ### Phase 6: Cleanup and finalize
 

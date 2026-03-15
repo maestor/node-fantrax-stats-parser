@@ -350,6 +350,9 @@ if (!reportTypeAvailable(report)) {
 
 - Source code: `src/`
 - Feature services and route handlers: `src/features/*/service.ts` and `src/features/*/routes.ts` (`src/services.ts` and `src/routes.ts` remain temporary compatibility entrypoints during the reorganization)
+- Transaction helpers: `src/features/transactions/files.ts` (`src/transactions.ts` remains a temporary compatibility re-export)
+- Fantrax entity registry helpers: `src/features/fantrax/entities.ts` (`src/fantrax-entities.ts` remains a temporary compatibility re-export)
+- Snapshot storage helpers: `src/infra/snapshots/store.ts` (`src/snapshots.ts` remains a temporary compatibility re-export)
 - Tests: `src/__tests__/`
 - Database layer: `src/db/`
 - CSV/data mappings: `src/features/stats/mapping.ts` (`src/mappings.ts` remains a temporary compatibility re-export used by legacy imports and scripts)
