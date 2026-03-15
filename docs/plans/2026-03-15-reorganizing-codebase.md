@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Phase 1 completed, Phase 2 not started
+**Status:** Phase 2 completed, Phase 3 not started
 
 ## Goal
 
@@ -156,10 +156,10 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 
 ### Phase 2: Split centralized config and shared types
 
-- [ ] Move project settings from `src/constants.ts` into focused config modules
-- [ ] Move cross-feature types into `src/shared/types/`
-- [ ] Move feature-local types beside their feature code
-- [ ] Keep call sites working through the temporary barrels until the migration is complete
+- [x] Move project settings from `src/constants.ts` into focused config modules
+- [x] Move cross-feature types into `src/shared/types/`
+- [x] Move feature-local types beside their feature code
+- [x] Keep call sites working through the temporary barrels until the migration is complete
 
 ### Phase 3: Split `helpers.ts` and `mappings.ts`
 
