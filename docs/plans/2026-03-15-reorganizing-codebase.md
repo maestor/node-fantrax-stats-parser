@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Planning completed, implementation not started
+**Status:** Phase 1 completed, Phase 2 not started
 
 ## Goal
 
@@ -150,9 +150,9 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 
 ### Phase 1: Stabilize import surfaces
 
-- [ ] Add `src/config/index.ts` and `src/shared/types/index.ts` as stable import surfaces
-- [ ] Keep `src/constants.ts` and `src/types.ts` temporarily as compatibility barrels or thin re-export layers
-- [ ] Avoid behavior changes in this phase
+- [x] Add `src/config/index.ts` and `src/shared/types/index.ts` as stable import surfaces
+- [x] Keep `src/constants.ts` and `src/types.ts` temporarily as compatibility barrels or thin re-export layers
+- [x] Avoid behavior changes in this phase
 
 ### Phase 2: Split centralized config and shared types
 
