@@ -132,7 +132,7 @@ npm run verify
 
 ### Database (Turso/SQLite)
 
-- `/teams` and `regular` / `both` season availability are derived from `src/constants.ts`, not runtime DB lookups. Only playoff season availability remains DB-backed.
+- `/teams` and `regular` / `both` season availability are derived from code-owned config and shared utilities (`src/config/settings.ts` and `src/shared/seasons.ts`), not runtime DB lookups. Only playoff season availability remains DB-backed.
 - `npm run db:migrate` - Create/update database schema and performance indexes, including career lookup indexes on `player_id` and `goalie_id`
 - `fantrax_entities` is the canonical global Fantrax identity registry (`fantrax_id`, `name`, `position`, `first_seen_season`, `last_seen_season`). `db:migrate` backfills it when upgrading an older database or rebuilding an empty registry, and `db:import:stats` keeps it current with incremental UPSERTs so import order does not change the seen-season range semantics. Career queries now prefer canonical metadata from this table instead of trusting the first stats row for a player/goalie.
 - Transaction CSV imports normalize into `claim_events` / `claim_event_items` and `trade_source_blocks` / `trade_block_items`. Claim/drop and trade storage are intentionally separate, transaction CSV files remain the raw source of truth in `csv/transactions/` / R2, and player links are best-effort via `fantrax_entities` plus same-season fantasy-team context from `players` / `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs. `claim_event_items` mirrors `season`, `team_id`, and `occurred_at` from `claim_events` so common claim/drop queries can hit one table directly.
@@ -346,11 +346,52 @@ if (!reportTypeAvailable(report)) {
 }
 ```
 
-### File Organization
+### Project structure
 
-- Source code: `src/`
-- Tests: `src/__tests__/`
-- Database layer: `src/db/`
-- CSV/data mappings: `src/mappings.ts` (used by import scripts)
-- Build output: `lib/` (gitignored)
-- Import scripts: `scripts/`
+```text
+src/
+  index.ts
+  server.ts
+  openapi.ts
+  auth.ts
+  cache.ts
+  config/
+  features/
+    career/
+    fantrax/
+    leaderboard/
+    meta/
+    stats/
+    transactions/
+  db/
+  infra/
+    r2/
+    snapshots/
+  playwright/
+  shared/
+  __tests__/
+
+scripts/
+```
+
+### Where new code goes
+
+- Keep `src/` root limited to obvious app entrypoints and global runtime modules such as `index.ts`, `server.ts`, `openapi.ts`, `auth.ts`, and `cache.ts`.
+- Put new business or API functionality under `src/features/<feature>/` instead of creating new root files.
+- Add feature-owned route handlers to `src/features/<feature>/routes.ts`.
+- Add feature-owned query/business logic to `src/features/<feature>/service.ts`.
+- Keep feature-specific types beside that feature in `src/features/<feature>/types.ts`.
+- Put API metadata/discovery endpoints that are not tied to one domain model in `src/features/meta/`.
+- Keep editable code-based project settings in `src/config/`. This is the project's lightweight settings surface instead of a database-backed admin UI.
+- Put truly cross-feature helpers in `src/shared/`, such as common HTTP constants, team/season helpers, and shared types.
+- Keep `src/shared/` strict. If logic clearly belongs to one feature, leave it in that feature even if another module imports it.
+- Put database schema, queries, and DB-only helpers in `src/db/`.
+- Put infrastructure integrations in `src/infra/`, such as snapshot storage and R2-specific retry helpers.
+- Keep local Fantrax scraping/import tooling in `src/playwright/`.
+- Keep operational scripts and CLI entrypoints in `scripts/`.
+
+### Feature folder expectations
+
+- A small feature may only need `routes.ts`, `service.ts`, and `types.ts`.
+- Add extra files only when the feature has a clear sub-area, such as `mapping.ts`, `scoring.ts`, `entities.ts`, or `files.ts`.
+- Prefer adding a new folder under `src/features/` for a new capability instead of growing `shared/` or the `src/` root.

@@ -1,5 +1,15 @@
 import { getDbClient } from "./client";
-import type { PlayerWithSeason, GoalieWithSeason, CsvReport } from "../types";
+import type {
+  GoalieWithSeason,
+  PlayerWithSeason,
+} from "../features/stats/types";
+import type {
+  PlayoffLeaderboardEntry,
+  RegularLeaderboardEntry,
+  TransactionLeaderboardEntry,
+  TransactionLeaderboardSeason,
+} from "../features/leaderboard/types";
+import type { CsvReport } from "../shared/types/core";
 
 /** Cast DB rows to a known shape. Trust the schema — no runtime validation. */
 function castRows<T>(rows: unknown[]): T[] {
@@ -518,7 +528,7 @@ interface PlayoffLeaderboardRow {
 }
 
 type PlayoffLeaderboardDbEntry = Omit<
-  import("../types").PlayoffLeaderboardEntry,
+  PlayoffLeaderboardEntry,
   "teamName" | "appearances" | "tieRank" | "seasons"
 >;
 
@@ -594,7 +604,7 @@ interface RegularLeaderboardRow {
 }
 
 type RegularLeaderboardDbEntry = Omit<
-  import("../types").RegularLeaderboardEntry,
+  RegularLeaderboardEntry,
   | "teamName"
   | "tieRank"
   | "winPercent"
@@ -704,7 +714,7 @@ interface TransactionLeaderboardRow {
 }
 
 export type TransactionLeaderboardDbEntry = Omit<
-  import("../types").TransactionLeaderboardEntry,
+  TransactionLeaderboardEntry,
   "teamName" | "seasons" | "tieRank"
 >;
 
@@ -716,7 +726,7 @@ interface TransactionSeasonRow {
   trades: number;
 }
 
-export type TransactionSeasonDbEntry = import("../types").TransactionLeaderboardSeason & {
+export type TransactionSeasonDbEntry = TransactionLeaderboardSeason & {
   teamId: string;
 };
 

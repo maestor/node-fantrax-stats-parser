@@ -1,62 +1,16 @@
+import type { Goalie, GoalieScoreField, Player } from "./types";
 import {
-  Player,
-  Goalie,
-  Report,
-  CsvReport,
-  GoalieScoreField,
-} from "./types";
-import {
-  REPORT_TYPES,
-  PLAYER_SCORE_FIELDS,
-  GOALIE_SCORE_FIELDS,
-  PLAYER_SCORE_WEIGHTS,
-  GOALIE_SCORE_WEIGHTS,
+  GOALIE_ADJUSTED_SCORE_PRIOR_GAMES,
   GOALIE_GAA_MAX_DIFF_RATIO,
   GOALIE_SAVE_PERCENT_BASELINE,
+  GOALIE_SCORE_FIELDS,
+  GOALIE_SCORE_WEIGHTS,
   GOALIE_SCORING_DAMPENING_EXPONENT,
   MIN_GAMES_FOR_ADJUSTED_SCORE,
   PLAYER_ADJUSTED_SCORE_PRIOR_GAMES,
-  GOALIE_ADJUSTED_SCORE_PRIOR_GAMES,
-  CURRENT_SEASON,
-  DEFAULT_TEAM_ID,
-  START_SEASON,
-  TEAMS,
-} from "./constants";
-import { getAvailableSeasonsFromDb } from "./db/queries";
-
-const isConfiguredTeamId = (teamId: string): boolean =>
-  TEAMS.some((t) => t.id === teamId);
-
-const getTeamStartSeason = (teamId: string): number =>
-  TEAMS.find((team) => team.id === teamId)?.firstSeason ?? START_SEASON;
-
-const getRegularSeasonRangeForTeam = (teamId: string): number[] => {
-  const startSeason = getTeamStartSeason(teamId);
-  const seasons: number[] = [];
-
-  for (let season = startSeason; season <= CURRENT_SEASON; season++) {
-    seasons.push(season);
-  }
-
-  return seasons;
-};
-
-export const getTeamsWithData = (): Array<(typeof TEAMS)[number]> => [...TEAMS];
-
-export const resolveTeamId = (raw: unknown): string => {
-  if (typeof raw !== "string") return DEFAULT_TEAM_ID;
-  const teamId = raw.trim();
-  if (!teamId) return DEFAULT_TEAM_ID;
-  if (!isConfiguredTeamId(teamId)) return DEFAULT_TEAM_ID;
-  return teamId;
-};
-
-const listSeasonsForTeam = async (
-  teamId: string,
-  reportType: CsvReport,
-): Promise<number[]> => {
-  return getAvailableSeasonsFromDb(teamId, reportType);
-};
+  PLAYER_SCORE_FIELDS,
+  PLAYER_SCORE_WEIGHTS,
+} from "../../config/settings";
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.score - a.score || b.points - a.points || b.goals - a.goals;
@@ -67,7 +21,7 @@ const defaultSortGoalies = (a: Goalie, b: Goalie): number =>
 const toTwoDecimals = (value: number): number => Number(value.toFixed(2));
 
 // Normalize a numeric field so that the highest positive value becomes 100
-// and all other positive values are scaled proportionally into the 0–100 range.
+// and all other positive values are scaled proportionally into the 0-100 range.
 // Used for both total scores (score) and games-adjusted scores (scoreAdjustedByGames).
 const normalizeFieldToBest = <T, K extends keyof T & string>(
   items: T[],
@@ -179,7 +133,7 @@ const applyScoresInternal = <
         relative = (value / max) * 100;
       }
 
-      item.scores![field] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
+      item.scores[field] = toTwoDecimals(Math.min(Math.max(relative, 0), 100));
 
       const weight = weights[field];
       total += relative * weight;
@@ -368,8 +322,7 @@ const applyStabilizedAdjustedScores = <
       if (field === negativeField) {
         const range = maxByField[field] - minByField[field];
         if (range > 0) {
-          relative =
-            ((stabilizedRate - minByField[field]) / range) * 100;
+          relative = ((stabilizedRate - minByField[field]) / range) * 100;
         }
       } else {
         const max = maxByField[field];
@@ -482,8 +435,8 @@ export const applyPlayerScoresByPosition = (players: Player[]): Player[] => {
   if (!players.length) return players;
 
   // Group players by position
-  const forwards = players.filter((p) => p.position === "F");
-  const defensemen = players.filter((p) => p.position === "D");
+  const forwards = players.filter((player) => player.position === "F");
+  const defensemen = players.filter((player) => player.position === "D");
 
   // Apply position-based scoring to each group
   applyPositionScoresForGroup(forwards);
@@ -540,7 +493,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
           Math.pow(value / max, GOALIE_SCORING_DAMPENING_EXPONENT) * 100;
         const weight = GOALIE_SCORE_WEIGHTS[field];
 
-        goalie.scores![field] = toTwoDecimals(
+        goalie.scores[field] = toTwoDecimals(
           Math.min(Math.max(relative, 0), 100),
         );
 
@@ -568,7 +521,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        goalie.scores!.savePercent = toTwoDecimals(
+        goalie.scores.savePercent = toTwoDecimals(
           Math.min(Math.max(relative, 0), 100),
         );
       }
@@ -593,7 +546,7 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
         total += relative * weight;
         count += 1;
 
-        goalie.scores!.gaa = toTwoDecimals(
+        goalie.scores.gaa = toTwoDecimals(
           Math.min(Math.max(relative, 0), 100),
         );
       }
@@ -618,33 +571,4 @@ export const applyGoalieScores = (goalies: Goalie[]): Goalie[] => {
   );
 
   return goalies;
-};
-
-export const availableSeasons = async (
-  teamId: string = DEFAULT_TEAM_ID,
-  reportType: Report = "regular",
-): Promise<number[]> => {
-  if (reportType === "regular" || reportType === "both") {
-    return getRegularSeasonRangeForTeam(teamId);
-  }
-
-  return await listSeasonsForTeam(teamId, reportType);
-};
-
-export const seasonAvailable = async (
-  season: number | undefined,
-  teamId: string = DEFAULT_TEAM_ID,
-  reportType: Report = "regular",
-): Promise<boolean> => {
-  if (season === undefined) return true;
-  return (await availableSeasons(teamId, reportType)).includes(season);
-};
-
-export const reportTypeAvailable = (report?: Report) =>
-  !!report && REPORT_TYPES.includes(report);
-
-export const parseSeasonParam = (value: unknown): number | undefined => {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? undefined : parsed;
 };

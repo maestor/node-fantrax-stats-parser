@@ -11,7 +11,7 @@ if (process.env.USE_REMOTE_DB !== "true") {
 import fs from "fs";
 import path from "path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/constants";
+import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/config";
 import {
   resolveSnapshotGenerationConfig,
   type SnapshotGenerationConfig,
@@ -20,12 +20,16 @@ import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
+} from "../src/features/career/service";
+import {
   getGoaliesStatsCombined,
-  getPlayoffLeaderboardData,
   getPlayersStatsCombined,
+} from "../src/features/stats/service";
+import {
+  getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../src/services";
+} from "../src/features/leaderboard/service";
 import {
   createSnapshotR2Client,
   getCareerGoaliesSnapshotKey,
@@ -42,14 +46,14 @@ import {
   getTransactionsLeaderboardSnapshotKey,
   isR2SnapshotConfigAvailable,
   loadSnapshot,
-} from "../src/snapshots";
+} from "../src/infra/snapshots/store";
 import { getLastModifiedFromDb } from "../src/db/queries";
 import {
   getR2SnapshotMaxAttempts,
   getR2SnapshotRetryBaseDelayMs,
   retryR2Operation,
   type R2RetryContext,
-} from "../src/r2/retry";
+} from "../src/infra/r2/retry";
 
 type SnapshotEntry = {
   bytes: number;

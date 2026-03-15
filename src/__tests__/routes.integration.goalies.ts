@@ -1,6 +1,9 @@
 import { createRequest, createResponse } from "node-mocks-http";
-import { getGoaliesCombined, getGoaliesSeason } from "../routes";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../constants";
+import {
+  getGoaliesCombined,
+  getGoaliesSeason,
+} from "../features/stats/routes";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http";
 import { createIntegrationDb } from "./integration-db";
 import { expectArraySchema } from "./openapi-schema";
 import {

@@ -1,5 +1,8 @@
-import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../constants";
-import { applyPlayerScores, applyPlayerScoresByPosition } from "../helpers";
+import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../config";
+import {
+  applyPlayerScores,
+  applyPlayerScoresByPosition,
+} from "../features/stats/scoring";
 import { createPlayer } from "./fixtures";
 
 const expectScoreInRange = (value: number | undefined): void => {

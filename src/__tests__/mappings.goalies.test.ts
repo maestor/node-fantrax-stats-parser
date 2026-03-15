@@ -1,5 +1,8 @@
-import { mapCombinedGoalieData, mapGoalieData } from "../mappings";
-import { applyGoalieScores } from "../helpers";
+import {
+  mapCombinedGoalieData,
+  mapGoalieData,
+} from "../features/stats/mapping";
+import { applyGoalieScores } from "../features/stats/scoring";
 import {
   mockRawDataFirstRow,
   mockRawDataGoalie2012,
@@ -9,7 +12,7 @@ import {
   mockRawDataPlayer,
 } from "./fixtures";
 
-jest.mock("../helpers");
+jest.mock("../features/stats/scoring");
 
 describe("mappings", () => {
   describe("goalie mappings", () => {

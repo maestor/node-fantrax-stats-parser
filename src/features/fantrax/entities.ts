@@ -1,6 +1,9 @@
 import type { InStatement } from "@libsql/client";
 
-import type { GoalieWithSeason, PlayerWithSeason } from "./types";
+import type {
+  GoalieWithSeason,
+  PlayerWithSeason,
+} from "../stats/types";
 
 export type FantraxEntityPosition = "F" | "D" | "G";
 

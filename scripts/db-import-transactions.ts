@@ -13,9 +13,9 @@ console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
 import path from "path";
 import { spawnSync } from "child_process";
 
-import { CURRENT_SEASON } from "../src/constants";
+import { CURRENT_SEASON } from "../src/config";
 import { getDbClient } from "../src/db/client";
-import { DEFAULT_TRANSACTIONS_OUT_DIR } from "../src/transactions";
+import { DEFAULT_TRANSACTIONS_OUT_DIR } from "../src/features/transactions/files";
 import { importTransactionsToDb } from "./transaction-import-lib";
 
 const main = async (): Promise<void> => {

@@ -7,11 +7,11 @@ import crypto from "crypto";
 import fs from "fs";
 import { HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-import { CURRENT_SEASON } from "../src/constants";
+import { CURRENT_SEASON } from "../src/config";
 import {
   DEFAULT_TRANSACTIONS_OUT_DIR,
   parseTransactionCsvFileName,
-} from "../src/transactions";
+} from "../src/features/transactions/files";
 
 type UploadOptions = {
   currentOnly: boolean;

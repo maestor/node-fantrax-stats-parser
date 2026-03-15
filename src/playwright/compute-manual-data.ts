@@ -1,4 +1,4 @@
-import type { Team } from "../types";
+import type { Team } from "../shared/types";
 
 import type { TeamRunWithRound } from "./helpers";
 

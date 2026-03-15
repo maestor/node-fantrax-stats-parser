@@ -2,7 +2,7 @@ import { chromium, type Page } from "playwright";
 import { rmSync, writeFileSync } from "fs";
 import path from "path";
 
-import { FANTRAX_URLS } from "../constants";
+import { FANTRAX_URLS } from "../config";
 import { applyManualLeaguePeriodsOverrides } from "./compute-manual-data";
 import {
   AUTH_STATE_PATH,

@@ -30,8 +30,8 @@ import {
   requireLeagueIdsFile,
   standingsNameCandidates,
 } from "./helpers";
-import type { Team } from "../types";
-import { TEAMS } from "../constants";
+import { TEAMS } from "../config";
+import type { Team } from "../shared/types";
 import { getDbClient } from "../db/client";
 
 type LeaguePeriods = {

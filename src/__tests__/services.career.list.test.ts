@@ -2,7 +2,7 @@ import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
-} from "../services";
+} from "../features/career/service";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,

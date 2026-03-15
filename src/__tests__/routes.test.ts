@@ -3,45 +3,55 @@ import { createRequest, createResponse } from "node-mocks-http";
 import {
   getSeasons,
   getTeams,
-  getHealthcheck,
+  getLastModified,
+} from "../features/meta/routes";
+import {
   getPlayersSeason,
   getPlayersCombined,
   getGoaliesSeason,
   getGoaliesCombined,
-  getLastModified,
+} from "../features/stats/routes";
+import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-  resetRouteCachesForTests,
-} from "../routes";
+} from "../features/leaderboard/routes";
+import { getHealthcheck } from "../index";
 import {
   getAvailableSeasons,
+  getLastModifiedData,
+  getTeamsData,
+} from "../features/meta/service";
+import {
   getPlayersStatsSeason,
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
+} from "../features/stats/service";
+import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../services";
+} from "../features/leaderboard/service";
 import {
   reportTypeAvailable,
   seasonAvailable,
   parseSeasonParam,
-  resolveTeamId,
-  getTeamsWithData,
-} from "../helpers";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../constants";
-import { getLastModifiedFromDb } from "../db/queries";
+} from "../shared/seasons";
+import { resolveTeamId } from "../shared/teams";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http";
 import { makeEtagForJson } from "../cache";
-import { loadSnapshot } from "../snapshots";
+import { loadSnapshot } from "../infra/snapshots/store";
+import { resetRouteCachesForTests } from "../shared/route-utils";
 import { expectArraySchema } from "./openapi-schema";
 
 jest.mock("micro");
-jest.mock("../services");
-jest.mock("../helpers");
-jest.mock("../db/queries");
-jest.mock("../snapshots", () => ({
+jest.mock("../features/meta/service");
+jest.mock("../features/stats/service");
+jest.mock("../features/leaderboard/service");
+jest.mock("../shared/seasons");
+jest.mock("../shared/teams");
+jest.mock("../infra/snapshots/store", () => ({
   loadSnapshot: jest.fn(),
   getCareerGoaliesSnapshotKey: jest.fn(() => "career/goalies"),
   getCareerPlayersSnapshotKey: jest.fn(() => "career/players"),
@@ -357,7 +367,7 @@ describe("routes", () => {
           presentName: "Colorado Avalanche",
         },
       ];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req = createRequest();
       const res = createResponse();
@@ -371,7 +381,7 @@ describe("routes", () => {
 
     test("memoizes successful responses and avoids re-calling the handler", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams" });
       const res1 = createResponse();
@@ -382,14 +392,14 @@ describe("routes", () => {
       const res2 = createResponse();
       await getTeams(asRouteReq(req2), res2);
 
-      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(getTeamsData).toHaveBeenCalledTimes(1);
       expect(res2.getHeader("x-stats-data-source")).toBe("db");
       expect(send).toHaveBeenCalledWith(res2, HTTP_STATUS.OK, filteredTeams);
     });
 
     test("returns 304 for matching If-None-Match", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams", method: "GET" });
       const res1 = createResponse();
@@ -406,7 +416,7 @@ describe("routes", () => {
       const endSpy = jest.spyOn(res2, "end");
       await getTeams(asRouteReq(req2), res2);
 
-      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(getTeamsData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res2.getHeader("x-stats-data-source")).toBe("db");
       expect(res2.statusCode).toBe(304);
@@ -415,7 +425,7 @@ describe("routes", () => {
 
     test("hits cached 304 branch on repeat request", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const primeReq = {
         method: "GET",
@@ -438,7 +448,7 @@ describe("routes", () => {
 
       await getTeams(asRouteReq(cachedReq), cachedRes);
 
-      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(getTeamsData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(cachedRes.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -446,7 +456,7 @@ describe("routes", () => {
 
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const etag = makeEtagForJson(filteredTeams);
       const req = {
@@ -459,7 +469,7 @@ describe("routes", () => {
 
       await getTeams(asRouteReq(req), res);
 
-      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(getTeamsData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -467,12 +477,12 @@ describe("routes", () => {
 
     test("works when req is undefined (no caching possible)", async () => {
       const filteredTeams = [{ id: "1", name: "colorado" }];
-      (getTeamsWithData as jest.Mock).mockReturnValue(filteredTeams);
+      (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const res = createResponse();
       await getTeams(undefined as unknown as RouteReq, res);
 
-      expect(getTeamsWithData).toHaveBeenCalledTimes(1);
+      expect(getTeamsData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, filteredTeams);
     });
   });
@@ -481,7 +491,7 @@ describe("routes", () => {
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
       const mockResponse = { lastModified: mockTimestamp };
-      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
+      (getLastModifiedData as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const etag = makeEtagForJson(mockResponse);
       const req = {
@@ -494,7 +504,7 @@ describe("routes", () => {
 
       await getLastModified(asRouteReq(req), res);
 
-      expect(getLastModifiedFromDb).toHaveBeenCalledTimes(1);
+      expect(getLastModifiedData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledTimes(0);
       expect(res.statusCode).toBe(304);
       expect(endSpy).toHaveBeenCalled();
@@ -502,12 +512,12 @@ describe("routes", () => {
 
     test("works when req is undefined (no caching possible)", async () => {
       const mockTimestamp = "2026-01-28T10:00:00.000Z";
-      (getLastModifiedFromDb as jest.Mock).mockResolvedValue(mockTimestamp);
+      (getLastModifiedData as jest.Mock).mockResolvedValue(mockTimestamp);
 
       const res = createResponse();
       await getLastModified(undefined as unknown as RouteReq, res);
 
-      expect(getLastModifiedFromDb).toHaveBeenCalledTimes(1);
+      expect(getLastModifiedData).toHaveBeenCalledTimes(1);
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, {
         lastModified: "2026-01-28T10:00:00.000Z",
       });

@@ -1,14 +1,18 @@
-import {
-  RawData,
-  Player,
-  Goalie,
-  PlayerWithSeason,
-  CombinedPlayer,
-  GoalieWithSeason,
+import type {
   CombinedGoalie,
+  CombinedPlayer,
+  Goalie,
+  GoalieWithSeason,
+  Player,
+  PlayerWithSeason,
+  RawData,
 } from "./types";
-import { applyPlayerScores, applyPlayerScoresByPosition, applyGoalieScores } from "./helpers";
-import { CSV } from "./constants";
+import {
+  applyGoalieScores,
+  applyPlayerScores,
+  applyPlayerScoresByPosition,
+} from "./scoring";
+import { CSV } from "../../config/csv";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
 const parseNumber = (value: string) => {
@@ -48,8 +52,14 @@ const getShiftedField = (item: RawData, key: string): string => {
   return typeof value === "string" ? value : "";
 };
 
-const parseNameAndFantraxId = (rawName: string, rawId: string): { name: string; id: string } => {
-  const name = rawName.replace(/\*[A-Za-z0-9]+\*/g, "").replace(/\s+/g, " ").trim();
+const parseNameAndFantraxId = (
+  rawName: string,
+  rawId: string,
+): { name: string; id: string } => {
+  const name = rawName
+    .replace(/\*[A-Za-z0-9]+\*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   const id = parseFantraxId(rawId) ?? "";
   return {
     name,
@@ -62,32 +72,36 @@ type MapCsvOptions = {
 };
 
 const isHeaderRow = (item: RawData): boolean => {
-  return item[CSV.SKATER_TYPE] === "ID" || getShiftedField(item, CSV.SKATER_TYPE) === "Pos";
+  return (
+    item[CSV.SKATER_TYPE] === "ID" ||
+    getShiftedField(item, CSV.SKATER_TYPE) === "Pos"
+  );
 };
 
 export const mapPlayerData = (
   data: RawData[],
-  options: MapCsvOptions = {}
+  options: MapCsvOptions = {},
 ): PlayerWithSeason[] => {
   return data
-    .filter(
-      (item: RawData, i: number) => {
-        if (i === 0) return false;
-        if (isHeaderRow(item)) return false;
-        const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
-        const name = getShiftedField(item, CSV.NAME);
-        const games = getShiftedField(item, CSV.PLAYER_GAMES);
+    .filter((item: RawData, index: number) => {
+      if (index === 0) return false;
+      if (isHeaderRow(item)) return false;
+      const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
+      const name = getShiftedField(item, CSV.NAME);
+      const games = getShiftedField(item, CSV.PLAYER_GAMES);
 
-        if (name === "" || skaterType === "G") {
-          return false;
-        }
-
-        return options.includeZeroGames ? true : parseNumber(games) > 0;
+      if (name === "" || skaterType === "G") {
+        return false;
       }
-    )
+
+      return options.includeZeroGames ? true : parseNumber(games) > 0;
+    })
     .map((item: RawData): PlayerWithSeason => {
       const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
-      const { name, id } = parseNameAndFantraxId(getShiftedField(item, CSV.NAME), item[CSV.SKATER_TYPE]);
+      const { name, id } = parseNameAndFantraxId(
+        getShiftedField(item, CSV.NAME),
+        item[CSV.SKATER_TYPE],
+      );
       return {
         id,
         name,
@@ -116,7 +130,7 @@ export const mapCombinedPlayerData = (rawData: RawData[]): CombinedPlayer[] => {
 };
 
 export const mapCombinedPlayerDataFromPlayersWithSeason = (
-  playersWithSeason: PlayerWithSeason[]
+  playersWithSeason: PlayerWithSeason[],
 ): CombinedPlayer[] => {
   // Compute per-season scores so that each season entry in the combined
   // response reflects the same scoring model as the single-season endpoints.
@@ -156,7 +170,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
 
   const combined = [
     ...playersWithSeason
-      .reduce<Map<string, CombinedPlayer>>((r, currentItem: PlayerWithSeason) => {
+      .reduce<Map<string, CombinedPlayer>>((results, currentItem) => {
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem).filter(
           (key) =>
@@ -164,11 +178,11 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
             key !== "id" &&
             key !== "position" &&
             key !== "season" &&
-            key !== "score"
+            key !== "score",
         ) as (keyof Player)[];
 
         const entityKey = currentItem.id;
-        let item = r.get(entityKey);
+        let item = results.get(entityKey);
 
         if (!item) {
           item = {
@@ -190,7 +204,7 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
             scoreAdjustedByGames: 0,
             seasons: [],
           };
-          r.set(entityKey, item);
+          results.set(entityKey, item);
         }
 
         // Sum statfields to previously combined data
@@ -220,11 +234,12 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
           scoreAdjustedByGames: seasonScores?.scoreAdjustedByGames ?? 0,
           scores: seasonScores?.scores,
           scoreByPosition: seasonScores?.scoreByPosition,
-          scoreByPositionAdjustedByGames: seasonScores?.scoreByPositionAdjustedByGames,
+          scoreByPositionAdjustedByGames:
+            seasonScores?.scoreByPositionAdjustedByGames,
           scoresByPosition: seasonScores?.scoresByPosition,
         });
 
-        return r;
+        return results;
       }, new Map<string, CombinedPlayer>())
       .values(),
   ];
@@ -234,36 +249,44 @@ export const mapCombinedPlayerDataFromPlayersWithSeason = (
 
 export const mapGoalieData = (
   data: RawData[],
-  options: MapCsvOptions = {}
+  options: MapCsvOptions = {},
 ): GoalieWithSeason[] => {
-  const normalizeOptionalGoalieRate = (value: string): string | undefined =>
-    value === "" || value === "0" ? undefined : value;
+  const normalizeOptionalGoalieRate = (
+    value: string,
+  ): string | undefined => (value === "" || value === "0" ? undefined : value);
 
   return data
-    .filter(
-      (item: RawData, i: number) => {
-        if (i === 0) return false;
-        if (isHeaderRow(item)) return false;
-        const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
-        const name = getShiftedField(item, CSV.NAME);
-        const games = getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD);
-        const wins = getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD);
+    .filter((item: RawData, index: number) => {
+      if (index === 0) return false;
+      if (isHeaderRow(item)) return false;
+      const skaterType = getShiftedField(item, CSV.SKATER_TYPE);
+      const name = getShiftedField(item, CSV.NAME);
+      const games = getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD);
+      const wins = getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD);
 
-        if (name === "" || skaterType !== "G") {
-          return false;
-        }
-
-        return options.includeZeroGames ? true : parseNumber(games) > 0 || parseWinsFromWG(wins) > 0;
+      if (name === "" || skaterType !== "G") {
+        return false;
       }
-    )
+
+      return (
+        options.includeZeroGames ||
+        parseNumber(games) > 0 ||
+        parseWinsFromWG(wins) > 0
+      );
+    })
     .map((item: RawData): GoalieWithSeason => {
-      const { name, id } = parseNameAndFantraxId(getShiftedField(item, CSV.NAME), item[CSV.SKATER_TYPE]);
+      const { name, id } = parseNameAndFantraxId(
+        getShiftedField(item, CSV.NAME),
+        item[CSV.SKATER_TYPE],
+      );
       return {
         id,
         name,
         // We normalize CSVs so goalies always use: field7 = GP, field8 = W-G.
         games: parseNumber(getShiftedField(item, CSV.GOALIE_WINS_OR_GAMES_OLD)),
-        wins: parseWinsFromWG(getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD)),
+        wins: parseWinsFromWG(
+          getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD),
+        ),
         saves: parseNumber(getShiftedField(item, CSV.GOALIE_SAVES)),
         shutouts: parseNumber(getShiftedField(item, CSV.GOALIE_SHUTOUTS)),
         goals: parseNumber(getShiftedField(item, CSV.GOALIE_GOALS)),
@@ -276,7 +299,9 @@ export const mapGoalieData = (
         scoreAdjustedByGames: 0,
         season: item.season,
         gaa: normalizeOptionalGoalieRate(getShiftedField(item, CSV.GOALIE_GAA)),
-        savePercent: normalizeOptionalGoalieRate(getShiftedField(item, CSV.GOALIE_SAVE_PERCENT)),
+        savePercent: normalizeOptionalGoalieRate(
+          getShiftedField(item, CSV.GOALIE_SAVE_PERCENT),
+        ),
       };
     });
 };
@@ -287,13 +312,17 @@ export const mapCombinedGoalieData = (rawData: RawData[]): CombinedGoalie[] => {
 };
 
 export const mapCombinedGoalieDataFromGoaliesWithSeason = (
-  goaliesWithSeason: GoalieWithSeason[]
+  goaliesWithSeason: GoalieWithSeason[],
 ): CombinedGoalie[] => {
   // Compute per-season scores for goalies so that each season entry in the
   // combined response matches the single-season goalie scoring model.
   const seasonScoreLookup = new Map<
     string,
-    { score: number; scoreAdjustedByGames: number; scores?: Record<string, number> }
+    {
+      score: number;
+      scoreAdjustedByGames: number;
+      scores?: Record<string, number>;
+    }
   >();
 
   const goaliesBySeason = new Map<number, GoalieWithSeason[]>();
@@ -316,7 +345,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
 
   const combined = [
     ...goaliesWithSeason
-      .reduce<Map<string, CombinedGoalie>>((r, currentItem: GoalieWithSeason) => {
+      .reduce<Map<string, CombinedGoalie>>((results, currentItem) => {
         // Helper to get statfields for initializing and combining
         const itemKeys = Object.keys(currentItem).filter(
           (key) =>
@@ -325,11 +354,11 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
             key !== "season" &&
             key !== "gaa" &&
             key !== "savePercent" &&
-            key !== "score"
+            key !== "score",
         ) as (keyof Goalie)[];
 
         const entityKey = currentItem.id;
-        let item = r.get(entityKey);
+        let item = results.get(entityKey);
 
         if (!item) {
           item = {
@@ -349,7 +378,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
             scoreAdjustedByGames: 0,
             seasons: [],
           };
-          r.set(entityKey, item);
+          results.set(entityKey, item);
         }
 
         // Sum statfields to previously combined data
@@ -380,7 +409,7 @@ export const mapCombinedGoalieDataFromGoaliesWithSeason = (
           scores: seasonScores?.scores,
         });
 
-        return r;
+        return results;
       }, new Map<string, CombinedGoalie>())
       .values(),
   ];

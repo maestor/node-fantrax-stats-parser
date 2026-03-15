@@ -1,203 +1,42 @@
-import {
-  sortItemsByStatField,
-  availableSeasons,
-  applyPlayerScores,
-  applyPlayerScoresByPosition,
-  applyGoalieScores,
-} from "./helpers";
-import {
-  mapAvailableSeasons,
-  mapCombinedPlayerDataFromPlayersWithSeason,
-  mapCombinedGoalieDataFromGoaliesWithSeason,
-} from "./mappings";
-import {
-  Report,
-  CsvReport,
-  PlayerWithSeason,
-  GoalieWithSeason,
-  CountSplit,
-  CareerPlayerResponse,
-  CareerGoalieResponse,
-  CareerPlayerListItem,
+import type {
   CareerGoalieListItem,
-  CareerPlayerSeasonRow,
+  CareerGoalieResponse,
   CareerGoalieSeasonRow,
-  CareerHighlightType,
   CareerHighlightTeam,
-  CareerTeamCountHighlightItem,
-  CareerSameTeamHighlightItem,
-  CareerStanleyCupHighlightItem,
-  CareerStanleyCupHighlightCup,
-  CareerReunionHighlightReunion,
-  CareerReunionHighlightItem,
-  CareerReunionType,
-  CareerStashHighlightItem,
+  CareerHighlightType,
+  CareerPlayerListItem,
+  CareerPlayerResponse,
+  CareerPlayerSeasonRow,
   CareerRegularGrinderHighlightItem,
+  CareerReunionHighlightItem,
+  CareerReunionHighlightReunion,
+  CareerReunionType,
+  CareerSameTeamHighlightItem,
+  CareerStanleyCupHighlightCup,
+  CareerStanleyCupHighlightItem,
+  CareerStashHighlightItem,
+  CareerTeamCountHighlightItem,
   CareerTransactionHighlightItem,
   CareerTransactionHighlightTeam,
+  CountSplit,
 } from "./types";
+import type { CsvReport } from "../../shared/types/core";
+import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../config";
 import {
-  CAREER_HIGHLIGHT_CONFIG,
-  CURRENT_SEASON,
-  DEFAULT_TEAM_ID,
-  START_SEASON,
-  TEAMS,
-} from "./constants";
-import {
-  getPlayersFromDb,
-  getGoaliesFromDb,
-  getPlayerCareerRowsFromDb,
-  getGoalieCareerRowsFromDb,
-  getAllPlayerCareerRowsFromDb,
   getAllGoalieCareerRowsFromDb,
+  getAllPlayerCareerRowsFromDb,
   getClaimTransactionHighlightRowsFromDb,
   getDropTransactionHighlightRowsFromDb,
-  getPlayoffLeaderboard,
+  getGoalieCareerRowsFromDb,
+  getPlayerCareerRowsFromDb,
   getPlayoffSeasons,
   getReunionTransactionHighlightRowsFromDb,
-  getRegularLeaderboard,
-  getRegularSeasons,
   getTradeTransactionHighlightRowsFromDb,
-  getTransactionLeaderboard,
-  getTransactionSeasons,
   type CareerReunionHighlightDbRow,
   type CareerTransactionHighlightDbRow,
-  type PlayerCareerRow,
   type GoalieCareerRow,
-  type PlayoffSeasonDbEntry,
-  type RegularSeasonDbEntry,
-  type TransactionSeasonDbEntry,
-} from "./db/queries";
-import type {
-  PlayoffLeaderboardEntry,
-  PlayoffLeaderboardSeason,
-  PlayoffRoundKey,
-  RegularLeaderboardEntry,
-  RegularLeaderboardSeason,
-  TransactionLeaderboardEntry,
-  TransactionLeaderboardSeason,
-} from "./types";
-
-// Parser wants seasons as an array even in one-season cases
-const getSeasonParam = async (teamId: string, report: Report, season?: number): Promise<number[]> => {
-  if (season !== undefined) return [season];
-  const seasons = await availableSeasons(teamId, report);
-  if (!seasons.length) return [];
-  return [Math.max(...seasons)];
-};
-
-const getPlayersForSeasons = async (
-  teamId: string,
-  report: CsvReport,
-  seasons: number[]
-): Promise<PlayerWithSeason[]> => {
-  if (!seasons.length) return [];
-  const results = await Promise.all(
-    seasons.map((season) => getPlayersFromDb(teamId, season, report))
-  );
-  return results.flat();
-};
-
-const getGoaliesForSeasons = async (
-  teamId: string,
-  report: CsvReport,
-  seasons: number[]
-): Promise<GoalieWithSeason[]> => {
-  if (!seasons.length) return [];
-  const results = await Promise.all(
-    seasons.map((season) => getGoaliesFromDb(teamId, season, report))
-  );
-  return results.flat();
-};
-
-const getPlayersForReports = async (
-  teamId: string,
-  reports: ReadonlyArray<CsvReport>,
-  seasons: number[]
-): Promise<PlayerWithSeason[]> => {
-  const all = await Promise.all(
-    reports.map((report) => getPlayersForSeasons(teamId, report, seasons))
-  );
-  return all.flat();
-};
-
-const getGoaliesForReports = async (
-  teamId: string,
-  reports: ReadonlyArray<CsvReport>,
-  seasons: number[]
-): Promise<GoalieWithSeason[]> => {
-  const all = await Promise.all(
-    reports.map((report) => getGoaliesForSeasons(teamId, report, seasons))
-  );
-  return all.flat();
-};
-
-const mergePlayersSameSeason = (players: PlayerWithSeason[]): PlayerWithSeason[] => {
-  const merged = new Map<string, PlayerWithSeason>();
-
-  for (const player of players) {
-    const key = `${player.id}-${player.season}`;
-    const existing = merged.get(key);
-
-    if (!existing) {
-      merged.set(key, {
-        ...player,
-        score: 0,
-        scoreAdjustedByGames: 0,
-        scores: undefined,
-      });
-      continue;
-    }
-
-    existing.games += player.games;
-    existing.goals += player.goals;
-    existing.assists += player.assists;
-    existing.points += player.points;
-    existing.plusMinus += player.plusMinus;
-    existing.penalties += player.penalties;
-    existing.shots += player.shots;
-    existing.ppp += player.ppp;
-    existing.shp += player.shp;
-    existing.hits += player.hits;
-    existing.blocks += player.blocks;
-  }
-
-  return [...merged.values()];
-};
-
-const mergeGoaliesSameSeason = (goalies: GoalieWithSeason[]): GoalieWithSeason[] => {
-  const merged = new Map<string, GoalieWithSeason>();
-
-  for (const goalie of goalies) {
-    const key = `${goalie.id}-${goalie.season}`;
-    const existing = merged.get(key);
-
-    if (!existing) {
-      merged.set(key, {
-        ...goalie,
-        score: 0,
-        scoreAdjustedByGames: 0,
-        scores: undefined,
-        gaa: undefined,
-        savePercent: undefined,
-      });
-      continue;
-    }
-
-    existing.games += goalie.games;
-    existing.wins += goalie.wins;
-    existing.saves += goalie.saves;
-    existing.shutouts += goalie.shutouts;
-    existing.goals += goalie.goals;
-    existing.assists += goalie.assists;
-    existing.points += goalie.points;
-    existing.penalties += goalie.penalties;
-    existing.ppp += goalie.ppp;
-    existing.shp += goalie.shp;
-  }
-
-  return [...merged.values()];
-};
+  type PlayerCareerRow,
+} from "../../db/queries";
 
 type CareerScope = "career" | CsvReport;
 
@@ -206,14 +45,49 @@ type CareerNotFoundError = Error & {
   body: string;
 };
 
-const getTeamName = (teamId: string): string => TEAMS.find((team) => team.id === teamId)?.presentName ?? teamId;
+type CareerHighlightRow = {
+  source: "player" | "goalie";
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  season: number;
+  reportType: CsvReport;
+  games: number;
+};
+
+type CareerTransactionHighlightRow = {
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  transactionCount: number;
+};
+
+type CareerReunionHighlightRow = {
+  id: string;
+  name: string;
+  position: string;
+  teamId: string;
+  date: string;
+  type: CareerReunionType;
+};
+
+type TeamFirstSeason = CareerHighlightTeam & {
+  firstSeason: number;
+};
+
+const getTeamName = (teamId: string): string =>
+  TEAMS.find((team) => team.id === teamId)?.presentName ?? teamId;
 
 const createCountSplit = (owned: number, played: number): CountSplit => ({
   owned,
   played,
 });
 
-const getCountSplitForRows = <T extends { season: number; teamId: string; games: number }>(
+const getCountSplitForRows = <
+  T extends { season: number; teamId: string; games: number },
+>(
   rows: readonly T[],
 ): { seasonCount: CountSplit; teamCount: CountSplit } => {
   const ownedSeasons = new Set<number>();
@@ -241,7 +115,9 @@ const compareReportType = (left: CsvReport, right: CsvReport): number => {
   return left === "regular" ? -1 : 1;
 };
 
-const sortCareerRows = <T extends { season: number; teamId: string; reportType: CsvReport }>(
+const sortCareerRows = <
+  T extends { season: number; teamId: string; reportType: CsvReport },
+>(
   rows: readonly T[],
 ): T[] =>
   rows
@@ -268,7 +144,9 @@ const sortCareerSummaryTeams = <
     return left.teamName.localeCompare(right.teamName);
   });
 
-const sortCareerTotalsTeams = <T extends { seasonCount: CountSplit; teamName: string }>(
+const sortCareerTotalsTeams = <
+  T extends { seasonCount: CountSplit; teamName: string },
+>(
   teams: readonly T[],
 ): T[] =>
   teams.slice().sort((left, right) => {
@@ -297,7 +175,9 @@ const requirePlayerPosition = (value: string | null | undefined): string => {
   return value;
 };
 
-const mapPlayerCareerSeasonRows = (rows: readonly PlayerCareerRow[]): CareerPlayerSeasonRow[] =>
+const mapPlayerCareerSeasonRows = (
+  rows: readonly PlayerCareerRow[],
+): CareerPlayerSeasonRow[] =>
   sortCareerRows(
     rows.map((row) => ({
       season: row.season,
@@ -319,7 +199,9 @@ const mapPlayerCareerSeasonRows = (rows: readonly PlayerCareerRow[]): CareerPlay
     })),
   );
 
-const mapGoalieCareerSeasonRows = (rows: readonly GoalieCareerRow[]): CareerGoalieSeasonRow[] =>
+const mapGoalieCareerSeasonRows = (
+  rows: readonly GoalieCareerRow[],
+): CareerGoalieSeasonRow[] =>
   sortCareerRows(
     rows.map((row) => ({
       season: row.season,
@@ -341,7 +223,11 @@ const mapGoalieCareerSeasonRows = (rows: readonly GoalieCareerRow[]): CareerGoal
     })),
   );
 
-const buildCareerSummary = <T extends { season: number; teamId: string; games: number }>(rows: readonly T[]) => {
+const buildCareerSummary = <
+  T extends { season: number; teamId: string; games: number },
+>(
+  rows: readonly T[],
+) => {
   const grouped = new Map<string, T[]>();
   for (const row of rows) {
     const list = grouped.get(row.teamId);
@@ -371,9 +257,13 @@ const buildCareerSummary = <T extends { season: number; teamId: string; games: n
 const filterRowsByScope = <T extends { reportType: CsvReport }>(
   rows: readonly T[],
   scope: CareerScope,
-): T[] => (scope === "career" ? [...rows] : rows.filter((row) => row.reportType === scope));
+): T[] =>
+  scope === "career" ? [...rows] : rows.filter((row) => row.reportType === scope);
 
-const buildPlayerTotalsForScope = (rows: readonly CareerPlayerSeasonRow[], scope: CareerScope) => {
+const buildPlayerTotalsForScope = (
+  rows: readonly CareerPlayerSeasonRow[],
+  scope: CareerScope,
+) => {
   const scopedRows = filterRowsByScope(rows, scope);
   const grouped = new Map<string, CareerPlayerSeasonRow[]>();
 
@@ -420,7 +310,10 @@ const buildPlayerTotalsForScope = (rows: readonly CareerPlayerSeasonRow[], scope
   };
 };
 
-const buildGoalieTotalsForScope = (rows: readonly CareerGoalieSeasonRow[], scope: CareerScope) => {
+const buildGoalieTotalsForScope = (
+  rows: readonly CareerGoalieSeasonRow[],
+  scope: CareerScope,
+) => {
   const scopedRows = filterRowsByScope(rows, scope);
   const grouped = new Map<string, CareerGoalieSeasonRow[]>();
 
@@ -484,21 +377,34 @@ const groupCareerRowsById = <
   return grouped;
 };
 
-const countDistinctSeasons = <T extends { season: number }>(rows: readonly T[]): number =>
-  new Set(rows.map((row) => row.season)).size;
+const countDistinctSeasons = <T extends { season: number }>(
+  rows: readonly T[],
+): number => new Set(rows.map((row) => row.season)).size;
 
-const countDistinctTeams = <T extends { team_id: string }>(rows: readonly T[]): number =>
-  new Set(rows.map((row) => row.team_id)).size;
+const countDistinctTeams = <T extends { team_id: string }>(
+  rows: readonly T[],
+): number => new Set(rows.map((row) => row.team_id)).size;
 
-const filterPlayedRowsByReport = <T extends { report_type: CsvReport; games: number }>(
+const filterPlayedRowsByReport = <
+  T extends { report_type: CsvReport; games: number },
+>(
   rows: readonly T[],
   reportType: CsvReport,
 ): T[] => rows.filter((row) => row.report_type === reportType && row.games > 0);
 
-const sortCareerListItems = <T extends { name: string; id: string }>(items: readonly T[]): T[] =>
-  items.slice().sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id));
+const sortCareerListItems = <T extends { name: string; id: string }>(
+  items: readonly T[],
+): T[] =>
+  items
+    .slice()
+    .sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+    );
 
-const buildPlayerCareerListItem = (rows: readonly PlayerCareerRow[]): CareerPlayerListItem => {
+const buildPlayerCareerListItem = (
+  rows: readonly PlayerCareerRow[],
+): CareerPlayerListItem => {
   const regularPlayedRows = filterPlayedRowsByReport(rows, "regular");
   const playoffPlayedRows = filterPlayedRowsByReport(rows, "playoffs");
 
@@ -523,7 +429,9 @@ const buildPlayerCareerListItem = (rows: readonly PlayerCareerRow[]): CareerPlay
   };
 };
 
-const buildGoalieCareerListItem = (rows: readonly GoalieCareerRow[]): CareerGoalieListItem => {
+const buildGoalieCareerListItem = (
+  rows: readonly GoalieCareerRow[],
+): CareerGoalieListItem => {
   const regularPlayedRows = filterPlayedRowsByReport(rows, "regular");
   const playoffPlayedRows = filterPlayedRowsByReport(rows, "playoffs");
 
@@ -545,38 +453,6 @@ const buildGoalieCareerListItem = (rows: readonly GoalieCareerRow[]): CareerGoal
       .filter((row) => row.report_type === "playoffs")
       .reduce((sum, row) => sum + row.games, 0),
   };
-};
-
-type CareerHighlightRow = {
-  source: "player" | "goalie";
-  id: string;
-  name: string;
-  position: string;
-  teamId: string;
-  season: number;
-  reportType: CsvReport;
-  games: number;
-};
-
-type CareerTransactionHighlightRow = {
-  id: string;
-  name: string;
-  position: string;
-  teamId: string;
-  transactionCount: number;
-};
-
-type CareerReunionHighlightRow = {
-  id: string;
-  name: string;
-  position: string;
-  teamId: string;
-  date: string;
-  type: CareerReunionType;
-};
-
-type TeamFirstSeason = CareerHighlightTeam & {
-  firstSeason: number;
 };
 
 const mapPlayerCareerHighlightRows = (
@@ -683,7 +559,8 @@ const sortCareerHighlightTeams = (
     .slice()
     .sort(
       (left, right) =>
-        left.firstSeason - right.firstSeason || left.name.localeCompare(right.name),
+        left.firstSeason - right.firstSeason ||
+        left.name.localeCompare(right.name),
     )
     .map(({ id, name }) => ({ id, name }));
 
@@ -751,7 +628,9 @@ const buildCareerTeamCountHighlightItem = (
   playedOnly: boolean,
   minTeamCount: number,
 ): CareerTeamCountHighlightItem | null => {
-  const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
+  const countedRows = playedOnly
+    ? rows.filter((row) => row.games > 0)
+    : [...rows];
   const teams = buildCareerHighlightTeams(countedRows);
   if (teams.length < minTeamCount) {
     return null;
@@ -771,7 +650,9 @@ const buildCareerSameTeamHighlightItems = (
   playedOnly: boolean,
   minSeasonCount: number,
 ): CareerSameTeamHighlightItem[] => {
-  const countedRows = playedOnly ? rows.filter((row) => row.games > 0) : [...rows];
+  const countedRows = playedOnly
+    ? rows.filter((row) => row.games > 0)
+    : [...rows];
   const seasonsByTeam = new Map<string, Set<number>>();
 
   for (const row of countedRows) {
@@ -877,13 +758,13 @@ const buildCareerReunionHighlightItems = (
     }
   }
 
-  const reunionCounts = [...reunionsByTeam.entries()].map(([teamId, reunions]) => {
-    return {
+  const reunionCounts = [...reunionsByTeam.entries()].map(
+    ([teamId, reunions]) => ({
       teamId,
       reunionCount: reunions.length,
       reunions: sortCareerReunionHighlightReunions(reunions),
-    };
-  });
+    }),
+  );
   const maxReunionCount = Math.max(
     0,
     ...reunionCounts.map((entry) => entry.reunionCount),
@@ -1125,144 +1006,9 @@ const getCareerReunionHighlightRows = async (): Promise<
   CareerReunionHighlightRow[]
 > => mapCareerReunionHighlightRows(await getReunionTransactionHighlightRowsFromDb());
 
-export const getAvailableSeasons = async (
-  teamId: string = DEFAULT_TEAM_ID,
-  reportType: Report = "regular",
-  startFrom?: number
-) => {
-  const concreteReport: CsvReport = reportType === "both" ? "regular" : reportType;
-  let seasons = await availableSeasons(teamId, concreteReport);
-
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  return mapAvailableSeasons(seasons);
-};
-
-export const getPlayersStatsSeason = async (
-  report: Report,
-  season?: number,
-  teamId: string = DEFAULT_TEAM_ID
-) => {
-  const seasons = await getSeasonParam(teamId, report, season);
-  if (report === "both") {
-    const players = await getPlayersForReports(teamId, ["regular", "playoffs"], seasons);
-    const merged = mergePlayersSameSeason(players);
-    const scoredData = applyPlayerScores(merged);
-    applyPlayerScoresByPosition(scoredData);
-    return sortItemsByStatField(scoredData, "players");
-  }
-
-  const players = await getPlayersForSeasons(teamId, report, seasons);
-  const scoredData = applyPlayerScores(players);
-  applyPlayerScoresByPosition(scoredData);
-  return sortItemsByStatField(scoredData, "players");
-};
-
-export const getGoaliesStatsSeason = async (
-  report: Report,
-  season?: number,
-  teamId: string = DEFAULT_TEAM_ID
-) => {
-  const seasons = await getSeasonParam(teamId, report, season);
-  if (report === "both") {
-    const goalies = await getGoaliesForReports(teamId, ["regular", "playoffs"], seasons);
-    const merged = mergeGoaliesSameSeason(goalies);
-    const scoredData = applyGoalieScores(merged);
-    return sortItemsByStatField(scoredData, "goalies");
-  }
-
-  const goalies = await getGoaliesForSeasons(teamId, report, seasons);
-  const scoredData = applyGoalieScores(goalies);
-  return sortItemsByStatField(scoredData, "goalies");
-};
-
-const getPlayersCombinedForReport = async (
-  teamId: string,
-  report: CsvReport,
-  startFrom?: number
-) => {
-  let seasons = await availableSeasons(teamId, report);
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  const players = await getPlayersForSeasons(teamId, report, seasons);
-  const combined = mapCombinedPlayerDataFromPlayersWithSeason(players);
-  const scored = applyPlayerScores(combined);
-  applyPlayerScoresByPosition(scored);
-  return sortItemsByStatField(scored, "players");
-};
-
-const getGoaliesCombinedForReport = async (
-  teamId: string,
-  report: CsvReport,
-  startFrom?: number
-) => {
-  let seasons = await availableSeasons(teamId, report);
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  const goalies = await getGoaliesForSeasons(teamId, report, seasons);
-  const combined = mapCombinedGoalieDataFromGoaliesWithSeason(goalies);
-  const scored = applyGoalieScores(combined);
-  return sortItemsByStatField(scored, "goalies");
-};
-
-const getPlayersStatsCombinedBoth = async (
-  teamId: string,
-  startFrom?: number
-) => {
-  let seasons = await availableSeasons(teamId, "both");
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  const players = await getPlayersForReports(teamId, ["regular", "playoffs"], seasons);
-  const mergedBySeason = mergePlayersSameSeason(players);
-  const combined = mapCombinedPlayerDataFromPlayersWithSeason(mergedBySeason);
-  const scored = applyPlayerScores(combined);
-  applyPlayerScoresByPosition(scored);
-  return sortItemsByStatField(scored, "players");
-};
-
-const getGoaliesStatsCombinedBoth = async (
-  teamId: string,
-  startFrom?: number
-) => {
-  let seasons = await availableSeasons(teamId, "both");
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  const goalies = await getGoaliesForReports(teamId, ["regular", "playoffs"], seasons);
-  const mergedBySeason = mergeGoaliesSameSeason(goalies);
-  const combined = mapCombinedGoalieDataFromGoaliesWithSeason(mergedBySeason);
-  const scored = applyGoalieScores(combined);
-  return sortItemsByStatField(scored, "goalies");
-};
-
-export const getPlayersStatsCombined = async (
-  report: Report,
-  teamId: string = DEFAULT_TEAM_ID,
-  startFrom?: number
-) =>
-  report === "both"
-    ? getPlayersStatsCombinedBoth(teamId, startFrom)
-    : getPlayersCombinedForReport(teamId, report, startFrom);
-
-export const getGoaliesStatsCombined = async (
-  report: Report,
-  teamId: string = DEFAULT_TEAM_ID,
-  startFrom?: number
-) =>
-  report === "both"
-    ? getGoaliesStatsCombinedBoth(teamId, startFrom)
-    : getGoaliesCombinedForReport(teamId, report, startFrom);
-
-export const getPlayerCareerData = async (playerId: string): Promise<CareerPlayerResponse> => {
+export const getPlayerCareerData = async (
+  playerId: string,
+): Promise<CareerPlayerResponse> => {
   const rows = await getPlayerCareerRowsFromDb(playerId);
   if (!rows.length) {
     throw createNotFoundError("Player not found");
@@ -1283,7 +1029,9 @@ export const getPlayerCareerData = async (playerId: string): Promise<CareerPlaye
   };
 };
 
-export const getGoalieCareerData = async (goalieId: string): Promise<CareerGoalieResponse> => {
+export const getGoalieCareerData = async (
+  goalieId: string,
+): Promise<CareerGoalieResponse> => {
   const rows = await getGoalieCareerRowsFromDb(goalieId);
   if (!rows.length) {
     throw createNotFoundError("Goalie not found");
@@ -1305,14 +1053,26 @@ export const getGoalieCareerData = async (goalieId: string): Promise<CareerGoali
 
 export const getCareerPlayersData = async (): Promise<CareerPlayerListItem[]> => {
   const rows = await getAllPlayerCareerRowsFromDb();
-  const grouped = groupCareerRowsById(rows.map((row) => ({ ...row, id: row.player_id })));
-  return sortCareerListItems([...grouped.values()].map((playerRows) => buildPlayerCareerListItem(playerRows)));
+  const grouped = groupCareerRowsById(
+    rows.map((row) => ({ ...row, id: row.player_id })),
+  );
+  return sortCareerListItems(
+    [...grouped.values()].map((playerRows) =>
+      buildPlayerCareerListItem(playerRows),
+    ),
+  );
 };
 
 export const getCareerGoaliesData = async (): Promise<CareerGoalieListItem[]> => {
   const rows = await getAllGoalieCareerRowsFromDb();
-  const grouped = groupCareerRowsById(rows.map((row) => ({ ...row, id: row.goalie_id })));
-  return sortCareerListItems([...grouped.values()].map((goalieRows) => buildGoalieCareerListItem(goalieRows)));
+  const grouped = groupCareerRowsById(
+    rows.map((row) => ({ ...row, id: row.goalie_id })),
+  );
+  return sortCareerListItems(
+    [...grouped.values()].map((goalieRows) =>
+      buildGoalieCareerListItem(goalieRows),
+    ),
+  );
 };
 
 export const getCareerHighlightsData = async (
@@ -1338,9 +1098,7 @@ export const getCareerHighlightsData = async (
           buildCareerTransactionHighlightItem(groupRows, config.minCount),
         )
         .filter(
-          (
-            item,
-          ): item is CareerTransactionHighlightItem => item !== null,
+          (item): item is CareerTransactionHighlightItem => item !== null,
         ),
     );
   }
@@ -1375,11 +1133,7 @@ export const getCareerHighlightsData = async (
             config.minCount,
           ),
         )
-        .filter(
-          (
-            item,
-          ): item is CareerTeamCountHighlightItem => item !== null,
-        ),
+        .filter((item): item is CareerTeamCountHighlightItem => item !== null),
     );
   }
 
@@ -1411,11 +1165,7 @@ export const getCareerHighlightsData = async (
             config.minCount,
           ),
         )
-        .filter(
-          (
-            item,
-          ): item is CareerStanleyCupHighlightItem => item !== null,
-        ),
+        .filter((item): item is CareerStanleyCupHighlightItem => item !== null),
     );
   }
 
@@ -1433,228 +1183,7 @@ export const getCareerHighlightsData = async (
         buildCareerRegularGrinderHighlightItem(rows, config.minCount),
       )
       .filter(
-        (
-          item,
-        ): item is CareerRegularGrinderHighlightItem => item !== null,
+        (item): item is CareerRegularGrinderHighlightItem => item !== null,
       ),
   );
-};
-
-export const getPlayoffLeaderboardData = async (): Promise<
-  PlayoffLeaderboardEntry[]
-> => {
-  const rows = await getPlayoffLeaderboard();
-  const seasonsByTeam = await getPlayoffSeasons();
-  const latestPlayoffSeason =
-    seasonsByTeam.length > 0
-      ? Math.max(...seasonsByTeam.map((entry) => entry.season))
-      : CURRENT_SEASON;
-
-  const missingTeams = TEAMS.filter((t) => !rows.some((r) => r.teamId === t.id));
-  const allRows = [
-    ...rows,
-    ...missingTeams.map((t) => ({
-      teamId: t.id,
-      championships: 0,
-      finals: 0,
-      conferenceFinals: 0,
-      secondRound: 0,
-      firstRound: 0,
-    })),
-  ];
-
-  const seasonsByTeamId = new Map<string, PlayoffSeasonDbEntry[]>();
-  for (const seasonEntry of seasonsByTeam) {
-    const list = seasonsByTeamId.get(seasonEntry.teamId);
-    if (list) {
-      list.push(seasonEntry);
-    } else {
-      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
-    }
-  }
-
-  const getFirstSeasonForTeam = (teamId: string): number => {
-    const team = TEAMS.find((entry) => entry.id === teamId);
-    return team?.firstSeason ?? START_SEASON;
-  };
-
-  const toRoundKey = (round: number): PlayoffRoundKey => {
-    if (round === 5) return "championship";
-    if (round === 4) return "final";
-    if (round === 3) return "conferenceFinal";
-    if (round === 2) return "secondRound";
-    if (round === 1) return "firstRound";
-    return "notQualified";
-  };
-
-  const buildPlayoffSeasons = (teamId: string): PlayoffLeaderboardSeason[] => {
-    const bySeason = new Map<number, number>();
-    const rowsForTeam = seasonsByTeamId.get(teamId) ?? [];
-    for (const row of rowsForTeam) {
-      bySeason.set(row.season, row.round);
-    }
-
-    const firstSeason = getFirstSeasonForTeam(teamId);
-    const seasons: PlayoffLeaderboardSeason[] = [];
-    for (let season = firstSeason; season <= latestPlayoffSeason; season++) {
-      const round = bySeason.get(season) ?? 0;
-      seasons.push({ season, round, key: toRoundKey(round) });
-    }
-    return seasons;
-  };
-
-  return allRows.map((row, i) => {
-    const team = TEAMS.find((t) => t.id === row.teamId);
-    const teamName = team?.presentName ?? row.teamId;
-
-    const appearances =
-      row.championships +
-      row.finals +
-      row.conferenceFinals +
-      row.secondRound +
-      row.firstRound;
-
-    const prev = i > 0 ? allRows[i - 1] : null;
-    const tieRank =
-      prev !== null &&
-      prev.championships === row.championships &&
-      prev.finals === row.finals &&
-      prev.conferenceFinals === row.conferenceFinals &&
-      prev.secondRound === row.secondRound &&
-      prev.firstRound === row.firstRound;
-
-    return {
-      ...row,
-      teamName,
-      appearances,
-      seasons: buildPlayoffSeasons(row.teamId),
-      tieRank,
-    };
-  });
-};
-
-const computeRegularSeasonPercents = (
-  row: Pick<
-    RegularSeasonDbEntry,
-    "wins" | "losses" | "ties" | "points" | "divWins" | "divLosses" | "divTies"
-  >,
-): Pick<RegularLeaderboardSeason, "winPercent" | "divWinPercent" | "pointsPercent"> => {
-  const total = row.wins + row.losses + row.ties;
-  const divTotal = row.divWins + row.divLosses + row.divTies;
-  const winPercent = total > 0 ? Math.round((row.wins / total) * 1000) / 1000 : 0;
-  const divWinPercent = divTotal > 0 ? Math.round((row.divWins / divTotal) * 1000) / 1000 : 0;
-  const pointsPercent = total > 0 ? Math.round((row.points / (total * 2)) * 1000) / 1000 : 0;
-  return { winPercent, divWinPercent, pointsPercent };
-};
-
-export const getRegularLeaderboardData = async (): Promise<
-  RegularLeaderboardEntry[]
-> => {
-  const rows = await getRegularLeaderboard();
-  const seasonsByTeam = await getRegularSeasons();
-
-  const seasonsByTeamId = new Map<string, RegularSeasonDbEntry[]>();
-  for (const seasonEntry of seasonsByTeam) {
-    const list = seasonsByTeamId.get(seasonEntry.teamId);
-    if (list) {
-      list.push(seasonEntry);
-    } else {
-      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
-    }
-  }
-
-  const buildRegularSeasons = (teamId: string): RegularLeaderboardSeason[] => {
-    const teamRows = seasonsByTeamId.get(teamId) ?? [];
-    return teamRows.map((row) => ({
-      season: row.season,
-      regularTrophy: row.regularTrophy,
-      wins: row.wins,
-      losses: row.losses,
-      ties: row.ties,
-      points: row.points,
-      divWins: row.divWins,
-      divLosses: row.divLosses,
-      divTies: row.divTies,
-      ...computeRegularSeasonPercents(row),
-    }));
-  };
-
-  return rows.map((row, i) => {
-    const team = TEAMS.find((t) => t.id === row.teamId);
-    const teamName = team?.presentName ?? row.teamId;
-
-    const prev = i > 0 ? rows[i - 1] : null;
-    const tieRank =
-      prev !== null &&
-      prev.points === row.points &&
-      prev.wins === row.wins;
-
-    const { winPercent, divWinPercent, pointsPercent } = computeRegularSeasonPercents(row);
-
-    return {
-      ...row,
-      teamName,
-      tieRank,
-      winPercent,
-      divWinPercent,
-      pointsPercent,
-      seasons: buildRegularSeasons(row.teamId),
-    };
-  });
-};
-
-export const getTransactionLeaderboardData = async (): Promise<
-  TransactionLeaderboardEntry[]
-> => {
-  const rows = await getTransactionLeaderboard();
-  const seasonsByTeam = await getTransactionSeasons();
-
-  const seasonsByTeamId = new Map<string, TransactionSeasonDbEntry[]>();
-  for (const seasonEntry of seasonsByTeam) {
-    const list = seasonsByTeamId.get(seasonEntry.teamId);
-    if (list) {
-      list.push(seasonEntry);
-    } else {
-      seasonsByTeamId.set(seasonEntry.teamId, [seasonEntry]);
-    }
-  }
-
-  const missingTeams = TEAMS.filter((team) => !rows.some((row) => row.teamId === team.id));
-  const allRows = [
-    ...rows,
-    ...missingTeams.map((team) => ({
-      teamId: team.id,
-      claims: 0,
-      drops: 0,
-      trades: 0,
-    })),
-  ];
-
-  const buildTransactionSeasons = (
-    teamId: string,
-  ): TransactionLeaderboardSeason[] =>
-    (seasonsByTeamId.get(teamId) ?? []).map((row) => ({
-      season: row.season,
-      claims: row.claims,
-      drops: row.drops,
-      trades: row.trades,
-    }));
-
-  return allRows.map((row, i) => {
-    const team = TEAMS.find((entry) => entry.id === row.teamId);
-    const teamName = team?.presentName ?? row.teamId;
-    const prev = i > 0 ? allRows[i - 1] : null;
-    const tieRank =
-      prev !== null &&
-      prev.claims === row.claims &&
-      prev.drops === row.drops &&
-      prev.trades === row.trades;
-
-    return {
-      ...row,
-      teamName,
-      seasons: buildTransactionSeasons(row.teamId),
-      tieRank,
-    };
-  });
 };

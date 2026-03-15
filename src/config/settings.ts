@@ -1,12 +1,11 @@
-import {
-  Report,
-  PlayerScoreField,
+import type { CareerHighlightType } from "../features/career/types";
+import type {
   GoalieScoreField,
-  PlayerScoreWeights,
   GoalieScoreWeights,
-  Team,
-  CareerHighlightType,
-} from "./types";
+  PlayerScoreField,
+  PlayerScoreWeights,
+} from "../features/stats/types";
+import type { Report, Team } from "../shared/types/core";
 
 export const START_SEASON = 2012;
 export const CURRENT_SEASON = 2025;
@@ -103,23 +102,6 @@ export const CAREER_HIGHLIGHT_CONFIG = {
     }
 >;
 
-export const HTTP_STATUS = {
-  OK: 200,
-  BAD_REQUEST: 400,
-  NOT_FOUND: 404,
-  UNPROCESSABLE_ENTITY: 422,
-  INTERNAL_SERVER_ERROR: 500,
-} as const satisfies Record<string, number>;
-
-export const ERROR_MESSAGES = {
-  INVALID_REPORT_TYPE: "Invalid report type",
-  INVALID_CAREER_HIGHLIGHT_TYPE: "Invalid career highlight type",
-  INVALID_PAGING_PARAMS: "Invalid paging params",
-  SEASON_NOT_AVAILABLE: "Stats for given season are not available",
-  PLAYER_NOT_FOUND: "Player not found",
-  GOALIE_NOT_FOUND: "Goalie not found",
-};
-
 export const DEFAULT_TEAM_ID = "1";
 
 export const TEAMS: ReadonlyArray<Team> = [
@@ -177,38 +159,6 @@ export const TEAMS: ReadonlyArray<Team> = [
     firstSeason: 2017,
   },
 ];
-
-// CSV field mapping constants
-export const CSV = {
-  NAME: "field2" as const,
-  SKATER_TYPE: "Skaters" as const,
-  PLAYER_POSITION: "field4" as const,
-  // Player fields
-  PLAYER_GAMES: "field7" as const,
-  PLAYER_GOALS: "field8" as const,
-  PLAYER_ASSISTS: "field9" as const,
-  PLAYER_POINTS: "field10" as const,
-  PLAYER_PLUS_MINUS: "field11" as const,
-  PLAYER_PENALTIES: "field12" as const,
-  PLAYER_SHOTS: "field13" as const,
-  PLAYER_PPP: "field14" as const,
-  PLAYER_SHP: "field15" as const,
-  PLAYER_HITS: "field16" as const,
-  PLAYER_BLOCKS: "field17" as const,
-  // Goalie fields (note: wins/games swap based on year)
-  GOALIE_WINS_OR_GAMES_OLD: "field7" as const,
-  GOALIE_GAMES_OR_WINS_OLD: "field8" as const,
-  GOALIE_GAA: "field9" as const,
-  GOALIE_SAVES: "field10" as const,
-  GOALIE_SAVE_PERCENT: "field11" as const,
-  GOALIE_SHUTOUTS: "field12" as const,
-  GOALIE_PENALTIES: "field13" as const,
-  GOALIE_GOALS: "field14" as const,
-  GOALIE_ASSISTS: "field15" as const,
-  GOALIE_POINTS: "field16" as const,
-  GOALIE_PPP: "field17" as const,
-  GOALIE_SHP: "field18" as const,
-} as const satisfies Record<string, string>;
 
 export const PLAYER_SCORE_FIELDS: PlayerScoreField[] = [
   "goals",
@@ -269,7 +219,10 @@ export const MIN_GAMES_FOR_ADJUSTED_SCORE = 1;
 
 // Games-adjusted scores use stabilized per-game pace. Higher values pull short
 // samples more strongly toward the pool-average rate for that category.
-export const PLAYER_ADJUSTED_SCORE_PRIOR_GAMES: Record<PlayerScoreField, number> = {
+export const PLAYER_ADJUSTED_SCORE_PRIOR_GAMES: Record<
+  PlayerScoreField,
+  number
+> = {
   goals: 8,
   assists: 8,
   points: 8,
@@ -282,18 +235,11 @@ export const PLAYER_ADJUSTED_SCORE_PRIOR_GAMES: Record<PlayerScoreField, number>
   blocks: 6,
 };
 
-export const GOALIE_ADJUSTED_SCORE_PRIOR_GAMES: Record<GoalieScoreField, number> = {
+export const GOALIE_ADJUSTED_SCORE_PRIOR_GAMES: Record<
+  GoalieScoreField,
+  number
+> = {
   wins: 8,
   saves: 5,
   shutouts: 30,
-};
-
-// Default CSV directory for Playwright imports
-export const DEFAULT_CSV_OUT_DIR = "./csv/temp/";
-
-// Fantrax URLs for Playwright to use
-export const FANTRAX_URLS = {
-  login: "https://www.fantrax.com/login",
-  league: "https://www.fantrax.com/fantasy/league",
-  leagueArchive: "https://www.fantrax.com/fantasy/league/all;view=LEAGUES",
 };

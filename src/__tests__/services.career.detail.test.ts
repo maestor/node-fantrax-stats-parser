@@ -1,9 +1,12 @@
-import { getGoalieCareerData, getPlayerCareerData } from "../services";
+import {
+  getGoalieCareerData,
+  getPlayerCareerData,
+} from "../features/career/service";
 import {
   getGoalieCareerRowsFromDb,
   getPlayerCareerRowsFromDb,
 } from "../db/queries";
-import { TEAMS } from "../constants";
+import { TEAMS } from "../config";
 import {
   createGoalieCareerRow,
   createPlayerCareerRow,

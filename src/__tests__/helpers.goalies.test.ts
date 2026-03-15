@@ -1,5 +1,5 @@
-import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../constants";
-import { applyGoalieScores } from "../helpers";
+import { MIN_GAMES_FOR_ADJUSTED_SCORE } from "../config";
+import { applyGoalieScores } from "../features/stats/scoring";
 import { createGoalie } from "./fixtures";
 
 const expectScoreInRange = (value: number | undefined): void => {

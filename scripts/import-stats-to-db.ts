@@ -17,12 +17,12 @@ import os from "os";
 import { spawnSync } from "child_process";
 import csv from "csvtojson";
 import type { InStatement } from "@libsql/client";
-import { TEAMS, CURRENT_SEASON } from "../src/constants";
+import { CURRENT_SEASON, TEAMS } from "../src/config";
 import {
   buildFantraxEntityUpsertStatements,
   collectFantraxEntitiesFromStats,
-} from "../src/fantrax-entities";
-import { mapPlayerData, mapGoalieData } from "../src/mappings";
+} from "../src/features/fantrax/entities";
+import { mapGoalieData, mapPlayerData } from "../src/features/stats/mapping";
 import { getDbClient } from "../src/db/client";
 
 type ReportType = "regular" | "playoffs";
