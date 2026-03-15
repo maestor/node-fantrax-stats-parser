@@ -5,8 +5,8 @@ import type { Client } from "@libsql/client";
 import { buildFantraxEntityUpsertStatements } from "../fantrax-entities";
 import { getDbClient, resetDbClientForTests } from "../db/client";
 import { migrateDb } from "../db/schema";
-import { resetRouteCachesForTests } from "../routes";
 import { resetSnapshotCacheForTests } from "../snapshots";
+import { resetRouteCachesForTests } from "../shared/route-utils";
 
 type PlayerSeed = {
   teamId: string;

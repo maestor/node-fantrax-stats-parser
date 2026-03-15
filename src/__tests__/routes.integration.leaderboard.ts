@@ -1,12 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
 import { createRequest, createResponse } from "node-mocks-http";
+import { getLastModified } from "../features/meta/routes";
 import {
-  getLastModified,
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-} from "../routes";
+} from "../features/leaderboard/routes";
 import { HTTP_STATUS } from "../constants";
 import { createIntegrationDb } from "./integration-db";
 import { expectArraySchema } from "./openapi-schema";

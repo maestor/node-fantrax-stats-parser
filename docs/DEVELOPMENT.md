@@ -349,7 +349,9 @@ if (!reportTypeAvailable(report)) {
 ### File Organization
 
 - Source code: `src/`
-- Feature services and route handlers: `src/features/*/service.ts` and `src/features/*/routes.ts` (`src/services.ts` and `src/routes.ts` remain temporary compatibility entrypoints during the reorganization)
+- Route composition and healthcheck entrypoint: `src/index.ts`
+- Feature services and route handlers: `src/features/*/service.ts` and `src/features/*/routes.ts` (`src/services.ts` remains a temporary compatibility entrypoint during the reorganization)
+- Meta API routes such as seasons, teams, and last-modified: `src/features/meta/routes.ts`
 - Transaction helpers: `src/features/transactions/files.ts` (`src/transactions.ts` remains a temporary compatibility re-export)
 - Fantrax entity registry helpers: `src/features/fantrax/entities.ts` (`src/fantrax-entities.ts` remains a temporary compatibility re-export)
 - Snapshot storage helpers: `src/infra/snapshots/store.ts` (`src/snapshots.ts` remains a temporary compatibility re-export)

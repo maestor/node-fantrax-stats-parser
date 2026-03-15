@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Phase 5 completed, Phase 6 not started
+**Status:** Phase 6 completed, Phase 7 not started
 
 ## Goal
 
@@ -43,6 +43,9 @@ src/
     index.ts
 
   features/
+    meta/
+      routes.ts
+      service.ts
     stats/
       routes.ts
       service.ts
@@ -134,7 +137,7 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 - `src/helpers.ts` -> split across `src/features/stats/` and `src/shared/`
 - `src/mappings.ts` -> primarily `src/features/stats/mapping.ts`
 - `src/services.ts` -> split under `src/features/stats/`, `src/features/career/`, and `src/features/leaderboard/`
-- `src/routes.ts` -> split under the same feature folders
+- `src/routes.ts` -> removed in Phase 6 after feature routes moved under `src/features/`, non-domain API routes moved under `src/features/meta/`, and `getHealthcheck` moved into `src/index.ts`
 - `src/transactions.ts` -> `src/features/transactions/files.ts`
 - `src/fantrax-entities.ts` -> `src/features/fantrax/entities.ts`
 - `src/snapshots.ts` -> `src/infra/snapshots/store.ts`
@@ -181,9 +184,18 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 - [x] Move snapshot storage under `src/infra/snapshots/`
 - [x] Keep `src/transactions.ts`, `src/fantrax-entities.ts`, and `src/snapshots.ts` as temporary compatibility barrels until the final cleanup phase
 
-### Phase 6: Cleanup and finalize
+### Phase 6: Finalize route entrypoints
+
+- [x] Create `src/features/meta/routes.ts` and move `getSeasons`, `getTeams`, and `getLastModified` there
+- [x] Move `getHealthcheck` into `src/index.ts` next to the root service and `notFound` handlers
+- [x] Stop treating `resetRouteCachesForTests` as a route export; keep it in `src/shared/route-utils.ts` and update tests to import it from there directly
+- [x] Remove `src/routes.ts` once `src/index.ts` imports feature/meta routes directly
+
+### Phase 7: Cleanup and finalize
 
 - [ ] Remove temporary barrel compatibility layers once imports are fully migrated
+- [ ] Remove `src/services.ts` after callers import feature services directly
+- [ ] Remove remaining root compatibility barrels such as `src/helpers.ts`, `src/mappings.ts`, `src/constants.ts`, `src/types.ts`, `src/transactions.ts`, `src/fantrax-entities.ts`, and `src/snapshots.ts` when they are no longer needed
 - [ ] Update README and development/testing docs to match the final structure
 - [ ] Remove this plan document after the reorganization is fully complete
 

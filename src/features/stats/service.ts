@@ -6,7 +6,6 @@ import {
   availableSeasons,
 } from "../../helpers";
 import {
-  mapAvailableSeasons,
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
 } from "../../mappings";
@@ -142,22 +141,6 @@ const mergeGoaliesSameSeason = (goalies: GoalieWithSeason[]): GoalieWithSeason[]
   }
 
   return [...merged.values()];
-};
-
-export const getAvailableSeasons = async (
-  teamId: string = DEFAULT_TEAM_ID,
-  reportType: Report = "regular",
-  startFrom?: number,
-) => {
-  const concreteReport: CsvReport =
-    reportType === "both" ? "regular" : reportType;
-  let seasons = await availableSeasons(teamId, concreteReport);
-
-  if (startFrom !== undefined) {
-    seasons = seasons.filter((season) => season >= startFrom);
-  }
-
-  return mapAvailableSeasons(seasons);
 };
 
 export const getPlayersStatsSeason = async (

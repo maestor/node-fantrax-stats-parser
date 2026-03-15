@@ -1,6 +1,5 @@
 import { AugmentedRequestHandler } from "microrouter";
 import {
-  getAvailableSeasons,
   getGoaliesStatsCombined,
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
@@ -22,27 +21,6 @@ import {
   sendNoStore,
   withErrorHandlingCached,
 } from "../../shared/route-utils";
-
-export const getSeasons: AugmentedRequestHandler = async (req, res) => {
-  const teamId = resolveTeamId(getQueryParam(req, "teamId"));
-  const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
-
-  const rawReport = req.params.reportType || "regular";
-  if (!reportTypeAvailable(rawReport as Report)) {
-    sendNoStore(
-      res,
-      HTTP_STATUS.BAD_REQUEST,
-      ERROR_MESSAGES.INVALID_REPORT_TYPE,
-    );
-    return;
-  }
-  const report = rawReport as Report;
-
-  await withErrorHandlingCached(req, res, async () => ({
-    data: await getAvailableSeasons(teamId, report, startFrom),
-    dataSource: "db",
-  }));
-};
 
 export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
