@@ -148,7 +148,7 @@ npm run verify
 - `npm run db:import:transactions` - Incrementally import current-season transaction rows from `csv/transactions/` into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Updates `import_metadata.last_modified` and refreshes only the transactions snapshot. Supports `--full`, `--all`, `--season=YYYY`, `--current-only`, `--dry-run`, and `--dir=/custom/path`.
 - `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso). Regenerates only the playoff leaderboard snapshot after a successful import.
 - `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso. Regenerates only the regular leaderboard snapshot after a successful import.
-- `npm run snapshot:generate` - Generate JSON snapshots into `generated/snapshots/`. Supports `--scope=transactions|leaderboard-regular|leaderboard-playoffs|stats|career|career-highlights|all`; if `stats` is included, `--report-type=regular|playoffs|both|all` limits which combined report snapshots are rebuilt. If `USE_R2_SNAPSHOTS=true`, uploads generated snapshots to R2 too.
+- `npm run snapshot:generate` - Generate JSON snapshots into `generated/snapshots/`. Supports `--scope=transactions|leaderboard-regular|leaderboard-playoffs|stats|career|career-highlights|all`; if `stats` is included, `--report-type=regular|playoffs|both|all` limits which combined report snapshots are rebuilt. If `USE_R2_SNAPSHOTS=true`, uploads each generated JSON payload to the configured snapshot bucket/prefix, adds `generated-at` metadata, uploads `manifest.json` last, retries transient R2/TLS failures with exponential backoff, and logs successful uploads with progress counters.
 - Snapshot-backed routes expose `x-stats-data-source: snapshot|db` so you can inspect whether a successful response came from a snapshot or a live DB path.
 
 ### R2 Storage (CSV backup + optional API snapshots)
@@ -232,6 +232,8 @@ USE_REMOTE_DB=false
 # USE_R2_SNAPSHOTS=false            # Upload/read generated API snapshots via R2
 # R2_SNAPSHOT_BUCKET_NAME=          # Optional; defaults to R2_BUCKET_NAME
 # R2_SNAPSHOT_PREFIX=snapshots      # Optional object prefix for snapshot JSONs
+# R2_SNAPSHOT_MAX_ATTEMPTS=4        # Optional retry cap for transient snapshot R2 failures
+# R2_SNAPSHOT_RETRY_BASE_DELAY_MS=250 # Optional exponential backoff base delay for snapshot R2 retries
 # SNAPSHOT_DIR=generated/snapshots  # Optional local snapshot directory
 # SNAPSHOT_CACHE_TTL_MS=60000       # Optional in-memory snapshot cache ttl
 # RAW_UPLOAD=false

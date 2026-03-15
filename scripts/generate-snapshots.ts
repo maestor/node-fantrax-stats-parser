@@ -38,11 +38,18 @@ import {
   getSnapshotFilePath,
   getSnapshotManifestKey,
   getSnapshotObjectKey,
+  getSnapshotPrefix,
   getTransactionsLeaderboardSnapshotKey,
   isR2SnapshotConfigAvailable,
   loadSnapshot,
 } from "../src/snapshots";
 import { getLastModifiedFromDb } from "../src/db/queries";
+import {
+  getR2SnapshotMaxAttempts,
+  getR2SnapshotRetryBaseDelayMs,
+  retryR2Operation,
+  type R2RetryContext,
+} from "../src/r2/retry";
 
 type SnapshotEntry = {
   bytes: number;
@@ -60,7 +67,39 @@ type SnapshotManifest = {
   }>;
 };
 
+type UploadProgress = {
+  completed: number;
+  total: number;
+};
+
 const shouldUploadToR2 = (): boolean => process.env.USE_R2_SNAPSHOTS === "true";
+
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const logR2Retry = ({
+  delayMs,
+  error,
+  maxAttempts,
+  nextAttempt,
+  operation,
+}: R2RetryContext): void => {
+  console.warn(
+    `⚠️  ${operation} failed: ${getErrorMessage(error)}. ` +
+      `Retrying in ${delayMs}ms (${nextAttempt}/${maxAttempts})...`,
+  );
+};
+
+const logR2UploadSuccess = (
+  snapshotKey: string,
+  uploadProgress: UploadProgress,
+): void => {
+  uploadProgress.completed += 1;
+  console.info(
+    `✅ Uploaded to R2 (${uploadProgress.completed}/${uploadProgress.total}): ` +
+      `${getSnapshotObjectKey(snapshotKey)}`,
+  );
+};
 
 const writeSnapshotFile = (snapshotKey: string, body: string): number => {
   const filePath = getSnapshotFilePath(snapshotKey);
@@ -79,17 +118,30 @@ const uploadSnapshotFile = async (
     throw new Error("Missing snapshot bucket configuration");
   }
 
-  await createSnapshotR2Client().send(
-    new PutObjectCommand({
-      Bucket: bucketName,
-      Key: getSnapshotObjectKey(snapshotKey),
-      Body: body,
-      ContentType: "application/json",
-      Metadata: {
-        "generated-at": generatedAt,
-      },
-    }),
-  );
+  const objectKey = getSnapshotObjectKey(snapshotKey);
+
+  try {
+    await retryR2Operation(
+      `R2 upload ${objectKey}`,
+      () =>
+        createSnapshotR2Client().send(
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: objectKey,
+            Body: body,
+            ContentType: "application/json",
+            Metadata: {
+              "generated-at": generatedAt,
+            },
+          }),
+        ),
+      logR2Retry,
+    );
+  } catch (error) {
+    throw new Error(
+      `Failed to upload R2 snapshot ${bucketName}/${objectKey}: ${getErrorMessage(error)}`,
+    );
+  }
 };
 
 const buildSnapshotEntries = async (
@@ -166,11 +218,15 @@ const buildSnapshotEntries = async (
 
 const loadExistingManifest = async (): Promise<SnapshotManifest | null> => {
   try {
-    return await loadSnapshot<SnapshotManifest>(getSnapshotManifestKey());
+    return await retryR2Operation(
+      `snapshot manifest lookup ${getSnapshotManifestKey()}`,
+      () => loadSnapshot<SnapshotManifest>(getSnapshotManifestKey()),
+      logR2Retry,
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
     console.warn(
-      `⚠️  Failed to load existing snapshot manifest, continuing without merge: ${message}`,
+      "⚠️  Failed to load existing snapshot manifest, continuing without merge: " +
+        getErrorMessage(error),
     );
     return null;
   }
@@ -220,11 +276,25 @@ const main = async () => {
   if (config.scopes.includes("stats")) {
     console.info(`   Stats reports: ${config.statsReportTypes.join(", ")}`);
   }
+  if (shouldUploadToR2()) {
+    console.info(
+      `   R2 target: ${getSnapshotBucketName()}/${getSnapshotPrefix()}/`,
+    );
+    console.info(
+      "   R2 retry policy: " +
+        `${getR2SnapshotMaxAttempts()} attempts, ` +
+        `${getR2SnapshotRetryBaseDelayMs()}ms base backoff`,
+    );
+  }
 
   const entries = await buildSnapshotEntries(config);
   const existingManifest = config.isFullGeneration
     ? null
     : await loadExistingManifest();
+  const uploadProgress: UploadProgress = {
+    completed: 0,
+    total: entries.length + 1,
+  };
 
   for (const entry of entries) {
     const body = JSON.stringify(entry.data);
@@ -237,6 +307,7 @@ const main = async () => {
         );
       }
       await uploadSnapshotFile(entry.key, body, generatedAt);
+      logR2UploadSuccess(entry.key, uploadProgress);
     }
   }
 
@@ -256,6 +327,7 @@ const main = async () => {
       manifestBody,
       generatedAt,
     );
+    logR2UploadSuccess(getSnapshotManifestKey(), uploadProgress);
   }
 
   console.info(`✅ Snapshot generation complete (${entries.length} payloads)`);

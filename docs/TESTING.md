@@ -147,6 +147,7 @@ src/
     ├── mappings.goalies.test.ts # CSV-to-goalie transformation coverage
     ├── openapi-schema.ts # Shared OpenAPI schema validators for route tests
     ├── queries.*.test.ts # Database query suites (roster stats, career rows, results/metadata)
+    ├── r2-retry.test.ts # Snapshot R2 retry/backoff classification and limits
     ├── routes.integration.helpers.ts # Shared helpers for route integration suites
     ├── routes.integration.test.ts # Entry point for the categorized route integration suites
     ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
@@ -160,7 +161,7 @@ src/
     └── fixtures.ts       # Shared test data
 ```
 
-Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suite because it includes local filesystem, cache, and R2 fallback branches, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, canonical Fantrax identity behavior is split between helper-level merge/upsert tests and a DB-backed schema migration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, transaction import coverage now separately pins down entity matching, grouping, commissioner-fix exclusion, and season reimport behavior, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
+Keep this directory updated whenever a new module or integration boundary is added. Snapshot behavior now has its own dedicated suites because snapshot loading covers local filesystem, cache, and R2 fallback branches while `r2-retry.test.ts` pins down transient upload classification/backoff behavior, route-db integration now has a dedicated suite so endpoint behavior can be validated with less internal mocking, helper scoring coverage is split by skaters/goalies while season-availability behavior rides on the route integration suite, canonical Fantrax identity behavior is split between helper-level merge/upsert tests and a DB-backed schema migration suite, transaction helper coverage pins down season/file naming and Fantrax history URL generation, transaction import coverage now separately pins down entity matching, grouping, commissioner-fix exclusion, and season reimport behavior, service-unit coverage is split by season/combined, career, and leaderboard behavior, mapping coverage stays focused on CSV player/goalie transforms, and query coverage is split by roster/career/results responsibilities so the larger suites stay readable without reasserting every live route happy path.
 
 ---
 
