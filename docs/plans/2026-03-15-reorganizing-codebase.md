@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-15
 **Branch:** `refactor/reorganizing-codebase`
-**Status:** Phase 3 completed, Phase 4 not started
+**Status:** Phase 4 completed, Phase 5 not started
 
 ## Goal
 
@@ -170,9 +170,9 @@ Keep as-is for now. It is local scraping/import tooling, clearly documented, and
 
 ### Phase 4: Split `services.ts` and `routes.ts`
 
-- [ ] Create feature-owned `routes.ts` and `service.ts` files under `stats`, `career`, and `leaderboard`
-- [ ] Keep route registration/composition in `src/index.ts`
-- [ ] Preserve current behavior while reducing cross-feature coupling in single files
+- [x] Create feature-owned `routes.ts` and `service.ts` files under `stats`, `career`, and `leaderboard`
+- [x] Keep route registration/composition in `src/index.ts`
+- [x] Keep `src/services.ts` and `src/routes.ts` as stable root entrypoints while feature modules take over the implementation
 
 ### Phase 5: Move feature-specific root modules
 
