@@ -359,18 +359,24 @@ export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {
 }): TeamRunWithRound[] | null => {
   if (args.periods.length !== args.teamsByPeriod.length) return null;
   if (args.expectedRoundTeamCounts.length < 1) return null;
+  if (
+    args.periods.length < 1 ||
+    args.periods.length > args.expectedRoundTeamCounts.length
+  ) return null;
 
-  const periods = args.periods.slice(0, args.expectedRoundTeamCounts.length);
-  const teamsByPeriod = args.teamsByPeriod.slice(
+  const actualRoundCount = args.periods.length;
+  const periods = args.periods.slice(0, actualRoundCount);
+  const teamsByPeriod = args.teamsByPeriod.slice(0, actualRoundCount);
+  const expectedRoundTeamCounts = args.expectedRoundTeamCounts.slice(
     0,
-    args.expectedRoundTeamCounts.length,
+    actualRoundCount,
   );
-  if (periods.length !== args.expectedRoundTeamCounts.length) return null;
-  if (teamsByPeriod.length !== args.expectedRoundTeamCounts.length) return null;
 
   const sizes = teamsByPeriod.map((t) => t.length);
-  for (let i = 0; i < args.expectedRoundTeamCounts.length; i++) {
-    if (sizes[i] !== args.expectedRoundTeamCounts[i]) return null;
+  // Accept the currently visible playoffs prefix so ongoing seasons can sync
+  // before Fantrax has rendered every future round.
+  for (let i = 0; i < expectedRoundTeamCounts.length; i++) {
+    if (sizes[i] !== expectedRoundTeamCounts[i]) return null;
   }
 
   const normalizedSets = teamsByPeriod.map(

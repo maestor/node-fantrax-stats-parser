@@ -156,6 +156,8 @@ The mapping includes, per season year:
 - each playoff team's `startDate` and `endDate` for their playoff run
 - each playoff team's `roundReached` (1–4) and `isChampion` flag
 
+The sync also supports an ongoing current-season bracket. If Fantrax currently shows only a partial round prefix such as `Playoffs 1`, `Playoffs 1-2`, or `Playoffs 1-3`, the script still records the 16 playoff teams with their current `roundReached` values and leaves `isChampion` false until a champion is visible.
+
 If the script can't determine exactly 16 playoff teams for a season (or can't parse the bracket periods), it will skip that season and print a `Manual needed:` message.
 
 Useful options:
