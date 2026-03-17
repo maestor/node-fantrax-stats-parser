@@ -330,12 +330,16 @@ describe("routes", () => {
           claims: 20,
           drops: 19,
           trades: 4,
+          players: 118,
+          goalies: 14,
           seasons: [
             {
               season: 2025,
               claims: 20,
               drops: 19,
               trades: 4,
+              players: 21,
+              goalies: 3,
             },
           ],
           tieRank: false,

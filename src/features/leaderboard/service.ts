@@ -45,7 +45,7 @@ type RegularLeaderboardRowData = Pick<
 
 type TransactionLeaderboardRowData = Pick<
   TransactionLeaderboardEntry,
-  "teamId" | "claims" | "drops" | "trades"
+  "teamId" | "claims" | "drops" | "trades" | "players" | "goalies"
 >;
 
 export const getPlayoffLeaderboardData = async (): Promise<
@@ -243,6 +243,8 @@ export const getTransactionLeaderboardData = async (): Promise<
       claims: 0,
       drops: 0,
       trades: 0,
+      players: 0,
+      goalies: 0,
     })),
   ];
 
@@ -254,6 +256,8 @@ export const getTransactionLeaderboardData = async (): Promise<
       claims: row.claims,
       drops: row.drops,
       trades: row.trades,
+      players: row.players,
+      goalies: row.goalies,
     }));
 
   return allRows.map((row, i) => {

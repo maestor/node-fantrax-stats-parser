@@ -1245,6 +1245,8 @@ components:
         - claims
         - drops
         - trades
+        - players
+        - goalies
         - seasons
         - tieRank
       properties:
@@ -1259,6 +1261,12 @@ components:
         trades:
           type: integer
           description: Count of distinct trade participations by `season + occurred_at`.
+        players:
+          type: integer
+          description: Count of distinct skater Fantrax entity IDs the team has rostered.
+        goalies:
+          type: integer
+          description: Count of distinct goalie Fantrax entity IDs the team has rostered.
         seasons:
           type: array
           items:
@@ -1274,6 +1282,8 @@ components:
         - claims
         - drops
         - trades
+        - players
+        - goalies
       properties:
         season:
           type: integer
@@ -1284,6 +1294,12 @@ components:
         trades:
           type: integer
           description: Count of distinct trade participations by `season + occurred_at`.
+        players:
+          type: integer
+          description: Count of distinct skater Fantrax entity IDs the team rostered that season.
+        goalies:
+          type: integer
+          description: Count of distinct goalie Fantrax entity IDs the team rostered that season.
 
 security:
   - apiKey: []
@@ -1750,8 +1766,10 @@ paths:
     get:
       summary: All-time transaction leaderboard
       description: |
-        Returns each team's total claim, drop, and trade counts with a per-season breakdown.
+        Returns each team's total claim, drop, and trade counts plus distinct skater/goalie
+        Fantrax entity totals with a per-season breakdown.
         Trade totals count distinct team participations by `season + occurred_at`.
+        Player and goalie totals count unique Fantrax entity IDs across roster history.
       responses:
         "200":
           description: Transaction leaderboard entries.

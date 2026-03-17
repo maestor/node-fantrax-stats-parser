@@ -476,8 +476,11 @@ curl https://ffhl-stats-api.vercel.app/api/seasons
   - each item has `season`, `round`, and `key`
   - if a season has no DB row for that team, it is returned as `round: 0` and `key: "notQualified"`
 - `GET /leaderboard/transactions` returns all-time claim/drop/trade totals plus:
-  - `seasons`: one item per season year with `claims`, `drops`, and `trades`
+  - `players`: distinct skater Fantrax entity IDs the team has rostered
+  - `goalies`: distinct goalie Fantrax entity IDs the team has rostered
+  - `seasons`: one item per season year with `claims`, `drops`, `trades`, `players`, and `goalies`
   - `trades` counts distinct team participations by `season + occurredAt`
+  - `players` / `goalies` use Fantrax entity ID as the unique key and dedupe across regular/playoff rows within the same season
 
 ## Cloud Storage (Cloudflare R2)
 

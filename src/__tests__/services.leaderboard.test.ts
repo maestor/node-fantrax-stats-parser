@@ -517,6 +517,8 @@ describe("services", () => {
             claims: 50,
             drops: 48,
             trades: 12,
+            players: 130,
+            goalies: 15,
           },
         ]);
 
@@ -528,6 +530,8 @@ describe("services", () => {
           claims: 50,
           drops: 48,
           trades: 12,
+          players: 130,
+          goalies: 15,
           seasons: [],
           tieRank: false,
         });
@@ -540,12 +544,16 @@ describe("services", () => {
             claims: 40,
             drops: 39,
             trades: 11,
+            players: 120,
+            goalies: 14,
           },
           {
             teamId: "4",
             claims: 40,
             drops: 39,
             trades: 11,
+            players: 125,
+            goalies: 16,
           },
         ]);
 
@@ -562,6 +570,8 @@ describe("services", () => {
             claims: 3,
             drops: 2,
             trades: 1,
+            players: 8,
+            goalies: 2,
           },
         ]);
 
@@ -577,6 +587,8 @@ describe("services", () => {
             claims: 50,
             drops: 48,
             trades: 12,
+            players: 130,
+            goalies: 15,
           },
         ]);
 
@@ -592,6 +604,8 @@ describe("services", () => {
             claims: 0,
             drops: 0,
             trades: 0,
+            players: 0,
+            goalies: 0,
             seasons: [],
           }),
         );
@@ -607,6 +621,8 @@ describe("services", () => {
           claims: 0,
           drops: 0,
           trades: 0,
+          players: 0,
+          goalies: 0,
           seasons: [],
           tieRank: false,
         });
@@ -620,6 +636,8 @@ describe("services", () => {
             claims: 9,
             drops: 8,
             trades: 3,
+            players: 14,
+            goalies: 3,
           },
         ]);
         mockGetTransactionSeasons.mockResolvedValue([
@@ -629,6 +647,8 @@ describe("services", () => {
             claims: 4,
             drops: 3,
             trades: 1,
+            players: 7,
+            goalies: 1,
           },
           {
             teamId: "1",
@@ -636,6 +656,8 @@ describe("services", () => {
             claims: 5,
             drops: 5,
             trades: 2,
+            players: 8,
+            goalies: 2,
           },
         ]);
 
@@ -647,12 +669,16 @@ describe("services", () => {
             claims: 4,
             drops: 3,
             trades: 1,
+            players: 7,
+            goalies: 1,
           },
           {
             season: 2025,
             claims: 5,
             drops: 5,
             trades: 2,
+            players: 8,
+            goalies: 2,
           },
         ]);
       });

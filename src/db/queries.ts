@@ -711,6 +711,8 @@ interface TransactionLeaderboardRow {
   claims: number;
   drops: number;
   trades: number;
+  players: number;
+  goalies: number;
 }
 
 export type TransactionLeaderboardDbEntry = Omit<
@@ -724,6 +726,8 @@ interface TransactionSeasonRow {
   claims: number;
   drops: number;
   trades: number;
+  players: number;
+  goalies: number;
 }
 
 export type TransactionSeasonDbEntry = TransactionLeaderboardSeason & {
@@ -762,10 +766,57 @@ const TRANSACTION_COUNTS_CTE = `WITH claim_drop_counts AS (
        FROM trade_participation
        GROUP BY team_id, season
      ),
+     player_counts AS (
+       SELECT
+         team_id,
+         season,
+         COUNT(DISTINCT player_id) AS players
+       FROM players
+       WHERE NULLIF(TRIM(player_id), '') IS NOT NULL
+       GROUP BY team_id, season
+     ),
+     goalie_counts AS (
+       SELECT
+         team_id,
+         season,
+         COUNT(DISTINCT goalie_id) AS goalies
+       FROM goalies
+       WHERE NULLIF(TRIM(goalie_id), '') IS NOT NULL
+       GROUP BY team_id, season
+     ),
+     player_totals AS (
+       SELECT
+         team_id,
+         COUNT(DISTINCT player_id) AS players
+       FROM players
+       WHERE NULLIF(TRIM(player_id), '') IS NOT NULL
+       GROUP BY team_id
+     ),
+     goalie_totals AS (
+       SELECT
+         team_id,
+         COUNT(DISTINCT goalie_id) AS goalies
+       FROM goalies
+       WHERE NULLIF(TRIM(goalie_id), '') IS NOT NULL
+       GROUP BY team_id
+     ),
+     all_teams AS (
+       SELECT team_id FROM claim_drop_counts
+       UNION
+       SELECT team_id FROM trade_counts
+       UNION
+       SELECT team_id FROM player_totals
+       UNION
+       SELECT team_id FROM goalie_totals
+     ),
      all_team_seasons AS (
        SELECT team_id, season FROM claim_drop_counts
        UNION
        SELECT team_id, season FROM trade_counts
+       UNION
+       SELECT team_id, season FROM player_counts
+       UNION
+       SELECT team_id, season FROM goalie_counts
      ),
      transaction_counts AS (
        SELECT
@@ -773,7 +824,9 @@ const TRANSACTION_COUNTS_CTE = `WITH claim_drop_counts AS (
          ats.season,
          COALESCE(cdc.claims, 0) AS claims,
          COALESCE(cdc.drops, 0) AS drops,
-         COALESCE(tc.trades, 0) AS trades
+         COALESCE(tc.trades, 0) AS trades,
+         COALESCE(pc.players, 0) AS players,
+         COALESCE(gc.goalies, 0) AS goalies
        FROM all_team_seasons ats
        LEFT JOIN claim_drop_counts cdc
          ON cdc.team_id = ats.team_id
@@ -781,6 +834,12 @@ const TRANSACTION_COUNTS_CTE = `WITH claim_drop_counts AS (
        LEFT JOIN trade_counts tc
          ON tc.team_id = ats.team_id
         AND tc.season = ats.season
+       LEFT JOIN player_counts pc
+         ON pc.team_id = ats.team_id
+        AND pc.season = ats.season
+       LEFT JOIN goalie_counts gc
+         ON gc.team_id = ats.team_id
+        AND gc.season = ats.season
      )`;
 
 const mapTransactionLeaderboardRow = (
@@ -790,6 +849,8 @@ const mapTransactionLeaderboardRow = (
   claims: row.claims,
   drops: row.drops,
   trades: row.trades,
+  players: row.players,
+  goalies: row.goalies,
 });
 
 export const getTransactionLeaderboard = async (): Promise<
@@ -799,18 +860,23 @@ export const getTransactionLeaderboard = async (): Promise<
   const result = await db.execute(
     `${TRANSACTION_COUNTS_CTE}
      SELECT
-       team_id,
-       SUM(claims) AS claims,
-       SUM(drops) AS drops,
-       SUM(trades) AS trades
-     FROM transaction_counts
-     GROUP BY team_id
+       at.team_id,
+       COALESCE(SUM(tc.claims), 0) AS claims,
+       COALESCE(SUM(tc.drops), 0) AS drops,
+       COALESCE(SUM(tc.trades), 0) AS trades,
+       COALESCE(pt.players, 0) AS players,
+       COALESCE(gt.goalies, 0) AS goalies
+     FROM all_teams at
+     LEFT JOIN transaction_counts tc ON tc.team_id = at.team_id
+     LEFT JOIN player_totals pt ON pt.team_id = at.team_id
+     LEFT JOIN goalie_totals gt ON gt.team_id = at.team_id
+     GROUP BY at.team_id, pt.players, gt.goalies
      ORDER BY
-       SUM(claims + drops + trades) DESC,
-       SUM(trades) DESC,
-       SUM(claims) DESC,
-       SUM(drops) DESC,
-       team_id ASC`,
+       COALESCE(SUM(tc.claims + tc.drops + tc.trades), 0) DESC,
+       COALESCE(SUM(tc.trades), 0) DESC,
+       COALESCE(SUM(tc.claims), 0) DESC,
+       COALESCE(SUM(tc.drops), 0) DESC,
+       at.team_id ASC`,
   );
   return castRows<TransactionLeaderboardRow>(result.rows).map(
     mapTransactionLeaderboardRow,
@@ -828,7 +894,9 @@ export const getTransactionSeasons = async (): Promise<
        season,
        claims,
        drops,
-       trades
+       trades,
+       players,
+       goalies
      FROM transaction_counts
      ORDER BY team_id ASC, season ASC`,
   );
@@ -838,5 +906,7 @@ export const getTransactionSeasons = async (): Promise<
     claims: row.claims,
     drops: row.drops,
     trades: row.trades,
+    players: row.players,
+    goalies: row.goalies,
   }));
 };
