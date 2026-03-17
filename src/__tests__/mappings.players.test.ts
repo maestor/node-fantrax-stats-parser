@@ -54,6 +54,46 @@ describe("mappings", () => {
         expect(result[0].games).toBe(0);
       });
 
+      test('excludes Status "-" players with 0 games when configured', () => {
+        const result = mapPlayerData(
+          [
+            mockRawDataFirstRow,
+            {
+              ...mockRawDataZeroGames,
+              field6: "-",
+            },
+          ],
+          {
+            includeZeroGames: true,
+            excludeStatusDashZeroGames: true,
+          },
+        );
+
+        expect(result).toHaveLength(0);
+      });
+
+      test('keeps Status "-" players that have games when the placeholder filter is enabled', () => {
+        const result = mapPlayerData(
+          [
+            mockRawDataFirstRow,
+            {
+              ...mockRawDataZeroGames,
+              field3: "Active Dash Status Player",
+              field6: "-",
+              field8: "1",
+            },
+          ],
+          {
+            includeZeroGames: true,
+            excludeStatusDashZeroGames: true,
+          },
+        );
+
+        expect(result).toHaveLength(1);
+        expect(result[0].name).toBe("Active Dash Status Player");
+        expect(result[0].games).toBe(1);
+      });
+
       test("excludes later section header rows when includeZeroGames is true", () => {
         const secondHeaderRow = {
           ...mockRawDataFirstRow,

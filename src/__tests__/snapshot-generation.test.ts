@@ -3,6 +3,7 @@ import {
   SNAPSHOT_STATS_REPORT_TYPES,
   resolveSnapshotGenerationConfig,
   resolveSnapshotStatsReportTypes,
+  resolveSnapshotStatsTeamIds,
 } from "../../scripts/snapshot-generation";
 
 describe("snapshot generation helpers", () => {
@@ -34,6 +35,7 @@ describe("snapshot generation helpers", () => {
         "transactions",
       ],
       statsReportTypes: ["regular", "playoffs", "both"],
+      statsTeamIds: null,
       isFullGeneration: true,
     });
   });
@@ -48,6 +50,7 @@ describe("snapshot generation helpers", () => {
     ).toEqual({
       scopes: ["stats", "transactions"],
       statsReportTypes: ["regular", "both"],
+      statsTeamIds: null,
       isFullGeneration: false,
     });
   });
@@ -61,6 +64,7 @@ describe("snapshot generation helpers", () => {
     ).toEqual({
       scopes: ["career-highlights", "leaderboard-regular"],
       statsReportTypes: ["both"],
+      statsTeamIds: null,
       isFullGeneration: false,
     });
   });
@@ -76,7 +80,24 @@ describe("snapshot generation helpers", () => {
         "transactions",
       ],
       statsReportTypes: ["regular", "playoffs", "both"],
+      statsTeamIds: null,
       isFullGeneration: true,
+    });
+  });
+
+  test("supports targeted stats generation for selected teams", () => {
+    expect(
+      resolveSnapshotGenerationConfig([
+        "--scope=stats",
+        "--report-type=playoffs",
+        "--team-id=12,1",
+        "--team-id=12",
+      ]),
+    ).toEqual({
+      scopes: ["stats"],
+      statsReportTypes: ["playoffs", "both"],
+      statsTeamIds: ["1", "12"],
+      isFullGeneration: false,
     });
   });
 
@@ -102,6 +123,14 @@ describe("snapshot generation helpers", () => {
     expect(resolveSnapshotStatsReportTypes("both")).toEqual(["both"]);
   });
 
+  test("maps stats team filters for manual callers", () => {
+    expect(resolveSnapshotStatsTeamIds([])).toBeNull();
+    expect(resolveSnapshotStatsTeamIds(["--team-id=12,1", "--team-id=12"])).toEqual([
+      "1",
+      "12",
+    ]);
+  });
+
   test("rejects invalid scope combinations and values", () => {
     expect(() =>
       resolveSnapshotGenerationConfig(["--scope=all", "--scope=stats"]),
@@ -125,5 +154,11 @@ describe("snapshot generation helpers", () => {
         "--report-type=playoffs",
       ]),
     ).toThrow("Use at most one --report-type value.");
+  });
+
+  test("rejects invalid team ids", () => {
+    expect(() => resolveSnapshotStatsTeamIds(["--team-id=999"])).toThrow(
+      "Invalid --team-id value: 999. Valid values:",
+    );
   });
 });

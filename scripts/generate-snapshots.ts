@@ -201,7 +201,16 @@ const buildSnapshotEntries = async (
   }
 
   if (config.scopes.includes("stats")) {
+    const statsTeamIds =
+      config.statsTeamIds === null
+        ? null
+        : new Set(config.statsTeamIds);
+
     for (const team of TEAMS) {
+      if (statsTeamIds !== null && !statsTeamIds.has(team.id)) {
+        continue;
+      }
+
       for (const reportType of config.statsReportTypes) {
         entries.push({
           key: getCombinedSnapshotKey("players", reportType, team.id),
@@ -279,6 +288,9 @@ const main = async () => {
   console.info(`   Scopes: ${config.scopes.join(", ")}`);
   if (config.scopes.includes("stats")) {
     console.info(`   Stats reports: ${config.statsReportTypes.join(", ")}`);
+    if (config.statsTeamIds !== null) {
+      console.info(`   Stats teams: ${config.statsTeamIds.join(", ")}`);
+    }
   }
   if (shouldUploadToR2()) {
     console.info(
