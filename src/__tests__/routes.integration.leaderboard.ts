@@ -404,6 +404,87 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
       const db = await createIntegrationDb();
 
       try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-1",
+            name: "Roster Forward",
+            position: "F",
+            games: 10,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "playoffs",
+            playerId: "player-1",
+            name: "Roster Forward",
+            position: "F",
+            games: 4,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-2",
+            name: "Roster Defender",
+            position: "D",
+            games: 12,
+          },
+          {
+            teamId: "1",
+            season: 2025,
+            reportType: "regular",
+            playerId: "player-1",
+            name: "Roster Forward",
+            position: "F",
+            games: 8,
+          },
+          {
+            teamId: "1",
+            season: 2025,
+            reportType: "regular",
+            playerId: "player-3",
+            name: "New Skater",
+            position: "F",
+            games: 7,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "goalie-1",
+            name: "Roster Goalie",
+            games: 6,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "playoffs",
+            goalieId: "goalie-1",
+            name: "Roster Goalie",
+            games: 2,
+          },
+          {
+            teamId: "1",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "goalie-1",
+            name: "Roster Goalie",
+            games: 9,
+          },
+          {
+            teamId: "1",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "goalie-2",
+            name: "New Goalie",
+            games: 5,
+          },
+        ]);
         await insertClaimEventItem(db.db, {
           season: 2025,
           teamId: "1",
@@ -472,15 +553,27 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
             claims: 1,
             drops: 1,
             trades: 1,
+            players: 3,
+            goalies: 2,
             tieRank: false,
           }),
         );
         expect(colorado?.seasons).toEqual([
           {
+            season: 2024,
+            claims: 0,
+            drops: 0,
+            trades: 0,
+            players: 2,
+            goalies: 1,
+          },
+          {
             season: 2025,
             claims: 1,
             drops: 1,
             trades: 1,
+            players: 2,
+            goalies: 2,
           },
         ]);
         expectArraySchema("TransactionLeaderboardEntry", body);
@@ -517,10 +610,108 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
             claims: 0,
             drops: 0,
             trades: 0,
+            players: 0,
+            goalies: 0,
             seasons: [],
             tieRank: false,
           }),
         );
+      } finally {
+        await db.cleanup();
+      }
+    });
+
+    test("returns player and goalie counts for roster-only seasons without transaction rows", async () => {
+      const db = await createIntegrationDb();
+
+      try {
+        await db.insertPlayers([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-1",
+            name: "Roster Forward",
+            position: "F",
+            games: 10,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "playoffs",
+            playerId: "player-1",
+            name: "Roster Forward",
+            position: "F",
+            games: 3,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-2",
+            name: "Roster Defender",
+            position: "D",
+            games: 11,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            goalieId: "goalie-1",
+            name: "Roster Goalie",
+            games: 7,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "playoffs",
+            goalieId: "goalie-1",
+            name: "Roster Goalie",
+            games: 2,
+          },
+        ]);
+
+        const req = createRequest({
+          method: "GET",
+          url: "/leaderboard/transactions",
+        });
+        const res = createResponse();
+
+        await getTransactionsLeaderboard(
+          asRouteReq<TransactionsRouteReq>(req),
+          res,
+        );
+
+        const body = getJsonBody<Array<Record<string, unknown>>>(res);
+        const colorado = body.find((entry) => entry.teamId === "1");
+
+        expect(res.statusCode).toBe(HTTP_STATUS.OK);
+        expect(res.getHeader("x-stats-data-source")).toBe("db");
+        expect(colorado).toEqual(
+          expect.objectContaining({
+            teamId: "1",
+            teamName: "Colorado Avalanche",
+            claims: 0,
+            drops: 0,
+            trades: 0,
+            players: 2,
+            goalies: 1,
+            tieRank: false,
+          }),
+        );
+        expect(colorado?.seasons).toEqual([
+          {
+            season: 2024,
+            claims: 0,
+            drops: 0,
+            trades: 0,
+            players: 2,
+            goalies: 1,
+          },
+        ]);
+        expectArraySchema("TransactionLeaderboardEntry", body);
       } finally {
         await db.cleanup();
       }
@@ -537,12 +728,16 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
             claims: 77,
             drops: 70,
             trades: 15,
+            players: 140,
+            goalies: 18,
             seasons: [
               {
                 season: 2025,
                 claims: 12,
                 drops: 11,
                 trades: 3,
+                players: 21,
+                goalies: 3,
               },
             ],
             tieRank: false,
@@ -620,6 +815,8 @@ export const registerLeaderboardRouteIntegrationTests = (): void => {
               claims: 1,
               drops: 0,
               trades: 0,
+              players: 0,
+              goalies: 0,
             }),
           ]),
         );

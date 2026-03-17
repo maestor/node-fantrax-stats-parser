@@ -244,12 +244,16 @@ describe("db/queries", () => {
             claims: 100,
             drops: 95,
             trades: 20,
+            players: 140,
+            goalies: 18,
           },
           {
             team_id: "4",
             claims: 99,
             drops: 80,
             trades: 20,
+            players: 133,
+            goalies: 16,
           },
         ];
 
@@ -266,18 +270,28 @@ describe("db/queries", () => {
         expect(mockExecute).toHaveBeenCalledWith(
           expect.stringContaining("SELECT DISTINCT"),
         );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("COUNT(DISTINCT player_id)"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("COUNT(DISTINCT goalie_id)"),
+        );
         expect(result).toEqual([
           {
             teamId: "1",
             claims: 100,
             drops: 95,
             trades: 20,
+            players: 140,
+            goalies: 18,
           },
           {
             teamId: "4",
             claims: 99,
             drops: 80,
             trades: 20,
+            players: 133,
+            goalies: 16,
           },
         ]);
       });
@@ -300,6 +314,8 @@ describe("db/queries", () => {
             claims: 12,
             drops: 11,
             trades: 4,
+            players: 30,
+            goalies: 4,
           },
         ];
 
@@ -317,6 +333,8 @@ describe("db/queries", () => {
             claims: 12,
             drops: 11,
             trades: 4,
+            players: 30,
+            goalies: 4,
           },
         ]);
       });

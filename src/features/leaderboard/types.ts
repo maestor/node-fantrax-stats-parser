@@ -63,6 +63,8 @@ export type TransactionLeaderboardSeason = {
   claims: number;
   drops: number;
   trades: number;
+  players: number;
+  goalies: number;
 };
 
 export type TransactionLeaderboardEntry = {
@@ -71,6 +73,8 @@ export type TransactionLeaderboardEntry = {
   claims: number;
   drops: number;
   trades: number;
+  players: number;
+  goalies: number;
   seasons: TransactionLeaderboardSeason[];
   tieRank: boolean;
 };
