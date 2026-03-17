@@ -69,12 +69,26 @@ const parseNameAndFantraxId = (
 
 type MapCsvOptions = {
   includeZeroGames?: boolean;
+  excludeStatusDashZeroGames?: boolean;
 };
 
 const isHeaderRow = (item: RawData): boolean => {
   return (
     item[CSV.SKATER_TYPE] === "ID" ||
     getShiftedField(item, CSV.SKATER_TYPE) === "Pos"
+  );
+};
+
+const shouldExcludeStatusDashZeroGameRow = (
+  item: RawData,
+  games: string,
+  options: MapCsvOptions,
+): boolean => {
+  return (
+    options.excludeStatusDashZeroGames === true &&
+    getShiftedField(item, CSV.STATUS) === "-" &&
+    games.trim() !== "" &&
+    parseNumber(games) === 0
   );
 };
 
@@ -91,6 +105,10 @@ export const mapPlayerData = (
       const games = getShiftedField(item, CSV.PLAYER_GAMES);
 
       if (name === "" || skaterType === "G") {
+        return false;
+      }
+
+      if (shouldExcludeStatusDashZeroGameRow(item, games, options)) {
         return false;
       }
 
@@ -265,6 +283,10 @@ export const mapGoalieData = (
       const wins = getShiftedField(item, CSV.GOALIE_GAMES_OR_WINS_OLD);
 
       if (name === "" || skaterType !== "G") {
+        return false;
+      }
+
+      if (shouldExcludeStatusDashZeroGameRow(item, games, options)) {
         return false;
       }
 

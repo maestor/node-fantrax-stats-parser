@@ -1,3 +1,5 @@
+import { TEAMS } from "../src/config";
+
 export const SNAPSHOT_GENERATION_SCOPES = [
   "all",
   "career",
@@ -30,6 +32,7 @@ export type SnapshotStatsReportType =
 export type SnapshotGenerationConfig = {
   scopes: ExplicitSnapshotGenerationScope[];
   statsReportTypes: SnapshotStatsReportType[];
+  statsTeamIds: string[] | null;
   isFullGeneration: boolean;
 };
 
@@ -48,6 +51,40 @@ const parseScopeTokens = (args: readonly string[]): string[] =>
     .flatMap((arg) => arg.slice("--scope=".length).split(","))
     .map((value) => value.trim())
     .filter(Boolean);
+
+const parseTeamIdTokens = (args: readonly string[]): string[] =>
+  args
+    .filter((arg) => arg.startsWith("--team-id="))
+    .flatMap((arg) => arg.slice("--team-id=".length).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+const normalizeStatsTeamIds = (teamIds: readonly string[]): string[] => {
+  const selected = new Set(teamIds);
+  return TEAMS.map((team) => team.id).filter((teamId) => selected.has(teamId));
+};
+
+export const resolveSnapshotStatsTeamIds = (
+  args: readonly string[],
+): string[] | null => {
+  const rawTeamIds = parseTeamIdTokens(args);
+
+  if (rawTeamIds.length === 0) {
+    return null;
+  }
+
+  const uniqueTeamIds = new Set(rawTeamIds);
+  const validTeamIds = new Set(TEAMS.map((team) => team.id));
+  const invalidTeamId = [...uniqueTeamIds].find((teamId) => !validTeamIds.has(teamId));
+
+  if (invalidTeamId) {
+    throw new Error(
+      `Invalid --team-id value: ${invalidTeamId}. Valid values: ${TEAMS.map((team) => team.id).join(", ")}.`,
+    );
+  }
+
+  return normalizeStatsTeamIds([...uniqueTeamIds]);
+};
 
 export const resolveSnapshotStatsReportTypes = (
   rawValue?: string | null,
@@ -82,6 +119,7 @@ export const resolveSnapshotGenerationConfig = (
   const reportTypeArgs = args.filter((arg) =>
     arg.startsWith("--report-type="),
   );
+  const statsTeamIds = resolveSnapshotStatsTeamIds(args);
 
   if (reportTypeArgs.length > 1) {
     throw new Error("Use at most one --report-type value.");
@@ -95,8 +133,10 @@ export const resolveSnapshotGenerationConfig = (
     return {
       scopes: [...EXPLICIT_SNAPSHOT_GENERATION_SCOPES],
       statsReportTypes,
+      statsTeamIds,
       isFullGeneration:
-        statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length,
+        statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length &&
+        statsTeamIds === null,
     };
   }
 
@@ -126,8 +166,10 @@ export const resolveSnapshotGenerationConfig = (
   return {
     scopes,
     statsReportTypes,
+    statsTeamIds,
     isFullGeneration:
       scopes.length === EXPLICIT_SNAPSHOT_GENERATION_SCOPES.length &&
-      statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length,
+      statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length &&
+      statsTeamIds === null,
   };
 };

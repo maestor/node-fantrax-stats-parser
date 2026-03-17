@@ -343,7 +343,7 @@ ID behavior:
   - `id` for goalies
 - The import pipeline expects Fantrax's leading `ID` column to be preserved.
 - Rows with a missing Fantrax ID are skipped during DB import and reported after the import completes; the rest of the file still imports.
-- Rows with `0` games are imported into the database, but player/goalie API responses currently filter them out.
+- Rows with `0` games are imported into the database, except playoff placeholder rows with `Status "-"` and `0` GP, which are skipped during DB import; player/goalie API responses still filter the remaining `0`-game rows out.
 
 ### Import files from `csv/temp`
 
@@ -596,7 +596,7 @@ Behavior:
 
 - `db:import:stats` refreshes `import_metadata.last_modified` and then runs `npm run snapshot:generate -- --scope=stats`
 - `db:import:stats -- --report-type=regular` regenerates `regular` and `both` combined player/goalie snapshots
-- `db:import:stats -- --report-type=playoffs` regenerates `playoffs` and `both` combined player/goalie snapshots
+- `db:import:stats -- --report-type=playoffs` regenerates `playoffs` and `both` combined player/goalie snapshots only for teams whose playoff CSVs were imported
 - `db:import:playoff-results` refreshes only `/leaderboard/playoffs`
 - `db:import:regular-results` refreshes only `/leaderboard/regular`
 - `db:import:transactions` refreshes `import_metadata.last_modified` and then refreshes only `/leaderboard/transactions`
@@ -614,6 +614,7 @@ Manual generation:
 ```bash
 npm run snapshot:generate
 npm run snapshot:generate -- --scope=stats --report-type=regular
+npm run snapshot:generate -- --scope=stats --report-type=playoffs --team-id=1 --team-id=12
 npm run snapshot:generate -- --scope=career --scope=career-highlights
 npm run snapshot:generate -- --scope=transactions
 ```

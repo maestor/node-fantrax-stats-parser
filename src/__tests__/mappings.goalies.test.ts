@@ -200,6 +200,37 @@ describe("mappings", () => {
         expect(result[0].wins).toBe(0);
       });
 
+      test('excludes Status "-" goalies with 0 games when configured', () => {
+        const zeroGoalie = {
+          ...mockRawDataGoalie2014,
+          field6: "-",
+          field8: "0",
+          field9: "0",
+        };
+        const result = mapGoalieData([mockRawDataFirstRow, zeroGoalie], {
+          includeZeroGames: true,
+          excludeStatusDashZeroGames: true,
+        });
+
+        expect(result).toHaveLength(0);
+      });
+
+      test('keeps zero-game goalies with a non-dash status when the placeholder filter is enabled', () => {
+        const zeroGoalie = {
+          ...mockRawDataGoalie2014,
+          field6: "Min",
+          field8: "0",
+          field9: "0",
+        };
+        const result = mapGoalieData([mockRawDataFirstRow, zeroGoalie], {
+          includeZeroGames: true,
+          excludeStatusDashZeroGames: true,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].games).toBe(0);
+      });
+
       test("excludes later goalie header rows when includeZeroGames is true", () => {
         const secondHeaderRow = {
           ...mockRawDataFirstRow,

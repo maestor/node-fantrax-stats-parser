@@ -128,7 +128,7 @@ npm run verify
   - `id` for goalies
 - The import pipeline expects Fantrax's leading `ID` column to be preserved.
 - Rows with a missing Fantrax ID are skipped during DB import and reported after the import completes; the rest of the file still imports.
-- Rows with `0` games are imported into the database, but player/goalie API queries currently filter them out.
+- Rows with `0` games are imported into the database, except playoff placeholder rows with `Status "-"` and `0` GP, which are skipped during DB import; player/goalie API queries still filter the remaining `0`-game rows out.
 
 ### Database (Turso/SQLite)
 
@@ -148,7 +148,7 @@ npm run verify
 - `npm run db:import:transactions` - Incrementally import current-season transaction rows from `csv/transactions/` into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Updates `import_metadata.last_modified` and refreshes only the transactions snapshot. Supports `--full`, `--all`, `--season=YYYY`, `--current-only`, `--dry-run`, and `--dir=/custom/path`.
 - `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso). Regenerates only the playoff leaderboard snapshot after a successful import.
 - `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso. Regenerates only the regular leaderboard snapshot after a successful import.
-- `npm run snapshot:generate` - Generate JSON snapshots into `generated/snapshots/`. Supports `--scope=transactions|leaderboard-regular|leaderboard-playoffs|stats|career|career-highlights|all`; if `stats` is included, `--report-type=regular|playoffs|both|all` limits which combined report snapshots are rebuilt. If `USE_R2_SNAPSHOTS=true`, uploads each generated JSON payload to the configured snapshot bucket/prefix, adds `generated-at` metadata, uploads `manifest.json` last, retries transient R2/TLS failures with exponential backoff, and logs successful uploads with progress counters.
+- `npm run snapshot:generate` - Generate JSON snapshots into `generated/snapshots/`. Supports `--scope=transactions|leaderboard-regular|leaderboard-playoffs|stats|career|career-highlights|all`; if `stats` is included, `--report-type=regular|playoffs|both|all` limits which combined report snapshots are rebuilt and repeated `--team-id=<id>` flags can narrow stats regeneration to specific fantasy teams. If `USE_R2_SNAPSHOTS=true`, uploads each generated JSON payload to the configured snapshot bucket/prefix, adds `generated-at` metadata, uploads `manifest.json` last, retries transient R2/TLS failures with exponential backoff, and logs successful uploads with progress counters.
 - Snapshot-backed routes expose `x-stats-data-source: snapshot|db` so you can inspect whether a successful response came from a snapshot or a live DB path.
 
 ### R2 Storage (CSV backup + optional API snapshots)

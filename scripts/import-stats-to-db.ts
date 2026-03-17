@@ -79,6 +79,7 @@ const main = async () => {
   let skippedGoaliesMissingId = 0;
   let totalFantraxEntitiesSynced = 0;
   const missingIdMessages: string[] = [];
+  const snapshotTeamIds = new Set<string>();
 
   for (const team of TEAMS) {
     const teamDir = path.join(csvDir, team.id);
@@ -132,9 +133,11 @@ const main = async () => {
 
         const players = mapPlayerData(dataWithSeason, {
           includeZeroGames: true,
+          excludeStatusDashZeroGames: reportType === "playoffs",
         });
         const goalies = mapGoalieData(dataWithSeason, {
           includeZeroGames: true,
+          excludeStatusDashZeroGames: reportType === "playoffs",
         });
         const playersMissingId = players.filter((p) => !p.id).length;
         const goaliesMissingId = goalies.filter((g) => !g.id).length;
@@ -235,6 +238,7 @@ const main = async () => {
         totalGoalies += goaliesToImport.length;
         totalFantraxEntitiesSynced += fantraxEntities.length;
         totalFiles++;
+        snapshotTeamIds.add(team.id);
       } catch (error) {
         console.error(`  ❌ Error importing ${file}:`, error);
         errors++;
@@ -262,6 +266,11 @@ const main = async () => {
     ];
     if (reportTypeFilter !== null) {
       snapshotArgs.push(`--report-type=${reportTypeFilter}`);
+    }
+    for (const teamId of TEAMS
+      .map((team) => team.id)
+      .filter((teamId) => snapshotTeamIds.has(teamId))) {
+      snapshotArgs.push(`--team-id=${teamId}`);
     }
     const snapshotRun = spawnSync("npm", snapshotArgs, {
       stdio: "inherit",
