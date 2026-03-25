@@ -37,6 +37,10 @@ import {
   type GoalieCareerRow,
   type PlayerCareerRow,
 } from "../../db/queries";
+import {
+  formatOptionalGoalieGaa,
+  formatOptionalGoalieSavePercent,
+} from "../../shared/goalie-rates";
 
 type CareerScope = "career" | CsvReport;
 
@@ -165,9 +169,6 @@ const createNotFoundError = (message: string): CareerNotFoundError =>
     body: message,
   });
 
-const mapOptionalGoalieRate = (value: number | null): string | undefined =>
-  value != null && value !== 0 ? String(value) : undefined;
-
 const requirePlayerPosition = (value: string | null | undefined): string => {
   if (value === null || value === undefined || value === "") {
     throw new Error("Player position missing");
@@ -218,8 +219,8 @@ const mapGoalieCareerSeasonRows = (
       penalties: row.penalties,
       ppp: row.ppp,
       shp: row.shp,
-      gaa: mapOptionalGoalieRate(row.gaa),
-      savePercent: mapOptionalGoalieRate(row.save_percent),
+      gaa: formatOptionalGoalieGaa(row.gaa, row.games),
+      savePercent: formatOptionalGoalieSavePercent(row.save_percent, row.games),
     })),
   );
 

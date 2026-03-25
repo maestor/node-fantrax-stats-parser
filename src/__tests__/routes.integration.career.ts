@@ -456,8 +456,8 @@ export const registerCareerRouteIntegrationTests = (): void => {
             shutouts: 2,
             assists: 1,
             points: 1,
-            gaa: 2.15,
-            savePercent: 0.918,
+            gaa: 1.2,
+            savePercent: 0.9,
           },
           {
             teamId: "19",
@@ -496,6 +496,16 @@ export const registerCareerRouteIntegrationTests = (): void => {
         expect(totals.career.wins).toBe(10);
         expect(totals.regular.games).toBe(12);
         expect(totals.playoffs.games).toBe(4);
+        expect(body.seasons).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              season: 2024,
+              reportType: "regular",
+              gaa: "1.20",
+              savePercent: "0.900",
+            }),
+          ]),
+        );
         expectObjectSchema("CareerGoalie", body);
       } finally {
         await db.cleanup();

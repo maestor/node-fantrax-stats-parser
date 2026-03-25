@@ -118,7 +118,7 @@ describe("db/queries", () => {
     });
 
     describe("getGoaliesFromDb", () => {
-      test("returns mapped GoalieWithSeason array with gaa/savePercent as strings", async () => {
+      test("returns mapped GoalieWithSeason array with fixed goalie rate precision", async () => {
         const rows = [
           {
             goalie_id: "g001",
@@ -152,8 +152,8 @@ describe("db/queries", () => {
             penalties: 15,
             ppp: 2,
             shp: 1,
-            gaa: "2.3",
-            savePercent: "0.92",
+            gaa: "2.30",
+            savePercent: "0.920",
             score: 0,
             scoreAdjustedByGames: 0,
             season: 2024,
@@ -201,6 +201,35 @@ describe("db/queries", () => {
 
         const result = await getGoaliesFromDb("1", 2024, "regular");
         expect(result[0].id).toBe("g007");
+      });
+
+      test("preserves played zero goalie rates with padded decimals", async () => {
+        mockExecute.mockResolvedValue({
+          rows: [
+            {
+              goalie_id: "g000",
+              name: "Zero Rate Goalie",
+              games: 3,
+              wins: 1,
+              saves: 0,
+              shutouts: 1,
+              goals: 0,
+              assists: 0,
+              points: 0,
+              penalties: 0,
+              ppp: 0,
+              shp: 0,
+              gaa: 0,
+              save_percent: 0,
+              season: 2024,
+            },
+          ],
+        });
+
+        const result = await getGoaliesFromDb("1", 2024, "regular");
+
+        expect(result[0].gaa).toBe("0.00");
+        expect(result[0].savePercent).toBe("0.000");
       });
 
       test("returns empty array when no rows", async () => {

@@ -36,6 +36,7 @@ The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app
 The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
 `/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
 Leaderboard routes are `/leaderboard/regular`, `/leaderboard/playoffs`, and `/leaderboard/transactions`.
+When present in goalie payloads, `gaa` is returned as a string with two decimals and `savePercent` as a string with three decimals, so trailing zeros are preserved for clients. Played zero values are returned as `0.00` / `0.000`; only non-played placeholder zero rates stay omitted.
 The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, `regular-grinder-without-playoffs`, `most-trades`, `most-claims`, and `most-drops`.
 Each career highlight page also includes `minAllowed`, the backend threshold used for that highlight leaderboard.
 `reunion-king` items include a `reunions` array of `{ date, type }` entries, where `type` is `claim` or `trade`.
