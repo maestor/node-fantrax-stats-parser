@@ -15,10 +15,6 @@ type RouteData = {
 };
 
 const microCors = require("micro-cors") as CorsFactory;
-const importRou3 = new Function(
-  "specifier",
-  "return import(specifier);",
-) as (specifier: string) => Promise<RouterModule>;
 
 const cors = microCors();
 
@@ -47,7 +43,7 @@ export const createApp = async (
   routes: readonly RouteDefinition[],
 ): Promise<RequestHandler> => {
   const { addRoute, createRouter, findRoute } =
-    await importRou3("rou3");
+    (await import("rou3")) as RouterModule;
   const router = createRouter<RouteData>();
 
   for (const route of routes) {
