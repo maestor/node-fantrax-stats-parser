@@ -4,7 +4,7 @@
 
 - **Node.js**: 24.x or later (uses native fetch, stable WebSocket support)
 - **npm**: 10.x or later
-- **TypeScript**: 5.9+ (via devDependencies)
+- **TypeScript**: 5.9+ (via devDependencies). The repo now uses `module: nodenext` so ESM-only dependencies such as `rou3` can be adopted without converting the whole package to ESM at once.
 
 ---
 

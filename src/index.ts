@@ -1,9 +1,9 @@
 import type { RequestHandler } from "micro";
 import { send } from "micro";
-import { router, get, AugmentedRequestHandler } from "microrouter";
-const cors = require("micro-cors")();
 
 import { withApiKeyAuth } from "./auth";
+import { createApp } from "./router";
+import { get, type RouteDefinition, type RouteHandler } from "./shared/router";
 
 import {
   getPlayersCombined,
@@ -32,13 +32,13 @@ import { getOpenApiSpec, getSwaggerUi } from "./openapi";
 import { HTTP_STATUS } from "./shared/http";
 import { sendNoStore } from "./shared/route-utils";
 
-const service: RequestHandler = async (_req, res) => {
+const service: RouteHandler = async (_req, res) => {
   send(res, 200, "Hello there! The FFHL Stats Service is running.");
 };
 
-const notFound: RequestHandler = (_req, res) => send(res, 404, "Route not exists");
+const notFound: RouteHandler = (_req, res) => send(res, 404, "Route not exists");
 
-export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
+export const getHealthcheck: RouteHandler = async (_req, res) => {
   sendNoStore(res, HTTP_STATUS.OK, {
     status: "ok",
     uptimeSeconds: process.uptime(),
@@ -46,37 +46,43 @@ export const getHealthcheck: AugmentedRequestHandler = async (_req, res) => {
   });
 };
 
-// Generic wrapper: keep the handler's original (microrouter) request type.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const protectedRoute = <H extends (req: any, res: any) => any>(handler: H): H => withApiKeyAuth(handler);
+const protectedRoute = <H extends (...args: never[]) => unknown>(handler: H): H =>
+  withApiKeyAuth(handler as never) as H;
 
-const app = cors(
-  router(
-    get("/", service),
-    get("/healthcheck", getHealthcheck),
-    get("/health", getHealthcheck),
-    get("/last-modified", protectedRoute(getLastModified)),
-    get("/teams", protectedRoute(getTeams)),
-    get("/seasons", protectedRoute(getSeasons)),
-    get("/seasons/:reportType", protectedRoute(getSeasons)),
-    get("/players/season/:reportType/:season", protectedRoute(getPlayersSeason)),
-    get("/players/season/:reportType", protectedRoute(getPlayersSeason)),
-    get("/players/combined/:reportType", protectedRoute(getPlayersCombined)),
-    get("/goalies/season/:reportType/:season", protectedRoute(getGoaliesSeason)),
-    get("/goalies/season/:reportType", protectedRoute(getGoaliesSeason)),
-    get("/goalies/combined/:reportType", protectedRoute(getGoaliesCombined)),
-    get("/career/players", protectedRoute(getCareerPlayers)),
-    get("/career/goalies", protectedRoute(getCareerGoalies)),
-    get("/career/highlights/:type", protectedRoute(getCareerHighlights)),
-    get("/career/player/:id", protectedRoute(getCareerPlayer)),
-    get("/career/goalie/:id", protectedRoute(getCareerGoalie)),
-    get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
-    get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
-    get("/leaderboard/transactions", protectedRoute(getTransactionsLeaderboard)),
-    get("/openapi.json", getOpenApiSpec),
-    get("/api-docs", getSwaggerUi),
-    get("/*", notFound)
-  )
-);
+const routes = [
+  get("/", service),
+  get("/healthcheck", getHealthcheck),
+  get("/health", getHealthcheck),
+  get("/last-modified", protectedRoute(getLastModified)),
+  get("/teams", protectedRoute(getTeams)),
+  get("/seasons", protectedRoute(getSeasons)),
+  get("/seasons/:reportType", protectedRoute(getSeasons)),
+  get("/players/season/:reportType/:season", protectedRoute(getPlayersSeason)),
+  get("/players/season/:reportType", protectedRoute(getPlayersSeason)),
+  get("/players/combined/:reportType", protectedRoute(getPlayersCombined)),
+  get("/goalies/season/:reportType/:season", protectedRoute(getGoaliesSeason)),
+  get("/goalies/season/:reportType", protectedRoute(getGoaliesSeason)),
+  get("/goalies/combined/:reportType", protectedRoute(getGoaliesCombined)),
+  get("/career/players", protectedRoute(getCareerPlayers)),
+  get("/career/goalies", protectedRoute(getCareerGoalies)),
+  get("/career/highlights/:type", protectedRoute(getCareerHighlights)),
+  get("/career/player/:id", protectedRoute(getCareerPlayer)),
+  get("/career/goalie/:id", protectedRoute(getCareerGoalie)),
+  get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
+  get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
+  get("/leaderboard/transactions", protectedRoute(getTransactionsLeaderboard)),
+  get("/openapi.json", getOpenApiSpec),
+  get("/api-docs", getSwaggerUi),
+  get("/*", notFound),
+] satisfies ReadonlyArray<RouteDefinition>;
+
+let appPromise: Promise<RequestHandler> | undefined;
+
+const getApp = (): Promise<RequestHandler> => {
+  appPromise ??= createApp(routes);
+  return appPromise;
+};
+
+const app: RequestHandler = async (req, res) => (await getApp())(req, res);
 
 module.exports = Object.assign(app, { getHealthcheck });

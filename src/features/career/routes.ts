@@ -1,4 +1,4 @@
-import { AugmentedRequestHandler } from "microrouter";
+import type { RouteHandler } from "../../shared/router";
 import {
   getCareerGoaliesData,
   getCareerHighlightsData,
@@ -42,21 +42,21 @@ const parsePagingParam = (
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
-export const getCareerPlayer: AugmentedRequestHandler = async (req, res) => {
+export const getCareerPlayer: RouteHandler<{ id: string }> = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => ({
     data: await getPlayerCareerData(req.params.id),
     dataSource: "db",
   }));
 };
 
-export const getCareerGoalie: AugmentedRequestHandler = async (req, res) => {
+export const getCareerGoalie: RouteHandler<{ id: string }> = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => ({
     data: await getGoalieCareerData(req.params.id),
     dataSource: "db",
   }));
 };
 
-export const getCareerPlayers: AugmentedRequestHandler = async (req, res) => {
+export const getCareerPlayers: RouteHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, () =>
     loadSnapshotOrFallback(getCareerPlayersSnapshotKey(), () =>
       getCareerPlayersData(),
@@ -64,7 +64,7 @@ export const getCareerPlayers: AugmentedRequestHandler = async (req, res) => {
   );
 };
 
-export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
+export const getCareerGoalies: RouteHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, () =>
     loadSnapshotOrFallback(getCareerGoaliesSnapshotKey(), () =>
       getCareerGoaliesData(),
@@ -72,7 +72,10 @@ export const getCareerGoalies: AugmentedRequestHandler = async (req, res) => {
   );
 };
 
-export const getCareerHighlights: AugmentedRequestHandler = async (req, res) => {
+export const getCareerHighlights: RouteHandler<{ type: string }> = async (
+  req,
+  res,
+) => {
   const rawType = req.params.type;
   if (!isCareerHighlightType(rawType)) {
     sendNoStore(

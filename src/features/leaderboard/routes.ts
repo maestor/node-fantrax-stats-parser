@@ -1,4 +1,4 @@
-import { AugmentedRequestHandler } from "microrouter";
+import type { RouteHandler } from "../../shared/router";
 import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
@@ -14,7 +14,7 @@ import {
   withErrorHandlingCached,
 } from "../../shared/route-utils";
 
-export const getPlayoffsLeaderboard: AugmentedRequestHandler = async (
+export const getPlayoffsLeaderboard: RouteHandler = async (
   req,
   res,
 ) => {
@@ -25,7 +25,7 @@ export const getPlayoffsLeaderboard: AugmentedRequestHandler = async (
   );
 };
 
-export const getRegularLeaderboard: AugmentedRequestHandler = async (
+export const getRegularLeaderboard: RouteHandler = async (
   req,
   res,
 ) => {
@@ -36,7 +36,7 @@ export const getRegularLeaderboard: AugmentedRequestHandler = async (
   );
 };
 
-export const getTransactionsLeaderboard: AugmentedRequestHandler = async (
+export const getTransactionsLeaderboard: RouteHandler = async (
   req,
   res,
 ) => {

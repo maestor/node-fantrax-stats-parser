@@ -1,4 +1,4 @@
-import { AugmentedRequestHandler } from "microrouter";
+import type { RouteHandler } from "../../shared/router";
 import {
   getGoaliesStatsCombined,
   getGoaliesStatsSeason,
@@ -24,7 +24,7 @@ import {
 } from "../../shared/route-utils";
 import type { Report } from "../../shared/types";
 
-export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
+export const getPlayersSeason: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
@@ -52,7 +52,7 @@ export const getPlayersSeason: AugmentedRequestHandler = async (req, res) => {
   }));
 };
 
-export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
+export const getPlayersCombined: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
@@ -76,7 +76,7 @@ export const getPlayersCombined: AugmentedRequestHandler = async (req, res) => {
   );
 };
 
-export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
+export const getGoaliesSeason: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const season = parseSeasonParam(req.params.season);
   if (!reportTypeAvailable(req.params.reportType as Report)) {
@@ -104,7 +104,7 @@ export const getGoaliesSeason: AugmentedRequestHandler = async (req, res) => {
   }));
 };
 
-export const getGoaliesCombined: AugmentedRequestHandler = async (req, res) => {
+export const getGoaliesCombined: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
   if (!reportTypeAvailable(req.params.reportType as Report)) {
