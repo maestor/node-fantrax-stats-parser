@@ -114,6 +114,91 @@ Choose one of these approaches:
 
 Use a local shim first. It is the smallest change with the lowest runtime risk.
 
+### 3a. Best lightweight `microrouter` replacement options
+
+If we decide that patching around `microrouter` is not enough, the replacement should stay small, Node-friendly, and easy to maintain.
+
+#### What this backend actually needs
+
+- direct compatibility with Node `IncomingMessage` / `ServerResponse`
+- path params like `:id` and a simple catch-all / fallback route
+- low dependency weight
+- built-in TypeScript support or very small typing surface
+- a maintainer story that looks healthier than the current `microrouter` + `url-pattern` setup
+
+#### Option 1: `find-my-way` (best default replacement)
+
+**Why it is attractive**
+
+- actively maintained
+- built-in TypeScript declarations
+- designed for plain Node HTTP servers
+- framework independent
+- battle-tested through real production usage in the Fastify ecosystem
+- supports params, wildcards, and a straightforward default route
+
+**Tradeoffs**
+
+- more capable than this project strictly needs
+- a slightly larger API surface than tiny micro-routers
+
+**Why it fits this repo**
+
+This is the best option if we want a small but serious router without changing the backend architecture much. It works naturally with the current Node request/response model and should be easier to trust long-term than `microrouter`.
+
+#### Option 2: `rou3` (best tiny modern option)
+
+**Why it is attractive**
+
+- very small
+- zero dependencies
+- built-in TypeScript declarations
+- actively maintained
+- simple route insertion and matching API
+
+**Tradeoffs**
+
+- more low-level than `find-my-way`
+- we would probably want a thin in-repo adapter to preserve the current handler shape
+
+**Why it fits this repo**
+
+This is a strong option if we want the dependency surface to stay minimal and are comfortable owning a tiny wrapper around route matching ourselves.
+
+#### Option 3: `trouter` (acceptable, but less compelling)
+
+**Why it is attractive**
+
+- small and simple
+- built-in TypeScript declarations
+- familiar route declaration API
+
+**Tradeoffs**
+
+- looks less actively maintained than the top two options
+- not as naturally centered on plain Node request/response lookup as `find-my-way`
+
+**Why it fits this repo**
+
+It could work, but it is harder to justify over `find-my-way` or `rou3` unless we strongly prefer its API style.
+
+#### Not a top fit: `itty-router`
+
+`itty-router` is small and maintained, but it is much more fetch/serverless-oriented. For this backend, that means extra adaptation work without a clear payoff, so it is not a first-choice replacement.
+
+#### Replacement recommendation
+
+If we replace `microrouter`, the order of preference should be:
+
+1. `find-my-way` if we want the safest small maintained router with direct Node compatibility
+2. `rou3` if we want the lightest modern option and are happy to own a tiny adapter layer
+3. `trouter` only if we decide its API shape is a better fit than its maintenance profile suggests
+
+For the TS 6 upgrade specifically, replacing the router is still a larger move than adding a local type shim. The most conservative path is:
+
+1. use a local shim to get unblocked on TS 6
+2. only then evaluate whether a router replacement is still worth doing
+
 ### 4. Reevaluate `typescript-eslint`
 
 The currently installed `typescript-eslint` package advertises a peer range of:
