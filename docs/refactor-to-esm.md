@@ -1,9 +1,9 @@
 # Incremental CommonJS-to-ESM Refactor Plan
 
-**Status:** In progress
+**Status:** Package-level ESM landed locally
 **Date:** 2026-03-25
 **Branch:** `refactor/commonjs-to-esm`
-**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.cts` is now the explicit CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers, the source tree now uses explicit ESM-ready relative specifiers, and the dependency cleanup has progressed by moving Playwright to `devDependencies` and replacing `csvtojson` with a local `csv-parse` wrapper for script imports. `@types/express` is still retained because `node-mocks-http` pulls it into TypeScript checks.
+**Progress:** Canonical app entrypoint lives in `src/app.ts`, `src/index.ts` is back as the ESM package entrypoint, and `package.json` now runs as `"type": "module"`. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers, the source tree uses explicit ESM-ready relative specifiers, script-side CSV import now uses a local `csv-parse` wrapper, and Jest remains stable through `jest.config.cjs`, `tsconfig.test.json`, and a small test-only `rou3` shim. `@types/express` is still retained because `node-mocks-http` pulls it into TypeScript checks.
 
 ## Goals
 
@@ -126,7 +126,7 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** land the largest mechanical changes before the package-level runtime flip.
 
-**Progress note (2026-03-25):** done for the current slice. Relative imports now use explicit runtime specifiers, and the old `src/index.ts` CommonJS wrapper has been isolated as `src/index.cts` with `package.json.main` pointing to `lib/index.cjs`.
+**Progress note (2026-03-25):** done for the current slice. Relative imports now use explicit runtime specifiers, and the temporary CommonJS wrapper was isolated before the final package flip restored `src/index.ts` as the ESM entrypoint.
 
 **Tasks**
 
@@ -146,7 +146,7 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** make ESM the real runtime target only after the codebase already looks ESM-native.
 
-**Progress note (2026-03-25):** prep work is underway. The OpenAPI runtime/tests no longer depend on `__dirname`, and the Jest config rename remains coupled to the actual package flip because doing it in isolation changed the current test-runner behavior.
+**Progress note (2026-03-25):** done for the runtime flip slice. `package.json` is now `"type": "module"`, the package entrypoint is `lib/index.js`, `jest.config.cjs` is the dedicated CommonJS config island, OpenAPI no longer depends on `__dirname`, and full local verification passes. The remaining follow-up is a Vercel preview check plus any future decision on whether Jest should eventually be replaced.
 
 **Tasks**
 
@@ -193,7 +193,7 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** remove now-redundant dev-only process glue after ESM is stable.
 
-**Progress note (2026-03-25):** in progress. The local dev loop has been simplified to `tsx watch src/server.ts`, and the old `concurrently` + `nodemon` chain is being removed.
+**Progress note (2026-03-25):** done. The local dev loop now uses `tsx watch src/server.ts`, and the old `concurrently` + `nodemon` chain has been removed.
 
 **Tasks**
 

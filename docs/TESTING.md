@@ -24,7 +24,7 @@ All new code **must maintain 100% test coverage:**
 - **ts-jest** - TypeScript transformation
 - **node-mocks-http** - HTTP request/response mocking
 - **Temporary SQLite/libSQL file DBs** - Route/service/query integration coverage without production snapshots or mocked DB queries
-- Jest runs through `NODE_OPTIONS=--experimental-vm-modules` so the suite can execute the current hybrid CommonJS + ESM-only dependency setup.
+- Jest runs through `NODE_OPTIONS=--experimental-vm-modules` with [`jest.config.cjs`](../jest.config.cjs), while `tsconfig.test.json` keeps the mock-heavy suite stable under the package-level ESM runtime.
 
 ---
 

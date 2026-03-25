@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   testMatch: ["**/__tests__/**/*.test.ts"],
+  setupFilesAfterEnv: ["<rootDir>/src/__tests__/jest.setup.ts"],
   collectCoverageFrom: [
     "src/**/*.ts",
     "!src/__tests__/**",
@@ -24,12 +25,16 @@ module.exports = {
   coverageDirectory: "coverage",
   moduleFileExtensions: ["ts", "js"],
   moduleNameMapper: {
+    "^rou3$": "<rootDir>/src/__tests__/rou3.mock.ts",
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
   verbose: true,
   transform: {
-    "^.+\\.ts$": [
-      "ts-jest"
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        tsconfig: "<rootDir>/tsconfig.test.json",
+      },
     ],
   },
 };
