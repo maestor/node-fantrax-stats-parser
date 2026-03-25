@@ -94,6 +94,7 @@ matched=0
 skipped=0
 IMPORTED_COUNT=0
 imported_source_files=()
+imported_team_ids=()
 
 for filepath in "${csv_files[@]}"; do
   filename="$(basename "$filepath")"
@@ -140,6 +141,7 @@ for filepath in "${csv_files[@]}"; do
       echo "Imported: $filename -> csv/${team_id}/$(basename "$dest_file") (teamName=${team_name})"
       IMPORTED_COUNT=$((IMPORTED_COUNT + 1))
       imported_source_files+=("$filepath")
+      imported_team_ids+=("$team_id")
     fi
   else
     skipped=$((skipped + 1))
@@ -151,6 +153,8 @@ done
 if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
   upload_args=(npm run r2:upload --)
   import_args=(npm run db:import:stats --)
+  unique_team_ids=()
+  seen_team_ids=" "
 
   if [[ -n "$SEASON_START_YEAR" ]]; then
     upload_args+=("--season=${SEASON_START_YEAR}")
@@ -160,6 +164,18 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
     upload_args+=("--report-type=${REPORT_TYPE_FILTER}")
     import_args+=("--report-type=${REPORT_TYPE_FILTER}")
   fi
+  for candidate_team_id in "${imported_team_ids[@]}"; do
+    if [[ "$seen_team_ids" == *" ${candidate_team_id} "* ]]; then
+      continue
+    fi
+
+    seen_team_ids="${seen_team_ids}${candidate_team_id} "
+    unique_team_ids+=("$candidate_team_id")
+    upload_args+=("--team-id=${candidate_team_id}")
+    import_args+=("--team-id=${candidate_team_id}")
+  done
+
+  echo "Scoped chained upload/import to team IDs: ${unique_team_ids[*]}"
 
   # Upload to R2 if enabled (CSV backup/download store)
   if [[ "${USE_R2_STORAGE:-false}" == "true" ]]; then

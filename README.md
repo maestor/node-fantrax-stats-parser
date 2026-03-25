@@ -241,16 +241,19 @@ Notes:
 
 - Requires the playoffs mapping file from step 2b (`fantrax-playoffs.json`).
 - Output directory defaults to `./csv/temp/`.
-- If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json`.
+- If `--year` is omitted, the importer defaults to the most recent season year in `fantrax-playoffs.json` and only downloads teams whose mapped playoff `endDate` is yesterday or later, so a team is still included for one local follow-up day after elimination.
+- If `--year=YYYY` is provided, the importer downloads all mapped playoff teams for that season unless `--remaining-teams` is also passed.
 - After downloading, the importer runs `npm run parseAndUploadCsv` automatically when output dir is `./csv/temp/`.
 - Set `RAW_UPLOAD=true` to make Playwright import run `parseAndUploadRawCsv` instead (uploads raw `csv/temp` files to `rawFiles/` in R2 and cleans temp files).
 - If `--year=YYYY` is provided, the post-import parse/upload/import pipeline is restricted to that same season only.
 - The post-import parse/upload/import pipeline is restricted to `playoffs` files only.
+- When the default `csv/temp` post-import pipeline runs, its chained R2 upload, DB import, and stats snapshot regeneration stay limited to the playoff team files imported from that run.
 - Filenames follow: `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`.
 
 Useful options:
 
 - `--year=2025` (override which season to download)
+- `--remaining-teams` (limit the selected season to teams whose mapped playoff `endDate` is yesterday or later, including a one-day local grace period after elimination)
 - `--headed` (default is headless)
 - `--slowmo=250` (slows down actions for debugging)
 - `--pause=500` (sleep between teams; default `250`)
@@ -363,6 +366,7 @@ It will:
 - Create `csv/<teamId>/` if it doesn't exist
 - Upload to R2 if `USE_R2_STORAGE=true` (CSV backup)
 - Import into database (`npm run db:import:stats`) and regenerate API snapshots
+- Restrict the chained R2 upload, DB import, and snapshot regeneration to the team IDs imported from this `csv/temp` run
 - Clean up temp files after successful DB import, unless `--keep-temp` is used
 - If `--season` is omitted, all matched seasons are uploaded/imported
 - If `--report-type` is omitted, `both` is the default and all matched report types are uploaded/imported
@@ -516,6 +520,7 @@ npm run r2:upload          # Upload all files
 npm run r2:upload:current  # Upload only current season
 npm run r2:upload -- --season=2018 # Upload only 2018-2019 files
 npm run r2:upload -- --report-type=regular # Upload only regular files
+npm run r2:upload -- --season=2025 --report-type=playoffs --team-id=1 --team-id=12 # Upload selected teams only
 npm run r2:upload:dry      # Preview without uploading
 ```
 
@@ -641,6 +646,7 @@ npm run db:import:stats         # Import all CSV files into local database
 npm run db:import:stats:current # Import only current season into local database
 npm run db:import:stats -- --season=2018 # Import only 2018-2019 into local DB
 npm run db:import:stats -- --report-type=playoffs # Import only playoffs
+npm run db:import:stats -- --season=2025 --report-type=playoffs --team-id=1 --team-id=12 # Import selected teams only
 npm run db:import:transactions  # Incrementally import current-season transaction rows
 npm run db:import:transactions -- --full
 npm run db:import:transactions -- --all
