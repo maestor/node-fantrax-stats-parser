@@ -817,6 +817,7 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). The package now runs as ESM (`"type": "module"`) with TypeScript's `module: nodenext` and `moduleResolution: nodenext`, and the source tree uses explicit runtime-safe relative specifiers throughout. HTTP request/response handling uses lightweight local Node HTTP helpers, route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling now uses a small in-repo wrapper instead of external middleware. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). Script-side CSV import now goes through a small local wrapper backed by [csv-parse](https://csv.js.org/parse/).
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
+- Upgrade to TypeScript 6.0 with the tracked plan in [docs/typescript-upgrading-plan.md](docs/typescript-upgrading-plan.md)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
 
 Feel free to suggest feature / implementation polishing with writing issue or make PR if you want to contribute!
