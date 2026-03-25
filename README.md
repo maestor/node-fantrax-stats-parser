@@ -66,6 +66,7 @@ The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code
 
 - [Testing Requirements](docs/TESTING.md)
 - [Development Guide](docs/DEVELOPMENT.md)
+- [Incremental ESM Refactor Plan](docs/refactor-to-esm.md)
 
 ## Testing
 
@@ -814,10 +815,11 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 ## Technology
 
-Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). HTTP request/response handling uses [micro](https://github.com/zeit/micro), route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling uses `micro-cors`. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files.
+Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). The repo already uses TypeScript's `module: nodenext` and `moduleResolution: nodenext`, but the package still emits CommonJS today while the runtime/tooling are migrated incrementally. HTTP request/response handling currently uses [micro](https://github.com/zeit/micro), route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling uses `micro-cors`. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files. The phased plan for moving the project to full ESM lives in [docs/refactor-to-esm.md](docs/refactor-to-esm.md).
 
 ## Future roadmap
 
+- Incrementally migrate the runtime and tooling from CommonJS to ESM using the phased plan in [docs/refactor-to-esm.md](docs/refactor-to-esm.md)
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further
