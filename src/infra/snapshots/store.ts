@@ -1,8 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import type { CareerHighlightType } from "../../features/career/types";
-import type { Report } from "../../shared/types/core";
+import type { CareerHighlightType } from "../../features/career/types.js";
+import type { Report } from "../../shared/types/core.js";
 
 const DEFAULT_SNAPSHOT_DIR = path.resolve(
   process.cwd(),

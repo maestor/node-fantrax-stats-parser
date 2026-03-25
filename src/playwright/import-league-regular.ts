@@ -2,7 +2,7 @@ import { chromium, type Browser } from "playwright";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 
-import { TEAMS } from "../config";
+import { TEAMS } from "../config/index.js";
 import {
   AUTH_STATE_PATH,
   buildRosterCsvFileName,
@@ -19,7 +19,7 @@ import {
   standingsNameCandidates,
   tryGetRosterTeamIdFromStandingsLink,
   type ImportLeagueRegularOptions,
-} from "./helpers";
+} from "./helpers.js";
 
 const main = async (): Promise<void> => {
   const options: ImportLeagueRegularOptions = parseImportLeagueRegularOptions(

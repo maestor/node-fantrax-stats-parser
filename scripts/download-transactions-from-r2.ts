@@ -8,11 +8,11 @@ import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
 
-import { CURRENT_SEASON } from "../src/config";
+import { CURRENT_SEASON } from "../src/config/index.js";
 import {
   DEFAULT_TRANSACTIONS_OUT_DIR,
   parseTransactionCsvFileName,
-} from "../src/features/transactions/files";
+} from "../src/features/transactions/files.js";
 
 type DownloadOptions = {
   currentOnly: boolean;

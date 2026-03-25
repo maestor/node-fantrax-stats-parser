@@ -5,15 +5,15 @@ import {
   getCareerHighlights,
   getCareerPlayer,
   getCareerPlayers,
-} from "../features/career/routes";
-import { HTTP_STATUS } from "../shared/http";
-import { createIntegrationDb } from "./integration-db";
-import { expectArraySchema, expectObjectSchema } from "./openapi-schema";
+} from "../features/career/routes.js";
+import { HTTP_STATUS } from "../shared/http.js";
+import { createIntegrationDb } from "./integration-db.js";
+import { expectArraySchema, expectObjectSchema } from "./openapi-schema.js";
 import {
   asRouteReq,
   getJsonBody,
   writeSnapshot,
-} from "./routes.integration.helpers";
+} from "./routes.integration.helpers.js";
 
 type CareerPlayerReq = Parameters<typeof getCareerPlayer>[0];
 type CareerGoalieReq = Parameters<typeof getCareerGoalie>[0];

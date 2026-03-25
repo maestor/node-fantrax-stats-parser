@@ -1,9 +1,9 @@
 import { createRequest, createResponse } from "node-mocks-http";
-import { getSeasons } from "../features/meta/routes";
-import { HTTP_STATUS } from "../shared/http";
-import { createIntegrationDb } from "./integration-db";
-import { expectArraySchema } from "./openapi-schema";
-import { asRouteReq, getJsonBody } from "./routes.integration.helpers";
+import { getSeasons } from "../features/meta/routes.js";
+import { HTTP_STATUS } from "../shared/http.js";
+import { createIntegrationDb } from "./integration-db.js";
+import { expectArraySchema } from "./openapi-schema.js";
+import { asRouteReq, getJsonBody } from "./routes.integration.helpers.js";
 
 type RouteReq = Parameters<typeof getSeasons>[0];
 

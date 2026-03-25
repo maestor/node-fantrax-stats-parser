@@ -2,7 +2,7 @@ import { chromium, type Browser } from "playwright";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import path from "path";
 
-import { DEFAULT_CSV_OUT_DIR } from "../config";
+import { DEFAULT_CSV_OUT_DIR } from "../config/index.js";
 
 import {
   AUTH_STATE_PATH,
@@ -19,7 +19,7 @@ import {
   runImportTempCsvScriptIfUsingDefaultOutDir,
   sleep,
   type TeamRun,
-} from "./helpers";
+} from "./helpers.js";
 
 type PlayoffsTeamRunV2 = TeamRun & {
   rosterTeamId: string;

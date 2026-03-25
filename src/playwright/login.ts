@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { existsSync } from "fs";
 
-import { AUTH_STATE_PATH, saveAuthStateInteractive } from "./helpers";
+import { AUTH_STATE_PATH, saveAuthStateInteractive } from "./helpers.js";
 
 async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: false });

@@ -1,11 +1,11 @@
-import type { CareerHighlightType } from "../features/career/types";
+import type { CareerHighlightType } from "../features/career/types.js";
 import type {
   GoalieScoreField,
   GoalieScoreWeights,
   PlayerScoreField,
   PlayerScoreWeights,
-} from "../features/stats/types";
-import type { Report, Team } from "../shared/types/core";
+} from "../features/stats/types.js";
+import type { Report, Team } from "../shared/types/core.js";
 
 export const START_SEASON = 2012;
 export const CURRENT_SEASON = 2025;

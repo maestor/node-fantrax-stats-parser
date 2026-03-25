@@ -2,15 +2,15 @@ import { createRequest, createResponse } from "node-mocks-http";
 import {
   getGoaliesCombined,
   getGoaliesSeason,
-} from "../features/stats/routes";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http";
-import { createIntegrationDb } from "./integration-db";
-import { expectArraySchema } from "./openapi-schema";
+} from "../features/stats/routes.js";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http.js";
+import { createIntegrationDb } from "./integration-db.js";
+import { expectArraySchema } from "./openapi-schema.js";
 import {
   asRouteReq,
   getJsonBody,
   writeSnapshot,
-} from "./routes.integration.helpers";
+} from "./routes.integration.helpers.js";
 
 type SeasonRouteReq = Parameters<typeof getGoaliesSeason>[0];
 type CombinedRouteReq = Parameters<typeof getGoaliesCombined>[0];

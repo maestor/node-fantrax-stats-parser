@@ -1,4 +1,4 @@
-import type { GoalieCareerRow, PlayerCareerRow } from "../db/queries";
+import type { GoalieCareerRow, PlayerCareerRow } from "../db/queries.js";
 
 export const createPlayerCareerRow = (
   overrides: Partial<PlayerCareerRow> = {},

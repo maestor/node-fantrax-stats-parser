@@ -15,15 +15,16 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { spawnSync } from "child_process";
-import csv from "csvtojson";
 import type { InStatement } from "@libsql/client";
-import { CURRENT_SEASON, TEAMS } from "../src/config";
+import { CURRENT_SEASON, TEAMS } from "../src/config/index.js";
 import {
   buildFantraxEntityUpsertStatements,
   collectFantraxEntitiesFromStats,
-} from "../src/features/fantrax/entities";
-import { mapGoalieData, mapPlayerData } from "../src/features/stats/mapping";
-import { getDbClient } from "../src/db/client";
+} from "../src/features/fantrax/entities.js";
+import { mapGoalieData, mapPlayerData } from "../src/features/stats/mapping.js";
+import type { RawData } from "../src/features/stats/types.js";
+import { getDbClient } from "../src/db/client.js";
+import { parseCsvFile } from "./csv.js";
 
 type ReportType = "regular" | "playoffs";
 
@@ -127,9 +128,13 @@ const main = async () => {
           );
         }
 
-        // csvtojson returns untyped rows; same pattern as services.ts getRawDataFromFiles
-        const rawData = await csv().fromFile(normalizedPath);
-        const dataWithSeason = rawData.map((item) => ({ ...item, season }));
+        const rawData = await parseCsvFile<Omit<RawData, "season">>(
+          normalizedPath,
+        );
+        const dataWithSeason: RawData[] = rawData.map((item) => ({
+          ...item,
+          season,
+        }));
 
         const players = mapPlayerData(dataWithSeason, {
           includeZeroGames: true,

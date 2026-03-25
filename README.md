@@ -60,7 +60,7 @@ The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code
 
 - `openapi.yaml` — the spec source
 - `src/openapi.ts` — route handlers that serve `/openapi.json` and `/api-docs`
-- `src/index.ts` — registers the two public routes
+- `src/app.ts` — registers the two public routes
 
 ## Documentation
 
@@ -814,10 +814,7 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 ## Technology
 
-Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). HTTP request/response handling uses [micro](https://github.com/zeit/micro), route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling uses `micro-cors`. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files.
-
-## Future roadmap
-
+Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). The package now runs as ESM (`"type": "module"`) with TypeScript's `module: nodenext` and `moduleResolution: nodenext`, and the source tree uses explicit runtime-safe relative specifiers throughout. HTTP request/response handling uses lightweight local Node HTTP helpers, route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling now uses a small in-repo wrapper instead of external middleware. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). Script-side CSV import now goes through a small local wrapper backed by [csv-parse](https://csv.js.org/parse/).
 - Standardize request validation + error response shape
 - Tighten OpenAPI spec: type `scores` and `scoresByPosition` object keys as fixed stat-field enums (requires upgrading spec to OpenAPI 3.1 for `propertyNames` support)
 - Add paging or search-first loading for large career lists to reduce initial payload size further

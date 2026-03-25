@@ -1,3 +1,3 @@
-export * from "./settings";
-export * from "./csv";
-export * from "./fantrax";
+export * from "./settings.js";
+export * from "./csv.js";
+export * from "./fantrax.js";

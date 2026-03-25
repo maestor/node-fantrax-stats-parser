@@ -1,11 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
-// `src/index.ts` exports the request handler via CommonJS (module.exports).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const handler = require("../src/index") as (
-  req: IncomingMessage,
-  res: ServerResponse,
-) => unknown | Promise<unknown>;
+import app from "../src/app.js";
 
 const stripApiPrefix = (url: string): string => {
   if (url === "/api") return "/";
@@ -57,5 +52,5 @@ export default async function vercelHandler(
   const effectiveUrl = normalizeUrl(stripApiPrefix(getEffectiveUrl(req)));
   req.url = effectiveUrl;
 
-  return handler(req, res);
+  return app(req, res);
 }

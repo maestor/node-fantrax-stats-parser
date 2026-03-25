@@ -19,9 +19,9 @@ import type {
   CareerTransactionHighlightItem,
   CareerTransactionHighlightTeam,
   CountSplit,
-} from "./types";
-import type { CsvReport } from "../../shared/types/core";
-import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../config";
+} from "./types.js";
+import type { CsvReport } from "../../shared/types/core.js";
+import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../config/index.js";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
@@ -36,11 +36,11 @@ import {
   type CareerTransactionHighlightDbRow,
   type GoalieCareerRow,
   type PlayerCareerRow,
-} from "../../db/queries";
+} from "../../db/queries.js";
 import {
   formatOptionalGoalieGaa,
   formatOptionalGoalieSavePercent,
-} from "../../shared/goalie-rates";
+} from "../../shared/goalie-rates.js";
 
 type CareerScope = "career" | CsvReport;
 

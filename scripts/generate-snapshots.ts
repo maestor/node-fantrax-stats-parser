@@ -11,25 +11,25 @@ if (process.env.USE_REMOTE_DB !== "true") {
 import fs from "fs";
 import path from "path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/config";
+import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/config/index.js";
 import {
   resolveSnapshotGenerationConfig,
   type SnapshotGenerationConfig,
-} from "./snapshot-generation";
+} from "./snapshot-generation.js";
 import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
-} from "../src/features/career/service";
+} from "../src/features/career/service.js";
 import {
   getGoaliesStatsCombined,
   getPlayersStatsCombined,
-} from "../src/features/stats/service";
+} from "../src/features/stats/service.js";
 import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../src/features/leaderboard/service";
+} from "../src/features/leaderboard/service.js";
 import {
   createSnapshotR2Client,
   getCareerGoaliesSnapshotKey,
@@ -46,14 +46,14 @@ import {
   getTransactionsLeaderboardSnapshotKey,
   isR2SnapshotConfigAvailable,
   loadSnapshot,
-} from "../src/infra/snapshots/store";
-import { getLastModifiedFromDb } from "../src/db/queries";
+} from "../src/infra/snapshots/store.js";
+import { getLastModifiedFromDb } from "../src/db/queries.js";
 import {
   getR2SnapshotMaxAttempts,
   getR2SnapshotRetryBaseDelayMs,
   retryR2Operation,
   type R2RetryContext,
-} from "../src/infra/r2/retry";
+} from "../src/infra/r2/retry.js";
 
 type SnapshotEntry = {
   bytes: number;

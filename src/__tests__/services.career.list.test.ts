@@ -2,7 +2,7 @@ import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
-} from "../features/career/service";
+} from "../features/career/service.js";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
@@ -11,11 +11,11 @@ import {
   getPlayoffSeasons,
   getReunionTransactionHighlightRowsFromDb,
   getTradeTransactionHighlightRowsFromDb,
-} from "../db/queries";
+} from "../db/queries.js";
 import {
   createGoalieCareerRow,
   createPlayerCareerRow,
-} from "./services.career.fixtures";
+} from "./services.career.fixtures.js";
 
 jest.mock("../db/queries");
 

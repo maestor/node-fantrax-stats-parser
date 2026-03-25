@@ -3,7 +3,7 @@ import type { InStatement } from "@libsql/client";
 import type {
   GoalieWithSeason,
   PlayerWithSeason,
-} from "../stats/types";
+} from "../stats/types.js";
 
 export type FantraxEntityPosition = "F" | "D" | "G";
 

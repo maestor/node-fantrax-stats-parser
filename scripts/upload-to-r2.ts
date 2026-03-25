@@ -13,7 +13,7 @@ import {
   HeadObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
-import { CURRENT_SEASON, TEAMS } from "../src/config";
+import { CURRENT_SEASON, TEAMS } from "../src/config/index.js";
 
 interface UploadStats {
   uploaded: number;

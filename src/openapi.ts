@@ -1,10 +1,11 @@
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
-import { send } from "micro";
 import type { IncomingMessage, ServerResponse } from "http";
 
-const specPath = path.join(__dirname, "..", "openapi.yaml");
+import { send } from "./http/response.js";
+
+const specPath = path.resolve(process.cwd(), "openapi.yaml");
 
 const swaggerHtml = `<!DOCTYPE html>
 <html>

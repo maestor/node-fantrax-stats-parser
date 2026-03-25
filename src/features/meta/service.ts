@@ -1,9 +1,9 @@
-import { DEFAULT_TEAM_ID } from "../../config";
-import { getLastModifiedFromDb } from "../../db/queries";
-import { availableSeasons } from "../../shared/seasons";
-import { getTeamsWithData } from "../../shared/teams";
-import type { Report } from "../../shared/types";
-import { mapAvailableSeasons } from "../stats/mapping";
+import { DEFAULT_TEAM_ID } from "../../config/index.js";
+import { getLastModifiedFromDb } from "../../db/queries.js";
+import { availableSeasons } from "../../shared/seasons.js";
+import { getTeamsWithData } from "../../shared/teams.js";
+import type { Report } from "../../shared/types/index.js";
+import { mapAvailableSeasons } from "../stats/mapping.js";
 
 export const getAvailableSeasons = async (
   teamId: string = DEFAULT_TEAM_ID,

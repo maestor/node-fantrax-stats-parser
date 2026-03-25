@@ -4,8 +4,8 @@ import { createInterface } from "readline";
 import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
 
-import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../config";
-import type { Team } from "../shared/types";
+import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../config/index.js";
+import type { Team } from "../shared/types/index.js";
 
 export type RoundWindow = { startDate: string; endDate: string; label: string };
 

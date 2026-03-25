@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
-import Ajv from "ajv";
+import { Ajv, type ValidateFunction } from "ajv";
 import yaml from "js-yaml";
 
-type CompiledValidator = ReturnType<Ajv["compile"]>;
+type CompiledValidator = ValidateFunction;
 
-const specPath = path.join(__dirname, "..", "..", "openapi.yaml");
+const specPath = path.resolve(process.cwd(), "openapi.yaml");
 const rawSpec = fs.readFileSync(specPath, "utf8");
 const spec = yaml.load(rawSpec) as {
   components: { schemas: Record<string, unknown> };

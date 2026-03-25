@@ -3,19 +3,19 @@ import {
   applyPlayerScores,
   applyPlayerScoresByPosition,
   applyGoalieScores,
-} from "./scoring";
+} from "./scoring.js";
 import {
   mapCombinedPlayerDataFromPlayersWithSeason,
   mapCombinedGoalieDataFromGoaliesWithSeason,
-} from "./mapping";
-import { DEFAULT_TEAM_ID } from "../../config";
-import { getPlayersFromDb, getGoaliesFromDb } from "../../db/queries";
-import { availableSeasons } from "../../shared/seasons";
+} from "./mapping.js";
+import { DEFAULT_TEAM_ID } from "../../config/index.js";
+import { getPlayersFromDb, getGoaliesFromDb } from "../../db/queries.js";
+import { availableSeasons } from "../../shared/seasons.js";
 import type {
   GoalieWithSeason,
   PlayerWithSeason,
-} from "./types";
-import type { CsvReport, Report } from "../../shared/types";
+} from "./types.js";
+import type { CsvReport, Report } from "../../shared/types/index.js";
 
 // Parser wants seasons as an array even in one-season cases
 const getSeasonParam = async (

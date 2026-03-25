@@ -10,7 +10,7 @@ import {
   buildTransactionHistoryUrl,
   formatSeasonSpan,
   resolveTransactionImportYears,
-} from "../features/transactions/files";
+} from "../features/transactions/files.js";
 import {
   AUTH_STATE_PATH,
   downloadCsvFromPage,
@@ -22,7 +22,7 @@ import {
   requireAuthStateFile,
   sleep,
   type LeagueYearInfo,
-} from "./helpers";
+} from "./helpers.js";
 
 type ImportLeagueTransactionsOptions = {
   headless: boolean;

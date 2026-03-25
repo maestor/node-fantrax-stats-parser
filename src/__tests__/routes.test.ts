@@ -1,51 +1,51 @@
-import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   getSeasons,
   getTeams,
   getLastModified,
-} from "../features/meta/routes";
+} from "../features/meta/routes.js";
 import {
   getPlayersSeason,
   getPlayersCombined,
   getGoaliesSeason,
   getGoaliesCombined,
-} from "../features/stats/routes";
+} from "../features/stats/routes.js";
 import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-} from "../features/leaderboard/routes";
-import { getHealthcheck } from "../index";
+} from "../features/leaderboard/routes.js";
+import app, { getHealthcheck } from "../app.js";
+import { send } from "../http/response.js";
 import {
   getAvailableSeasons,
   getLastModifiedData,
   getTeamsData,
-} from "../features/meta/service";
+} from "../features/meta/service.js";
 import {
   getPlayersStatsSeason,
   getPlayersStatsCombined,
   getGoaliesStatsSeason,
   getGoaliesStatsCombined,
-} from "../features/stats/service";
+} from "../features/stats/service.js";
 import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "../features/leaderboard/service";
+} from "../features/leaderboard/service.js";
 import {
   reportTypeAvailable,
   seasonAvailable,
   parseSeasonParam,
-} from "../shared/seasons";
-import { resolveTeamId } from "../shared/teams";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http";
-import { makeEtagForJson } from "../cache";
-import { loadSnapshot } from "../infra/snapshots/store";
-import { resetRouteCachesForTests } from "../shared/route-utils";
-import { expectArraySchema } from "./openapi-schema";
+} from "../shared/seasons.js";
+import { resolveTeamId } from "../shared/teams.js";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../shared/http.js";
+import { makeEtagForJson } from "../cache.js";
+import { loadSnapshot } from "../infra/snapshots/store.js";
+import { resetRouteCachesForTests } from "../shared/route-utils.js";
+import { expectArraySchema } from "./openapi-schema.js";
 
-jest.mock("micro");
+jest.mock("../http/response");
 jest.mock("../features/meta/service");
 jest.mock("../features/stats/service");
 jest.mock("../features/leaderboard/service");
@@ -100,6 +100,56 @@ describe("routes", () => {
           uptimeSeconds: expect.any(Number),
           timestamp: expect.any(String),
         }),
+      );
+    });
+  });
+
+  describe("app", () => {
+    test("serves the root route and reuses the cached router across calls", async () => {
+      const firstReq = createRequest({
+        method: "GET",
+        url: "/",
+        headers: { host: "localhost" },
+      });
+      const firstRes = createResponse();
+      const secondReq = createRequest({
+        method: "GET",
+        url: "/",
+        headers: { host: "localhost" },
+      });
+      const secondRes = createResponse();
+
+      await app(asRouteReq(firstReq), firstRes);
+      await app(asRouteReq(secondReq), secondRes);
+
+      expect(send).toHaveBeenNthCalledWith(
+        1,
+        firstRes,
+        HTTP_STATUS.OK,
+        "Hello there! The FFHL Stats Service is running.",
+      );
+      expect(send).toHaveBeenNthCalledWith(
+        2,
+        secondRes,
+        HTTP_STATUS.OK,
+        "Hello there! The FFHL Stats Service is running.",
+      );
+    });
+
+    test("serves the not-found fallback for unknown routes", async () => {
+      const req = createRequest({
+        method: "GET",
+        url: "/missing",
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await app(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(
+        res,
+        HTTP_STATUS.NOT_FOUND,
+        "Route not exists",
       );
     });
   });

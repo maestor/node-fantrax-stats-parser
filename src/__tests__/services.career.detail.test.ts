@@ -1,16 +1,16 @@
 import {
   getGoalieCareerData,
   getPlayerCareerData,
-} from "../features/career/service";
+} from "../features/career/service.js";
 import {
   getGoalieCareerRowsFromDb,
   getPlayerCareerRowsFromDb,
-} from "../db/queries";
-import { TEAMS } from "../config";
+} from "../db/queries.js";
+import { TEAMS } from "../config/index.js";
 import {
   createGoalieCareerRow,
   createPlayerCareerRow,
-} from "./services.career.fixtures";
+} from "./services.career.fixtures.js";
 
 jest.mock("../db/queries");
 

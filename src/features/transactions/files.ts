@@ -1,6 +1,6 @@
 import path from "path";
 
-import { FANTRAX_URLS } from "../../config";
+import { FANTRAX_URLS } from "../../config/index.js";
 
 export const DEFAULT_TRANSACTIONS_OUT_DIR = path.resolve(
   "csv",

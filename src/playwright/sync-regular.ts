@@ -29,10 +29,10 @@ import {
   requireAuthStateFile,
   requireLeagueIdsFile,
   standingsNameCandidates,
-} from "./helpers";
-import { TEAMS } from "../config";
-import type { Team } from "../shared/types";
-import { getDbClient } from "../db/client";
+} from "./helpers.js";
+import { TEAMS } from "../config/index.js";
+import type { Team } from "../shared/types/index.js";
+import { getDbClient } from "../db/client.js";
 
 type LeaguePeriods = {
   regularStartDate: string;

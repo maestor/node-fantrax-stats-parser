@@ -22,7 +22,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
-import { getSnapshotPrefix } from "../src/infra/snapshots/store";
+import { getSnapshotPrefix } from "../src/infra/snapshots/store.js";
 
 interface DownloadOptions {
   teamId?: string;

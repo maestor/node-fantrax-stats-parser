@@ -4,7 +4,7 @@
 
 - **Node.js**: 24.x or later (uses native fetch, stable WebSocket support)
 - **npm**: 10.x or later
-- **TypeScript**: 5.9+ (via devDependencies). The repo now uses `module: nodenext` so ESM-only dependencies such as `rou3` can be adopted without converting the whole package to ESM at once.
+- **TypeScript**: 5.9+ (via devDependencies). The repo now runs as package-level ESM with `module: nodenext`, while Jest uses its own compatibility config for the test suite.
 
 ---
 
@@ -86,7 +86,7 @@ npm run verify
 
 ### Development
 
-- `npm run dev` - Start development server with hot reload (nodemon)
+- `npm run dev` - Start development server with hot reload via `tsx watch`
 - `npm start` - Start production server
 - `npm run build` - Build for production (TypeScript → JavaScript)
 
@@ -196,7 +196,7 @@ The frontend generates TypeScript types from this file using `openapi-typescript
 
 Two test suites in `src/__tests__/` enforce spec accuracy:
 
-- **Route coverage test** (`openapi.test.ts`): Compares registered routes in `src/index.ts` against `paths` in `openapi.yaml`. Fails if any route is undocumented or if the spec has a stale path with no matching route.
+- **Route coverage test** (`openapi.test.ts`): Compares registered routes in `src/app.ts` against `paths` in `openapi.yaml`. Fails if any route is undocumented or if the spec has a stale path with no matching route.
 - **Schema conformance tests** (`routes.integration.test.ts` plus lightweight checks in `routes.test.ts`): Validate that route handler responses match the response schemas declared in `openapi.yaml` using a shared ajv helper. Most endpoints are checked through live DB-backed responses instead of handcrafted mocked payloads.
 
 When a test fails after your change, update `openapi.yaml` to match the new route/shape before committing.

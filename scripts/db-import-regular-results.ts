@@ -19,7 +19,7 @@ console.info(`Import to DB: ${process.env.TURSO_DATABASE_URL}`);
 import { readFileSync } from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
-import { getDbClient } from "../src/db/client";
+import { getDbClient } from "../src/db/client.js";
 
 const REGULAR_PATH = path.resolve(
   "src",

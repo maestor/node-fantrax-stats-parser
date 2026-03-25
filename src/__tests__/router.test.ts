@@ -1,8 +1,6 @@
 import { createRequest, createResponse } from "node-mocks-http";
-import { createApp } from "../router";
-import { get } from "../shared/router";
-
-jest.mock("micro-cors", () => jest.fn(() => (handler: unknown) => handler));
+import { createApp } from "../router.js";
+import { get } from "../shared/router.js";
 
 describe("router", () => {
   test("matches route params without stripping the original request url", async () => {
@@ -28,6 +26,7 @@ describe("router", () => {
     await app(req as never, res);
 
     expect(res.statusCode).toBe(200);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
     expect(res._getData()).toBe(
       JSON.stringify({
         id: "42",
@@ -141,5 +140,31 @@ describe("router", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res._getData()).toBe("Route not exists");
+  });
+
+  test("handles CORS preflight before route matching", async () => {
+    const handler = jest.fn();
+    const app = await createApp([
+      get("/teams", handler),
+    ]);
+
+    const req = createRequest({
+      method: "OPTIONS",
+      url: "/teams",
+      headers: { host: "localhost" },
+    });
+    const res = createResponse();
+
+    await app(req as never, res);
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe(
+      "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS",
+    );
+    expect(res.getHeader("Access-Control-Allow-Headers")).toBe(
+      "Authorization, Content-Type, X-Requested-With, x-api-key",
+    );
   });
 });

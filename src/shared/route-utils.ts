@@ -1,14 +1,14 @@
-import { send } from "micro";
 import type { IncomingMessage, ServerResponse } from "http";
+import { send } from "../http/response.js";
 import {
   buildCacheKey,
   isIfNoneMatchHit,
   makeEtagForJson,
   setCachedOkHeaders,
   setNoStoreHeaders,
-} from "../cache";
-import { loadSnapshot } from "../infra/snapshots/store";
-import { HTTP_STATUS } from "./http";
+} from "../cache.js";
+import { loadSnapshot } from "../infra/snapshots/store.js";
+import { HTTP_STATUS } from "./http.js";
 
 export type DataSource = "snapshot" | "db";
 
