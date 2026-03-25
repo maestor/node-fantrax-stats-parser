@@ -324,6 +324,7 @@ The Playwright importer downloads raw Fantrax CSVs. To convert them into the for
 ## Fantrax CSV handling
 
 Fantrax exports often include an `Age` column and may include an `ID` column as the first data column. The scripts below normalize the CSVs into the format this API expects.
+Stats imports treat Fantrax roster exports as sectioned CSVs (`"Skaters"` / `"Goalies"`) and preserve that raw-data shape for the importer, while transaction CSVs still parse as ordinary header-based tables.
 
 ### Clean a single CSV
 
