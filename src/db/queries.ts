@@ -9,15 +9,16 @@ import type {
   TransactionLeaderboardEntry,
   TransactionLeaderboardSeason,
 } from "../features/leaderboard/types";
+import {
+  formatOptionalGoalieGaa,
+  formatOptionalGoalieSavePercent,
+} from "../shared/goalie-rates";
 import type { CsvReport } from "../shared/types/core";
 
 /** Cast DB rows to a known shape. Trust the schema — no runtime validation. */
 function castRows<T>(rows: unknown[]): T[] {
   return rows as T[];
 }
-
-const mapOptionalGoalieRate = (value: number | null): string | undefined =>
-  value != null && value !== 0 ? String(value) : undefined;
 
 interface PlayerRow {
   player_id: string;
@@ -128,8 +129,8 @@ const mapGoalieRow = (row: GoalieRow): GoalieWithSeason => ({
   penalties: row.penalties,
   ppp: row.ppp,
   shp: row.shp,
-  gaa: mapOptionalGoalieRate(row.gaa),
-  savePercent: mapOptionalGoalieRate(row.save_percent),
+  gaa: formatOptionalGoalieGaa(row.gaa, row.games),
+  savePercent: formatOptionalGoalieSavePercent(row.save_percent, row.games),
   score: 0,
   scoreAdjustedByGames: 0,
   season: row.season,

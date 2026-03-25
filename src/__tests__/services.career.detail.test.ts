@@ -354,7 +354,7 @@ describe("services", () => {
             assists: 1,
             points: 1,
             gaa: 2.1,
-            save_percent: 0.926,
+            save_percent: 0.9,
           }),
         ]);
 
@@ -422,13 +422,13 @@ describe("services", () => {
             teamId: "2",
             reportType: "playoffs",
             teamName: TEAMS[1].presentName,
-            gaa: "2.1",
-            savePercent: "0.926",
+            gaa: "2.10",
+            savePercent: "0.900",
           }),
         ]);
       });
 
-      test("maps persisted zero goalie rate placeholders to undefined in career seasons", async () => {
+      test("preserves persisted zero goalie rate values for played career seasons", async () => {
         mockGetGoalieCareerRowsFromDb.mockResolvedValue([
           createGoalieCareerRow({
             goalie_id: "g002",
@@ -441,6 +441,24 @@ describe("services", () => {
         ]);
 
         const result = await getGoalieCareerData("g002");
+
+        expect(result.seasons[0].gaa).toBe("0.00");
+        expect(result.seasons[0].savePercent).toBe("0.000");
+      });
+
+      test("keeps zero goalie rate placeholders undefined for non-played career seasons", async () => {
+        mockGetGoalieCareerRowsFromDb.mockResolvedValue([
+          createGoalieCareerRow({
+            goalie_id: "g003",
+            name: "Bench Goalie",
+            games: 0,
+            saves: 0,
+            gaa: 0,
+            save_percent: 0,
+          }),
+        ]);
+
+        const result = await getGoalieCareerData("g003");
 
         expect(result.seasons[0].gaa).toBeUndefined();
         expect(result.seasons[0].savePercent).toBeUndefined();

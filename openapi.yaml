@@ -326,10 +326,10 @@ components:
               type: string
             gaa:
               type: string
-              description: Omitted when source data only contains a zero placeholder.
+              description: Goals against average formatted with two decimals. Played zero values are returned as `0.00`; omitted only when source data only contains a non-played zero placeholder.
             savePercent:
               type: string
-              description: Omitted when source data only contains a zero placeholder.
+              description: Save percentage formatted with three decimals. Played zero values are returned as `0.000`; omitted only when source data only contains a non-played zero placeholder.
 
     CareerPlayer:
       type: object
@@ -895,10 +895,10 @@ components:
           type: number
         gaa:
           type: string
-          description: Goals against average. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+          description: Goals against average formatted with two decimals. Played zero values are returned as `0.00`; omitted for `reportType=both` or when source data only contains a non-played zero placeholder.
         savePercent:
           type: string
-          description: Save percentage. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+          description: Save percentage formatted with three decimals. Played zero values are returned as `0.000`; omitted for `reportType=both` or when source data only contains a non-played zero placeholder.
         score:
           type: number
         scoreAdjustedByGames:
@@ -1035,10 +1035,10 @@ components:
           type: number
         gaa:
           type: string
-          description: Goals against average. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+          description: Goals against average formatted with two decimals. Played zero values are returned as `0.00`; omitted for `reportType=both` or when source data only contains a non-played zero placeholder.
         savePercent:
           type: string
-          description: Save percentage. Omitted for `reportType=both` or when source data only contains a zero placeholder.
+          description: Save percentage formatted with three decimals. Played zero values are returned as `0.000`; omitted for `reportType=both` or when source data only contains a non-played zero placeholder.
         score:
           type: number
         scoreAdjustedByGames:

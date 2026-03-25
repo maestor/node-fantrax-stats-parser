@@ -89,7 +89,7 @@ export const registerGoalieRouteIntegrationTests = (): void => {
       }
     });
 
-    test("returns goalie season rows from the live DB", async () => {
+    test("returns goalie season rows from the live DB with fixed goalie rate precision", async () => {
       const db = await createIntegrationDb();
 
       try {
@@ -107,8 +107,8 @@ export const registerGoalieRouteIntegrationTests = (): void => {
             goals: 0,
             assists: 1,
             points: 1,
-            gaa: 2.15,
-            savePercent: 0.918,
+            gaa: 1.2,
+            savePercent: 0.9,
           },
         ]);
 
@@ -133,8 +133,8 @@ export const registerGoalieRouteIntegrationTests = (): void => {
             wins: 8,
             saves: 340,
             shutouts: 2,
-            savePercent: "0.918",
-            gaa: "2.15",
+            savePercent: "0.900",
+            gaa: "1.20",
           }),
         );
         expectArraySchema("Goalie", body);
@@ -143,7 +143,7 @@ export const registerGoalieRouteIntegrationTests = (): void => {
       }
     });
 
-    test("omits placeholder goalie rate fields from the live DB response", async () => {
+    test("preserves zero goalie rate fields for played live DB rows", async () => {
       const db = await createIntegrationDb();
 
       try {
@@ -195,10 +195,10 @@ export const registerGoalieRouteIntegrationTests = (): void => {
             games: 6,
             wins: 3,
             saves: 150,
+            gaa: "0.00",
+            savePercent: "0.000",
           }),
         );
-        expect(zeroRates).not.toHaveProperty("gaa");
-        expect(zeroRates).not.toHaveProperty("savePercent");
 
         expect(nullRates).toEqual(
           expect.objectContaining({
@@ -378,7 +378,7 @@ export const registerGoalieRouteIntegrationTests = (): void => {
             assists: 1,
             points: 1,
             gaa: 2.4,
-            savePercent: 0.915,
+            savePercent: 0.9,
           },
           {
             teamId: "1",
@@ -424,8 +424,20 @@ export const registerGoalieRouteIntegrationTests = (): void => {
         );
         expect(body[0].seasons).toEqual(
           expect.arrayContaining([
-            expect.objectContaining({ season: 2023, games: 9, wins: 5 }),
-            expect.objectContaining({ season: 2024, games: 12, wins: 8 }),
+            expect.objectContaining({
+              season: 2023,
+              games: 9,
+              wins: 5,
+              gaa: "2.40",
+              savePercent: "0.900",
+            }),
+            expect.objectContaining({
+              season: 2024,
+              games: 12,
+              wins: 8,
+              gaa: "2.15",
+              savePercent: "0.918",
+            }),
           ]),
         );
         expectArraySchema("CombinedGoalie", body);
