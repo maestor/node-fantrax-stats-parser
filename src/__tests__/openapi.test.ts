@@ -1,10 +1,10 @@
 import fs from "fs";
 import yaml from "js-yaml";
-import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
+import { send } from "../http/response";
 import { getOpenApiSpec, getSwaggerUi } from "../openapi";
 
-jest.mock("micro");
+jest.mock("../http/response");
 jest.mock("fs");
 jest.mock("js-yaml");
 

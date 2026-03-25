@@ -74,8 +74,6 @@
   "dependencies": {
     "@libsql/client": "^0.17.2",
     "js-yaml": "^4.1.1",
-    "micro": "^10.0.1",
-    "micro-cors": "^0.1.1",
     "playwright": "^1.58.2",
     "rou3": "^0.8.1"
   },

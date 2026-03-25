@@ -3,7 +3,7 @@
 **Status:** In progress
 **Date:** 2026-03-25
 **Branch:** `refactor/commonjs-to-esm`
-**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.ts` remains the temporary CommonJS compatibility wrapper.
+**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.ts` remains the temporary CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers.
 
 ## Goals
 
@@ -20,7 +20,9 @@
 - Do not mix this work with unrelated refactors unless they directly unblock ESM.
 - Do not commit to long-term dual publishing; this repo is private and deployed on Vercel, so one stable ESM target is easier to maintain.
 
-## Current baseline
+## Original baseline
+
+The notes below capture the state when this migration plan was first written.
 
 - `tsconfig.json` already uses `module: "nodenext"` and `moduleResolution: "nodenext"`.
 - `package.json` is still `"type": "commonjs"`, so build output under `lib/` is CommonJS today.
@@ -94,6 +96,8 @@
 ### Phase 2: Remove `micro` and `micro-cors`
 
 **Purpose:** remove two migration blockers without changing the route contract.
+
+**Progress note (2026-03-25):** done for the second slice. Runtime response handling now goes through local helpers under `src/http/`, router-level CORS is handled in-repo, and `micro` / `micro-cors` have been removed from production dependencies.
 
 **Tasks**
 

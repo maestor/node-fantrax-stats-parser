@@ -1,5 +1,6 @@
-import { send } from "micro";
 import type { IncomingMessage, ServerResponse } from "http";
+
+import { send } from "./http/response";
 
 export type ApiKeyAuthOptions = {
   headerName?: string;
@@ -115,7 +116,7 @@ export const withApiKeyAuth = <Req extends RequestLike, H extends RequestLikeHan
       return handler(req, res);
     }
 
-    // Let CORS preflight through (micro-cors will handle it).
+    // Let CORS preflight through (handled by the router-level CORS wrapper).
     if (req.method === "OPTIONS") {
       return handler(req, res);
     }

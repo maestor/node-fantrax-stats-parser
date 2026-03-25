@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "http";
-import type { RequestHandler } from "micro";
 import type { MatchedRoute } from "rou3";
+import { withCors } from "./http/cors";
+import type { RequestHandler } from "./http/types";
 import type {
   RouteDefinition,
   RouteHandler,
@@ -8,15 +9,10 @@ import type {
   RouteRequest,
 } from "./shared/router";
 
-type CorsFactory = () => (handler: RequestHandler) => RequestHandler;
 type RouterModule = typeof import("rou3");
 type RouteData = {
   handler: RouteHandler;
 };
-
-const microCors = require("micro-cors") as CorsFactory;
-
-const cors = microCors();
 
 const normalizeRoutePath = (path: string): string =>
   path === "/*" ? "/**" : path;
@@ -52,7 +48,7 @@ export const createApp = async (
     });
   }
 
-  return cors(async (req, res) => {
+  return withCors(async (req, res) => {
     const match = findRoute(
       router,
       typeof req.method === "string" ? req.method.toUpperCase() : undefined,

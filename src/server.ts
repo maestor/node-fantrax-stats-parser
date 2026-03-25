@@ -1,11 +1,15 @@
 import { createServer } from "http";
-import { serve } from "micro";
 
 import app from "./app";
 
 const port = Number(process.env.PORT) || 3000;
 
-createServer(serve(app)).listen(port, () => {
+createServer((req, res) => {
+  void Promise.resolve(app(req, res)).catch((error: unknown) => {
+    res.statusCode = 500;
+    res.end(error instanceof Error ? error.message : "Internal Server Error");
+  });
+}).listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Listening on http://localhost:${port}`);
 });

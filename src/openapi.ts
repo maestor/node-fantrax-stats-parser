@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
-import { send } from "micro";
 import type { IncomingMessage, ServerResponse } from "http";
+
+import { send } from "./http/response";
 
 const specPath = path.join(__dirname, "..", "openapi.yaml");
 

@@ -1,7 +1,6 @@
-import type { RequestHandler } from "micro";
-import { send } from "micro";
-
 import { withApiKeyAuth } from "./auth";
+import { send } from "./http/response";
+import type { RequestHandler } from "./http/types";
 import { createApp } from "./router";
 import { get, type RouteDefinition, type RouteHandler } from "./shared/router";
 

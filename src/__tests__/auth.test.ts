@@ -1,4 +1,3 @@
-import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   extractApiKey,
@@ -7,8 +6,9 @@ import {
   shouldRequireAuth,
   withApiKeyAuth,
 } from "../auth";
+import { send } from "../http/response";
 
-jest.mock("micro");
+jest.mock("../http/response");
 
 describe("auth", () => {
   beforeEach(() => {

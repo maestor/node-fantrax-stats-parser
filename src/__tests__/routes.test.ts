@@ -1,4 +1,3 @@
-import { send } from "micro";
 import { createRequest, createResponse } from "node-mocks-http";
 import {
   getSeasons,
@@ -17,6 +16,7 @@ import {
   getTransactionsLeaderboard,
 } from "../features/leaderboard/routes";
 import app, { getHealthcheck } from "../app";
+import { send } from "../http/response";
 import {
   getAvailableSeasons,
   getLastModifiedData,
@@ -45,7 +45,7 @@ import { loadSnapshot } from "../infra/snapshots/store";
 import { resetRouteCachesForTests } from "../shared/route-utils";
 import { expectArraySchema } from "./openapi-schema";
 
-jest.mock("micro");
+jest.mock("../http/response");
 jest.mock("../features/meta/service");
 jest.mock("../features/stats/service");
 jest.mock("../features/leaderboard/service");

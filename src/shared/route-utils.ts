@@ -1,5 +1,5 @@
-import { send } from "micro";
 import type { IncomingMessage, ServerResponse } from "http";
+import { send } from "../http/response";
 import {
   buildCacheKey,
   isIfNoneMatchHit,
