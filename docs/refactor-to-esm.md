@@ -3,7 +3,7 @@
 **Status:** In progress
 **Date:** 2026-03-25
 **Branch:** `refactor/commonjs-to-esm`
-**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.cts` is now the explicit CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers, the source tree now uses explicit ESM-ready relative specifiers, and the dependency cleanup has started by moving Playwright to `devDependencies` and removing unused `@types/express`.
+**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.cts` is now the explicit CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers, the source tree now uses explicit ESM-ready relative specifiers, and the dependency cleanup has progressed by moving Playwright to `devDependencies` and replacing `csvtojson` with a local `csv-parse` wrapper for script imports. `@types/express` is still retained because `node-mocks-http` pulls it into TypeScript checks.
 
 ## Goals
 
@@ -47,7 +47,7 @@ The notes below capture the state when this migration plan was first written.
 | `playwright` | Move to `devDependencies` | Local importer only; keeping it out of runtime deps helps deployment size and maintenance. |
 | `jest` + `ts-jest` | Keep initially, re-evaluate later | Large suite; treat test-runner migration as a separate decision once runtime ESM is stable. |
 | `nodemon` + `concurrently` | Replace later with `tsx watch` | The repo already uses `tsx`, so the dev loop can be simplified after the runtime flip. |
-| `@types/express` | Remove if still unused | Not part of the current runtime and appears to be leftover tooling debt. |
+| `@types/express` | Keep for now | `node-mocks-http` still references it during TypeScript checks, so removing it would break `tsc` until test helpers change. |
 
 ## Recommended phase order
 
@@ -55,7 +55,7 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** make later runtime changes safer and reduce needless production weight early.
 
-**Progress note (2026-03-25):** partly done. `playwright` has been moved to `devDependencies`, and the unused `@types/express` package has been removed.
+**Progress note (2026-03-25):** done for the dependency cleanup slice. `playwright` has been moved to `devDependencies`, `csvtojson` has been replaced with `csv-parse` behind a small local wrapper, and the `@types/express` cleanup was deferred because `node-mocks-http` still needs it for TypeScript.
 
 **Tasks**
 
@@ -126,7 +126,7 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** land the largest mechanical changes before the package-level runtime flip.
 
-**Progress note (2026-03-25):** in progress. Relative imports now use explicit runtime specifiers, and the old `src/index.ts` CommonJS wrapper has been isolated as `src/index.cts` with `package.json.main` pointing to `lib/index.cjs`.
+**Progress note (2026-03-25):** done for the current slice. Relative imports now use explicit runtime specifiers, and the old `src/index.ts` CommonJS wrapper has been isolated as `src/index.cts` with `package.json.main` pointing to `lib/index.cjs`.
 
 **Tasks**
 
@@ -172,6 +172,8 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** finish the migration around local tooling without coupling it to the production runtime flip.
 
+**Progress note (2026-03-25):** done for the CSV parser slice. Script-side CSV parsing now goes through a local wrapper backed by `csv-parse`, which preserves the existing duplicate-header behavior while removing `csvtojson`.
+
 **Tasks**
 
 - Replace `csvtojson` with `csv-parse`.
@@ -188,6 +190,8 @@ The notes below capture the state when this migration plan was first written.
 ### Phase 6: Simplify the local dev loop
 
 **Purpose:** remove now-redundant dev-only process glue after ESM is stable.
+
+**Progress note (2026-03-25):** in progress. The local dev loop has been simplified to `tsx watch src/server.ts`, and the old `concurrently` + `nodemon` chain is being removed.
 
 **Tasks**
 

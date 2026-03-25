@@ -815,7 +815,7 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 ## Technology
 
-Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). The repo already uses TypeScript's `module: nodenext` and `moduleResolution: nodenext`, and the source tree now uses explicit ESM-ready relative specifiers while package output still stays CommonJS during the migration. HTTP request/response handling uses lightweight local Node HTTP helpers, route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling now uses a small in-repo wrapper instead of external middleware. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import still uses [csvtojson](https://github.com/Keyang/node-csvtojson) for now. The phased plan for moving the project to full ESM lives in [docs/refactor-to-esm.md](docs/refactor-to-esm.md).
+Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). The repo already uses TypeScript's `module: nodenext` and `moduleResolution: nodenext`, and the source tree now uses explicit ESM-ready relative specifiers while package output still stays CommonJS during the migration. HTTP request/response handling uses lightweight local Node HTTP helpers, route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling now uses a small in-repo wrapper instead of external middleware. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). Script-side CSV import now goes through a small local wrapper backed by [csv-parse](https://csv.js.org/parse/). The phased plan for moving the project to full ESM lives in [docs/refactor-to-esm.md](docs/refactor-to-esm.md).
 
 ## Future roadmap
 

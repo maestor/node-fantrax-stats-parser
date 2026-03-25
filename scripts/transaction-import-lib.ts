@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import csv from "csvtojson";
 import type { Client } from "@libsql/client";
 
 import { CURRENT_SEASON, TEAMS } from "../src/config/index.js";
@@ -9,6 +8,7 @@ import {
   parseTransactionCsvFileName,
   type TransactionType,
 } from "../src/features/transactions/files.js";
+import { parseCsvFile } from "./csv.js";
 
 const DROP_MARKER = "(Drop)";
 
@@ -1352,7 +1352,7 @@ export const importTransactionsToDb = async (
   }
 
   for (const file of selectedFiles) {
-    const rawRows = await csv().fromFile(file.filePath);
+    const rawRows = await parseCsvFile(file.filePath);
     const watermark =
       args.incremental && !args.dryRun
         ? await getSourceFileWatermark(args.db, file)

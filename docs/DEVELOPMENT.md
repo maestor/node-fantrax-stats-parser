@@ -86,7 +86,7 @@ npm run verify
 
 ### Development
 
-- `npm run dev` - Start development server with hot reload (nodemon)
+- `npm run dev` - Start development server with hot reload via `tsx watch`
 - `npm start` - Start production server
 - `npm run build` - Build for production (TypeScript → JavaScript)
 
