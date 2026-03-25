@@ -59,7 +59,7 @@ describe("openapi", () => {
       const realFs = jest.requireActual<typeof fs>("fs");
       const realYaml = jest.requireActual<typeof yaml>("js-yaml");
       const path = jest.requireActual<typeof import("path")>("path");
-      const specPath = path.join(__dirname, "..", "..", "openapi.yaml");
+      const specPath = path.resolve(process.cwd(), "openapi.yaml");
       const raw = realFs.readFileSync(specPath, "utf8");
       const spec = realYaml.load(raw) as Record<string, unknown>;
       expect(spec).toHaveProperty("openapi");
@@ -72,7 +72,7 @@ describe("openapi", () => {
     function getRegisteredPaths(): string[] {
       const realFs = jest.requireActual<typeof import("fs")>("fs");
       const realPath = jest.requireActual<typeof import("path")>("path");
-      const appPath = realPath.join(__dirname, "..", "app.ts");
+      const appPath = realPath.resolve(process.cwd(), "src", "app.ts");
       const source = realFs.readFileSync(appPath, "utf8") as string;
       return [...source.matchAll(/get\("([^"]+)"/g)]
         .map((m) => m[1].replace(/:(\w+)/g, "{$1}"))
@@ -83,7 +83,7 @@ describe("openapi", () => {
       const realFs = jest.requireActual<typeof import("fs")>("fs");
       const realYaml = jest.requireActual<typeof import("js-yaml")>("js-yaml");
       const realPath = jest.requireActual<typeof import("path")>("path");
-      const specPath = realPath.join(__dirname, "..", "..", "openapi.yaml");
+      const specPath = realPath.resolve(process.cwd(), "openapi.yaml");
       const raw = realFs.readFileSync(specPath, "utf8") as string;
       const spec = realYaml.load(raw) as { paths: Record<string, unknown> };
       return Object.keys(spec.paths);

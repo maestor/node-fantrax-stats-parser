@@ -60,7 +60,7 @@ The spec is hand-crafted in `openapi.yaml` at the repo root — there is no code
 
 - `openapi.yaml` — the spec source
 - `src/openapi.ts` — route handlers that serve `/openapi.json` and `/api-docs`
-- `src/index.ts` — registers the two public routes
+- `src/app.ts` — registers the two public routes
 
 ## Documentation
 

@@ -5,7 +5,7 @@ import yaml from "js-yaml";
 
 type CompiledValidator = ReturnType<Ajv["compile"]>;
 
-const specPath = path.join(__dirname, "..", "..", "openapi.yaml");
+const specPath = path.resolve(process.cwd(), "openapi.yaml");
 const rawSpec = fs.readFileSync(specPath, "utf8");
 const spec = yaml.load(rawSpec) as {
   components: { schemas: Record<string, unknown> };

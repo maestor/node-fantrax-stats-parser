@@ -146,6 +146,8 @@ The notes below capture the state when this migration plan was first written.
 
 **Purpose:** make ESM the real runtime target only after the codebase already looks ESM-native.
 
+**Progress note (2026-03-25):** prep work is underway. The OpenAPI runtime/tests no longer depend on `__dirname`, and the Jest config rename remains coupled to the actual package flip because doing it in isolation changed the current test-runner behavior.
+
 **Tasks**
 
 - Change `package.json` from `"type": "commonjs"` to `"type": "module"`.
