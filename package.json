@@ -71,7 +71,7 @@
     "verify": "npm run lint:check && npm run typecheck && npm run unused && npm run build && npm run test:coverage"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.0",
+    "@libsql/client": "^0.17.2",
     "js-yaml": "^4.1.1",
     "micro": "^10.0.1",
     "micro-cors": "^0.1.1",
@@ -79,22 +79,22 @@
     "playwright": "^1.58.2"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.997.0",
+    "@aws-sdk/client-s3": "^3.1016.0",
     "@eslint/js": "^9.37.0",
     "@types/eslint__js": "^8.42.3",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/microrouter": "^3.1.6",
-    "@types/node": "^24.10.13",
+    "@types/node": "^24.12.0",
     "ajv": "^8.18.0",
     "concurrently": "^9.2.1",
     "csvtojson": "^2.0.14",
     "dotenv": "^17.3.1",
-    "eslint": "^9.39.3",
+    "eslint": "^9.39.4",
     "globals": "^16.5.0",
-    "jest": "^30.2.0",
-    "knip": "^5.86.0",
+    "jest": "^30.3.0",
+    "knip": "^5.88.1",
     "node-mocks-http": "^1.17.2",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
@@ -102,6 +102,6 @@
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1"
+    "typescript-eslint": "^8.57.2"
   }
 }
