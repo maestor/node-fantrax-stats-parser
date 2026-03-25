@@ -814,7 +814,7 @@ Each weight is a decimal between 0 and 1. Lowering a weight reduces the impact o
 
 ## Technology
 
-Written with [TypeScript](https://www.typescriptlang.org/), using [micro](https://github.com/zeit/micro) with [NodeJS](https://nodejs.org) for routing. Data stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files.
+Written with [TypeScript](https://www.typescriptlang.org/) on [NodeJS](https://nodejs.org). HTTP request/response handling uses [micro](https://github.com/zeit/micro), route matching uses [rou3](https://github.com/h3js/rou3), and CORS handling uses `micro-cors`. Data is stored in [Turso](https://turso.tech) (libSQL/SQLite). CSV import uses [csvtojson](https://github.com/Keyang/node-csvtojson) for parsing source files.
 
 ## Future roadmap
 

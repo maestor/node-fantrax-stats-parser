@@ -1,6 +1,5 @@
 import { send } from "micro";
-import { ServerResponse } from "microrouter";
-import type { IncomingMessage } from "http";
+import type { IncomingMessage, ServerResponse } from "http";
 import {
   buildCacheKey,
   isIfNoneMatchHit,

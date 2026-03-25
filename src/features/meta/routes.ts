@@ -1,4 +1,4 @@
-import { AugmentedRequestHandler } from "microrouter";
+import type { RouteHandler } from "../../shared/router";
 import {
   getAvailableSeasons,
   getLastModifiedData,
@@ -17,7 +17,7 @@ import {
 } from "../../shared/route-utils";
 import type { Report } from "../../shared/types";
 
-export const getSeasons: AugmentedRequestHandler = async (req, res) => {
+export const getSeasons: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));
   const startFrom = parseSeasonParam(getQueryParam(req, "startFrom"));
 
@@ -38,14 +38,14 @@ export const getSeasons: AugmentedRequestHandler = async (req, res) => {
   }));
 };
 
-export const getTeams: AugmentedRequestHandler = async (req, res) => {
+export const getTeams: RouteHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => ({
     data: getTeamsData(),
     dataSource: "db",
   }));
 };
 
-export const getLastModified: AugmentedRequestHandler = async (req, res) => {
+export const getLastModified: RouteHandler = async (req, res) => {
   await withErrorHandlingCached(req, res, async () => ({
     data: { lastModified: await getLastModifiedData() },
     dataSource: "db",
