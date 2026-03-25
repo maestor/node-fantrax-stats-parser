@@ -72,8 +72,8 @@ describe("openapi", () => {
     function getRegisteredPaths(): string[] {
       const realFs = jest.requireActual<typeof import("fs")>("fs");
       const realPath = jest.requireActual<typeof import("path")>("path");
-      const indexPath = realPath.join(__dirname, "..", "index.ts");
-      const source = realFs.readFileSync(indexPath, "utf8") as string;
+      const appPath = realPath.join(__dirname, "..", "app.ts");
+      const source = realFs.readFileSync(appPath, "utf8") as string;
       return [...source.matchAll(/get\("([^"]+)"/g)]
         .map((m) => m[1].replace(/:(\w+)/g, "{$1}"))
         .filter((p) => !p.includes("*"));
@@ -89,7 +89,7 @@ describe("openapi", () => {
       return Object.keys(spec.paths);
     }
 
-    test("every registered route in index.ts is documented in openapi.yaml", () => {
+    test("every registered route in app.ts is documented in openapi.yaml", () => {
       const registeredPaths = getRegisteredPaths();
       const specPaths = getSpecPaths();
       for (const routePath of registeredPaths) {
@@ -97,7 +97,7 @@ describe("openapi", () => {
       }
     });
 
-    test("every path in openapi.yaml has a matching registered route in index.ts", () => {
+    test("every path in openapi.yaml has a matching registered route in app.ts", () => {
       const registeredPaths = getRegisteredPaths();
       const specPaths = getSpecPaths();
       for (const specPath of specPaths) {

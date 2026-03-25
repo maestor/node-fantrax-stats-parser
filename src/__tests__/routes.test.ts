@@ -16,7 +16,7 @@ import {
   getRegularLeaderboard,
   getTransactionsLeaderboard,
 } from "../features/leaderboard/routes";
-import { getHealthcheck } from "../index";
+import app, { getHealthcheck } from "../app";
 import {
   getAvailableSeasons,
   getLastModifiedData,
@@ -100,6 +100,56 @@ describe("routes", () => {
           uptimeSeconds: expect.any(Number),
           timestamp: expect.any(String),
         }),
+      );
+    });
+  });
+
+  describe("app", () => {
+    test("serves the root route and reuses the cached router across calls", async () => {
+      const firstReq = createRequest({
+        method: "GET",
+        url: "/",
+        headers: { host: "localhost" },
+      });
+      const firstRes = createResponse();
+      const secondReq = createRequest({
+        method: "GET",
+        url: "/",
+        headers: { host: "localhost" },
+      });
+      const secondRes = createResponse();
+
+      await app(asRouteReq(firstReq), firstRes);
+      await app(asRouteReq(secondReq), secondRes);
+
+      expect(send).toHaveBeenNthCalledWith(
+        1,
+        firstRes,
+        HTTP_STATUS.OK,
+        "Hello there! The FFHL Stats Service is running.",
+      );
+      expect(send).toHaveBeenNthCalledWith(
+        2,
+        secondRes,
+        HTTP_STATUS.OK,
+        "Hello there! The FFHL Stats Service is running.",
+      );
+    });
+
+    test("serves the not-found fallback for unknown routes", async () => {
+      const req = createRequest({
+        method: "GET",
+        url: "/missing",
+        headers: { host: "localhost" },
+      });
+      const res = createResponse();
+
+      await app(asRouteReq(req), res);
+
+      expect(send).toHaveBeenCalledWith(
+        res,
+        HTTP_STATUS.NOT_FOUND,
+        "Route not exists",
       );
     });
   });

@@ -1,8 +1,9 @@
 # Incremental CommonJS-to-ESM Refactor Plan
 
-**Status:** Proposed
+**Status:** In progress
 **Date:** 2026-03-25
 **Branch:** `refactor/commonjs-to-esm`
+**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.ts` remains the temporary CommonJS compatibility wrapper.
 
 ## Goals
 
@@ -69,6 +70,8 @@
 ### Phase 1: Extract a canonical app entrypoint
 
 **Purpose:** stop tying local server boot, Vercel handlers, and test imports to the export style of `src/index.ts`.
+
+**Progress note (2026-03-25):** done for the first slice. `src/app.ts` now owns the composed handler, and `src/server.ts`, `api/index.ts`, `api/[...path].ts`, and the app-level tests point to it.
 
 **Tasks**
 
