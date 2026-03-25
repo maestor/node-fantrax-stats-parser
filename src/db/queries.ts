@@ -1,19 +1,19 @@
-import { getDbClient } from "./client";
+import { getDbClient } from "./client.js";
 import type {
   GoalieWithSeason,
   PlayerWithSeason,
-} from "../features/stats/types";
+} from "../features/stats/types.js";
 import type {
   PlayoffLeaderboardEntry,
   RegularLeaderboardEntry,
   TransactionLeaderboardEntry,
   TransactionLeaderboardSeason,
-} from "../features/leaderboard/types";
+} from "../features/leaderboard/types.js";
 import {
   formatOptionalGoalieGaa,
   formatOptionalGoalieSavePercent,
-} from "../shared/goalie-rates";
-import type { CsvReport } from "../shared/types/core";
+} from "../shared/goalie-rates.js";
+import type { CsvReport } from "../shared/types/core.js";
 
 /** Cast DB rows to a known shape. Trust the schema — no runtime validation. */
 function castRows<T>(rows: unknown[]): T[] {

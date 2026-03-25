@@ -1,6 +1,6 @@
 {
   "entry": [
-    "src/index.ts!",
+    "src/index.cts!",
     "src/server.ts!",
     "api/**/*.ts!",
     "scripts/**/*.ts!",
@@ -8,6 +8,7 @@
   ],
   "project": [
     "src/**/*.ts!",
+    "src/**/*.cts!",
     "scripts/**/*.ts!",
     "api/**/*.ts!",
     "!src/__tests__/**!"

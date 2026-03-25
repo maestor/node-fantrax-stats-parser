@@ -4,7 +4,7 @@ import {
   resolveSnapshotGenerationConfig,
   resolveSnapshotStatsReportTypes,
   resolveSnapshotStatsTeamIds,
-} from "../../scripts/snapshot-generation";
+} from "../../scripts/snapshot-generation.js";
 
 describe("snapshot generation helpers", () => {
   test("exposes supported scopes and stats report types", () => {

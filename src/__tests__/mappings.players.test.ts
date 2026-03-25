@@ -1,8 +1,8 @@
 import {
   mapCombinedPlayerData,
   mapPlayerData,
-} from "../features/stats/mapping";
-import { applyPlayerScores } from "../features/stats/scoring";
+} from "../features/stats/mapping.js";
+import { applyPlayerScores } from "../features/stats/scoring.js";
 import {
   mockRawDataEmptyName,
   mockRawDataFirstRow,
@@ -10,7 +10,7 @@ import {
   mockRawDataPlayer,
   mockRawDataPlayerWithCommas,
   mockRawDataZeroGames,
-} from "./fixtures";
+} from "./fixtures.js";
 
 jest.mock("../features/stats/scoring");
 

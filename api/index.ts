@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
-import app from "../src/app";
+import app from "../src/app.js";
 
 const stripApiPrefix = (url: string): string => {
   if (url === "/api") return "/";

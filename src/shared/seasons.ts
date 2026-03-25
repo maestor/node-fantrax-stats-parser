@@ -1,11 +1,11 @@
-import type { CsvReport, Report } from "./types/core";
+import type { CsvReport, Report } from "./types/core.js";
 import {
   CURRENT_SEASON,
   DEFAULT_TEAM_ID,
   REPORT_TYPES,
-} from "../config/settings";
-import { getAvailableSeasonsFromDb } from "../db/queries";
-import { getTeamStartSeason } from "./teams";
+} from "../config/settings.js";
+import { getAvailableSeasonsFromDb } from "../db/queries.js";
+import { getTeamStartSeason } from "./teams.js";
 
 const getRegularSeasonRangeForTeam = (teamId: string): number[] => {
   const startSeason = getTeamStartSeason(teamId);

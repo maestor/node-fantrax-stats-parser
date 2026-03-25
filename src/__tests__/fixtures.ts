@@ -4,7 +4,7 @@ import type {
   Player,
   PlayerWithSeason,
   RawData,
-} from "../shared/types";
+} from "../shared/types/index.js";
 
 // Raw data fixtures for players
 export const mockRawDataPlayer: RawData = {

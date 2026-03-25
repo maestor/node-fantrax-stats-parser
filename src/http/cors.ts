@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
-import type { RequestHandler } from "./types";
+import type { RequestHandler } from "./types.js";
 
 const ALLOW_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
 const ALLOW_HEADERS = "Authorization, Content-Type, X-Requested-With, x-api-key";

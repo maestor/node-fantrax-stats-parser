@@ -1,6 +1,6 @@
 import { createResponse } from "node-mocks-http";
 
-import { send } from "../http/response";
+import { send } from "../http/response.js";
 
 describe("http response", () => {
   test("sends plain text with a default text content type", () => {

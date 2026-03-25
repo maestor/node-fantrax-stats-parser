@@ -1,21 +1,21 @@
-import type { RouteHandler } from "../../shared/router";
+import type { RouteHandler } from "../../shared/router.js";
 import {
   getAvailableSeasons,
   getLastModifiedData,
   getTeamsData,
-} from "./service";
+} from "./service.js";
 import {
   parseSeasonParam,
   reportTypeAvailable,
-} from "../../shared/seasons";
-import { resolveTeamId } from "../../shared/teams";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http";
+} from "../../shared/seasons.js";
+import { resolveTeamId } from "../../shared/teams.js";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http.js";
 import {
   getQueryParam,
   sendNoStore,
   withErrorHandlingCached,
-} from "../../shared/route-utils";
-import type { Report } from "../../shared/types";
+} from "../../shared/route-utils.js";
+import type { Report } from "../../shared/types/index.js";
 
 export const getSeasons: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));

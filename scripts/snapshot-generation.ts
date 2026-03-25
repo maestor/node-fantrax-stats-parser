@@ -1,4 +1,4 @@
-import { TEAMS } from "../src/config";
+import { TEAMS } from "../src/config/index.js";
 
 export const SNAPSHOT_GENERATION_SCOPES = [
   "all",

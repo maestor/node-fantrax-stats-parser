@@ -2,11 +2,11 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import type { Client } from "@libsql/client";
-import { buildFantraxEntityUpsertStatements } from "../features/fantrax/entities";
-import { getDbClient, resetDbClientForTests } from "../db/client";
-import { migrateDb } from "../db/schema";
-import { resetSnapshotCacheForTests } from "../infra/snapshots/store";
-import { resetRouteCachesForTests } from "../shared/route-utils";
+import { buildFantraxEntityUpsertStatements } from "../features/fantrax/entities.js";
+import { getDbClient, resetDbClientForTests } from "../db/client.js";
+import { migrateDb } from "../db/schema.js";
+import { resetSnapshotCacheForTests } from "../infra/snapshots/store.js";
+import { resetRouteCachesForTests } from "../shared/route-utils.js";
 
 type PlayerSeed = {
   teamId: string;

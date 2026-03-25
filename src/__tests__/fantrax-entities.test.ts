@@ -1,8 +1,8 @@
 import {
   buildFantraxEntityUpsertStatements,
   collectFantraxEntitiesFromStats,
-} from "../features/fantrax/entities";
-import { createGoalie, createPlayer } from "./fixtures";
+} from "../features/fantrax/entities.js";
+import { createGoalie, createPlayer } from "./fixtures.js";
 
 describe("fantrax entity helpers", () => {
   describe("collectFantraxEntitiesFromStats", () => {

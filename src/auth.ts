@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
-import { send } from "./http/response";
+import { send } from "./http/response.js";
 
 export type ApiKeyAuthOptions = {
   headerName?: string;

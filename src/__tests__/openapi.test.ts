@@ -1,8 +1,8 @@
 import fs from "fs";
 import yaml from "js-yaml";
 import { createRequest, createResponse } from "node-mocks-http";
-import { send } from "../http/response";
-import { getOpenApiSpec, getSwaggerUi } from "../openapi";
+import { send } from "../http/response.js";
+import { getOpenApiSpec, getSwaggerUi } from "../openapi.js";
 
 jest.mock("../http/response");
 jest.mock("fs");

@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 import { createClient, type Client } from "@libsql/client";
 
-import { migrateDb } from "../db/schema";
+import { migrateDb } from "../db/schema.js";
 
 const LEGACY_SCHEMA_SQL = [
   `CREATE TABLE IF NOT EXISTS players (

@@ -1,4 +1,4 @@
-import type { CsvReport } from "../../shared/types/core";
+import type { CsvReport } from "../../shared/types/core.js";
 
 export type CountSplit = {
   owned: number;

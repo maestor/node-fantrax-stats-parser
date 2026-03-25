@@ -1,31 +1,31 @@
-import type { RouteHandler } from "../../shared/router";
+import type { RouteHandler } from "../../shared/router.js";
 import {
   getCareerGoaliesData,
   getCareerHighlightsData,
   getCareerPlayersData,
   getGoalieCareerData,
   getPlayerCareerData,
-} from "./service";
+} from "./service.js";
 import {
   CAREER_HIGHLIGHT_CONFIG,
   CAREER_HIGHLIGHT_TYPES,
   DEFAULT_CAREER_HIGHLIGHT_SKIP,
   DEFAULT_CAREER_HIGHLIGHT_TAKE,
   MAX_CAREER_HIGHLIGHT_TAKE,
-} from "../../config";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http";
+} from "../../config/index.js";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http.js";
 import {
   getCareerGoaliesSnapshotKey,
   getCareerHighlightsSnapshotKey,
   getCareerPlayersSnapshotKey,
-} from "../../infra/snapshots/store";
+} from "../../infra/snapshots/store.js";
 import {
   getQueryParam,
   loadSnapshotOrFallback,
   sendNoStore,
   withErrorHandlingCached,
-} from "../../shared/route-utils";
-import type { CareerHighlightType } from "./types";
+} from "../../shared/route-utils.js";
+import type { CareerHighlightType } from "./types.js";
 
 const isCareerHighlightType = (
   value: string,

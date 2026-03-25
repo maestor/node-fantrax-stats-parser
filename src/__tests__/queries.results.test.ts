@@ -5,7 +5,7 @@ jest.mock("../db/client", () => {
   };
 });
 
-import { getDbClient } from "../db/client";
+import { getDbClient } from "../db/client.js";
 import {
   getPlayoffLeaderboard,
   getPlayoffSeasons,
@@ -13,7 +13,7 @@ import {
   getRegularSeasons,
   getTransactionLeaderboard,
   getTransactionSeasons,
-} from "../db/queries";
+} from "../db/queries.js";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
 

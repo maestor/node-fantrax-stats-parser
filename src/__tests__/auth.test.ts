@@ -5,8 +5,8 @@ import {
   isValidApiKey,
   shouldRequireAuth,
   withApiKeyAuth,
-} from "../auth";
-import { send } from "../http/response";
+} from "../auth.js";
+import { send } from "../http/response.js";
 
 jest.mock("../http/response");
 

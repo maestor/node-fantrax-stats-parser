@@ -6,13 +6,13 @@ import type {
   Player,
   PlayerWithSeason,
   RawData,
-} from "./types";
+} from "./types.js";
 import {
   applyGoalieScores,
   applyPlayerScores,
   applyPlayerScoresByPosition,
-} from "./scoring";
-import { CSV } from "../../config/csv";
+} from "./scoring.js";
+import { CSV } from "../../config/csv.js";
 
 // Data have commas in thousands, pre-remove those that Number won't fail
 const parseNumber = (value: string) => {

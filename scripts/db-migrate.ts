@@ -4,8 +4,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { getDbClient } from "../src/db/client";
-import { migrateDb } from "../src/db/schema";
+import { getDbClient } from "../src/db/client.js";
+import { migrateDb } from "../src/db/schema.js";
 
 const main = async () => {
   const db = getDbClient();

@@ -5,16 +5,16 @@ jest.mock("../db/client", () => {
   };
 });
 
-import { getDbClient } from "../db/client";
+import { getDbClient } from "../db/client.js";
 import {
   getAvailableSeasonsFromDb,
   getGoaliesFromDb,
   getPlayersFromDb,
-} from "../db/queries";
+} from "../db/queries.js";
 import type {
   GoalieWithSeason,
   PlayerWithSeason,
-} from "../features/stats/types";
+} from "../features/stats/types.js";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
 

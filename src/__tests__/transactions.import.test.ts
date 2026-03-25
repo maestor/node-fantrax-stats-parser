@@ -10,8 +10,8 @@ import {
   parseDraftPickAsset,
   parseTransactionDateToIso,
   resolveTransactionTeamId,
-} from "../../scripts/transaction-import-lib";
-import { createIntegrationDb } from "./integration-db";
+} from "../../scripts/transaction-import-lib.js";
+import { createIntegrationDb } from "./integration-db.js";
 
 const getCount = async (
   db: Awaited<ReturnType<typeof createIntegrationDb>>["db"],

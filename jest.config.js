@@ -23,6 +23,9 @@ module.exports = {
   coverageReporters: ["text", "html", "lcov"],
   coverageDirectory: "coverage",
   moduleFileExtensions: ["ts", "js"],
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
   verbose: true,
   transform: {
     "^.+\\.ts$": [

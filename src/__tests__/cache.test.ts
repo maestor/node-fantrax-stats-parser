@@ -7,7 +7,7 @@ import {
   normalizeUrlForCacheKey,
   setCachedOkHeaders,
   setNoStoreHeaders,
-} from "../cache";
+} from "../cache.js";
 
 const makeRes = (): ServerResponse => {
   const headers = new Map<string, unknown>();

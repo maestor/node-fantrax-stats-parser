@@ -1,13 +1,13 @@
 import type { IncomingMessage } from "http";
 import type { MatchedRoute } from "rou3";
-import { withCors } from "./http/cors";
-import type { RequestHandler } from "./http/types";
+import { withCors } from "./http/cors.js";
+import type { RequestHandler } from "./http/types.js";
 import type {
   RouteDefinition,
   RouteHandler,
   RouteParams,
   RouteRequest,
-} from "./shared/router";
+} from "./shared/router.js";
 
 type RouterModule = typeof import("rou3");
 type RouteData = {

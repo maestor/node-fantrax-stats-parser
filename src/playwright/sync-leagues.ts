@@ -2,8 +2,8 @@ import { chromium, type Page } from "playwright";
 import { rmSync, writeFileSync } from "fs";
 import path from "path";
 
-import { FANTRAX_URLS } from "../config";
-import { applyManualLeaguePeriodsOverrides } from "./compute-manual-data";
+import { FANTRAX_URLS } from "../config/index.js";
+import { applyManualLeaguePeriodsOverrides } from "./compute-manual-data.js";
 import {
   AUTH_STATE_PATH,
   debugDump,
@@ -16,7 +16,7 @@ import {
   parseNumberArg,
   parseStringArg,
   requireAuthStateFile,
-} from "./helpers";
+} from "./helpers.js";
 
 type LeaguePeriods = {
   regularStartDate: string;

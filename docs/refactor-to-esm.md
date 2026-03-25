@@ -3,7 +3,7 @@
 **Status:** In progress
 **Date:** 2026-03-25
 **Branch:** `refactor/commonjs-to-esm`
-**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.ts` remains the temporary CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers.
+**Progress:** Canonical app entrypoint extracted to `src/app.ts`; `src/index.cts` is now the explicit CommonJS compatibility wrapper. `micro` and `micro-cors` have been replaced by local HTTP/CORS helpers, the source tree now uses explicit ESM-ready relative specifiers, and the dependency cleanup has started by moving Playwright to `devDependencies` and removing unused `@types/express`.
 
 ## Goals
 
@@ -54,6 +54,8 @@ The notes below capture the state when this migration plan was first written.
 ### Phase 0: Lock current behavior and trim obvious dependency debt
 
 **Purpose:** make later runtime changes safer and reduce needless production weight early.
+
+**Progress note (2026-03-25):** partly done. `playwright` has been moved to `devDependencies`, and the unused `@types/express` package has been removed.
 
 **Tasks**
 
@@ -123,6 +125,8 @@ The notes below capture the state when this migration plan was first written.
 ### Phase 3: Make the source tree ESM-ready while output is still CommonJS
 
 **Purpose:** land the largest mechanical changes before the package-level runtime flip.
+
+**Progress note (2026-03-25):** in progress. Relative imports now use explicit runtime specifiers, and the old `src/index.ts` CommonJS wrapper has been isolated as `src/index.cts` with `package.json.main` pointing to `lib/index.cjs`.
 
 **Tasks**
 

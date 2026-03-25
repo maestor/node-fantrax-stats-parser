@@ -5,7 +5,7 @@ jest.mock("../db/client", () => {
   };
 });
 
-import { getDbClient } from "../db/client";
+import { getDbClient } from "../db/client.js";
 import {
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
@@ -15,7 +15,7 @@ import {
   getPlayerCareerRowsFromDb,
   getReunionTransactionHighlightRowsFromDb,
   getTradeTransactionHighlightRowsFromDb,
-} from "../db/queries";
+} from "../db/queries.js";
 
 const mockExecute = (getDbClient() as unknown as { execute: jest.Mock }).execute;
 

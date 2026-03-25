@@ -1,4 +1,4 @@
-import { CURRENT_SEASON, START_SEASON, TEAMS } from "../../config";
+import { CURRENT_SEASON, START_SEASON, TEAMS } from "../../config/index.js";
 import {
   getPlayoffLeaderboard,
   getPlayoffSeasons,
@@ -9,7 +9,7 @@ import {
   type PlayoffSeasonDbEntry,
   type RegularSeasonDbEntry,
   type TransactionSeasonDbEntry,
-} from "../../db/queries";
+} from "../../db/queries.js";
 import type {
   PlayoffLeaderboardEntry,
   PlayoffLeaderboardSeason,
@@ -18,7 +18,7 @@ import type {
   RegularLeaderboardSeason,
   TransactionLeaderboardEntry,
   TransactionLeaderboardSeason,
-} from "./types";
+} from "./types.js";
 
 type PlayoffLeaderboardRowData = Pick<
   PlayoffLeaderboardEntry,

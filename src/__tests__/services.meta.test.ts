@@ -1,5 +1,5 @@
-import { getTeamsData } from "../features/meta/service";
-import { getTeamsWithData } from "../shared/teams";
+import { getTeamsData } from "../features/meta/service.js";
+import { getTeamsWithData } from "../shared/teams.js";
 
 jest.mock("../shared/teams");
 

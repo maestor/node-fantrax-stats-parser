@@ -1,14 +1,14 @@
-import { CURRENT_SEASON, TEAMS } from "../config";
+import { CURRENT_SEASON, TEAMS } from "../config/index.js";
 import {
   availableSeasons,
   parseSeasonParam,
   reportTypeAvailable,
   seasonAvailable,
-} from "../shared/seasons";
-import { getTeamsWithData, resolveTeamId } from "../shared/teams";
-import { sortItemsByStatField } from "../features/stats/scoring";
-import { createGoalie, createPlayer } from "./fixtures";
-import type { Goalie, Player, Report } from "../shared/types";
+} from "../shared/seasons.js";
+import { getTeamsWithData, resolveTeamId } from "../shared/teams.js";
+import { sortItemsByStatField } from "../features/stats/scoring.js";
+import { createGoalie, createPlayer } from "./fixtures.js";
+import type { Goalie, Player, Report } from "../shared/types/index.js";
 
 describe("helpers utilities", () => {
   describe("sortItemsByStatField", () => {

@@ -1,6 +1,6 @@
 import { createRequest, createResponse } from "node-mocks-http";
-import { createApp } from "../router";
-import { get } from "../shared/router";
+import { createApp } from "../router.js";
+import { get } from "../shared/router.js";
 
 describe("router", () => {
   test("matches route params without stripping the original request url", async () => {

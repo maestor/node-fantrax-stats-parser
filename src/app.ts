@@ -1,35 +1,35 @@
-import { withApiKeyAuth } from "./auth";
-import { send } from "./http/response";
-import type { RequestHandler } from "./http/types";
-import { createApp } from "./router";
-import { get, type RouteDefinition, type RouteHandler } from "./shared/router";
+import { withApiKeyAuth } from "./auth.js";
+import { send } from "./http/response.js";
+import type { RequestHandler } from "./http/types.js";
+import { createApp } from "./router.js";
+import { get, type RouteDefinition, type RouteHandler } from "./shared/router.js";
 
 import {
   getPlayersCombined,
   getPlayersSeason,
   getGoaliesCombined,
   getGoaliesSeason,
-} from "./features/stats/routes";
+} from "./features/stats/routes.js";
 import {
   getCareerPlayer,
   getCareerGoalie,
   getCareerPlayers,
   getCareerGoalies,
   getCareerHighlights,
-} from "./features/career/routes";
+} from "./features/career/routes.js";
 import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-} from "./features/leaderboard/routes";
+} from "./features/leaderboard/routes.js";
 import {
   getLastModified,
   getSeasons,
   getTeams,
-} from "./features/meta/routes";
-import { getOpenApiSpec, getSwaggerUi } from "./openapi";
-import { HTTP_STATUS } from "./shared/http";
-import { sendNoStore } from "./shared/route-utils";
+} from "./features/meta/routes.js";
+import { getOpenApiSpec, getSwaggerUi } from "./openapi.js";
+import { HTTP_STATUS } from "./shared/http.js";
+import { sendNoStore } from "./shared/route-utils.js";
 
 const service: RouteHandler = async (_req, res) => {
   send(res, 200, "Hello there! The FFHL Stats Service is running.");

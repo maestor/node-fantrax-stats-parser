@@ -1,4 +1,4 @@
-import type { Goalie, GoalieScoreField, Player } from "./types";
+import type { Goalie, GoalieScoreField, Player } from "./types.js";
 import {
   GOALIE_ADJUSTED_SCORE_PRIOR_GAMES,
   GOALIE_GAA_MAX_DIFF_RATIO,
@@ -10,7 +10,7 @@ import {
   PLAYER_ADJUSTED_SCORE_PRIOR_GAMES,
   PLAYER_SCORE_FIELDS,
   PLAYER_SCORE_WEIGHTS,
-} from "../../config/settings";
+} from "../../config/settings.js";
 
 const defaultSortPlayers = (a: Player, b: Player): number =>
   b.score - a.score || b.points - a.points || b.goals - a.goals;

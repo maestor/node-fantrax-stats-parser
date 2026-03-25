@@ -1,28 +1,28 @@
-import type { RouteHandler } from "../../shared/router";
+import type { RouteHandler } from "../../shared/router.js";
 import {
   getGoaliesStatsCombined,
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
   getPlayersStatsSeason,
-} from "./service";
+} from "./service.js";
 import {
   getTeamStartSeason,
   resolveTeamId,
-} from "../../shared/teams";
+} from "../../shared/teams.js";
 import {
   parseSeasonParam,
   reportTypeAvailable,
   seasonAvailable,
-} from "../../shared/seasons";
-import { getCombinedSnapshotKey } from "../../infra/snapshots/store";
-import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http";
+} from "../../shared/seasons.js";
+import { getCombinedSnapshotKey } from "../../infra/snapshots/store.js";
+import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http.js";
 import {
   getQueryParam,
   loadSnapshotOrFallback,
   sendNoStore,
   withErrorHandlingCached,
-} from "../../shared/route-utils";
-import type { Report } from "../../shared/types";
+} from "../../shared/route-utils.js";
+import type { Report } from "../../shared/types/index.js";
 
 export const getPlayersSeason: RouteHandler = async (req, res) => {
   const teamId = resolveTeamId(getQueryParam(req, "teamId"));

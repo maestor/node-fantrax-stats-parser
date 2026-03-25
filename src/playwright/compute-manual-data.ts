@@ -1,6 +1,6 @@
-import type { Team } from "../shared/types";
+import type { Team } from "../shared/types/index.js";
 
-import type { TeamRunWithRound } from "./helpers";
+import type { TeamRunWithRound } from "./helpers.js";
 
 type LeaguePeriods = {
   regularStartDate: string;

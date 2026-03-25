@@ -1,4 +1,4 @@
-import { DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "../config/settings";
+import { DEFAULT_TEAM_ID, START_SEASON, TEAMS } from "../config/settings.js";
 
 const isConfiguredTeamId = (teamId: string): boolean =>
   TEAMS.some((team) => team.id === teamId);

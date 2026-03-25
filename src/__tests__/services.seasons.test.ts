@@ -1,31 +1,31 @@
 import {
   getAvailableSeasons,
-} from "../features/meta/service";
+} from "../features/meta/service.js";
 import {
   getGoaliesStatsCombined,
   getGoaliesStatsSeason,
   getPlayersStatsCombined,
   getPlayersStatsSeason,
-} from "../features/stats/service";
+} from "../features/stats/service.js";
 import {
   applyGoalieScores,
   applyPlayerScores,
   applyPlayerScoresByPosition,
   sortItemsByStatField,
-} from "../features/stats/scoring";
+} from "../features/stats/scoring.js";
 import {
   mapAvailableSeasons,
   mapCombinedGoalieDataFromGoaliesWithSeason,
   mapCombinedPlayerDataFromPlayersWithSeason,
-} from "../features/stats/mapping";
-import { getGoaliesFromDb, getPlayersFromDb } from "../db/queries";
-import { availableSeasons as listAvailableSeasons } from "../shared/seasons";
+} from "../features/stats/mapping.js";
+import { getGoaliesFromDb, getPlayersFromDb } from "../db/queries.js";
+import { availableSeasons as listAvailableSeasons } from "../shared/seasons.js";
 import {
   mockGoalie,
   mockGoalieWithSeason,
   mockPlayer,
   mockPlayerWithSeason,
-} from "./fixtures";
+} from "./fixtures.js";
 
 jest.mock("../features/stats/scoring");
 jest.mock("../features/stats/mapping");

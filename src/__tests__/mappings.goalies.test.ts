@@ -1,8 +1,8 @@
 import {
   mapCombinedGoalieData,
   mapGoalieData,
-} from "../features/stats/mapping";
-import { applyGoalieScores } from "../features/stats/scoring";
+} from "../features/stats/mapping.js";
+import { applyGoalieScores } from "../features/stats/scoring.js";
 import {
   mockRawDataFirstRow,
   mockRawDataGoalie2012,
@@ -10,7 +10,7 @@ import {
   mockRawDataGoalieNoField18,
   mockRawDataGoalieNonNumericWins,
   mockRawDataPlayer,
-} from "./fixtures";
+} from "./fixtures.js";
 
 jest.mock("../features/stats/scoring");
 

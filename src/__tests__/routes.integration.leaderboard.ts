@@ -1,20 +1,20 @@
 import fs from "fs/promises";
 import path from "path";
 import { createRequest, createResponse } from "node-mocks-http";
-import { getLastModified } from "../features/meta/routes";
+import { getLastModified } from "../features/meta/routes.js";
 import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-} from "../features/leaderboard/routes";
-import { HTTP_STATUS } from "../shared/http";
-import { createIntegrationDb } from "./integration-db";
-import { expectArraySchema } from "./openapi-schema";
+} from "../features/leaderboard/routes.js";
+import { HTTP_STATUS } from "../shared/http.js";
+import { createIntegrationDb } from "./integration-db.js";
+import { expectArraySchema } from "./openapi-schema.js";
 import {
   asRouteReq,
   getJsonBody,
   writeSnapshot,
-} from "./routes.integration.helpers";
+} from "./routes.integration.helpers.js";
 
 type PlayoffsRouteReq = Parameters<typeof getPlayoffsLeaderboard>[0];
 type RegularRouteReq = Parameters<typeof getRegularLeaderboard>[0];

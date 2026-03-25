@@ -1,18 +1,18 @@
-import type { RouteHandler } from "../../shared/router";
+import type { RouteHandler } from "../../shared/router.js";
 import {
   getPlayoffLeaderboardData,
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
-} from "./service";
+} from "./service.js";
 import {
   getPlayoffsLeaderboardSnapshotKey,
   getRegularLeaderboardSnapshotKey,
   getTransactionsLeaderboardSnapshotKey,
-} from "../../infra/snapshots/store";
+} from "../../infra/snapshots/store.js";
 import {
   loadSnapshotOrFallback,
   withErrorHandlingCached,
-} from "../../shared/route-utils";
+} from "../../shared/route-utils.js";
 
 export const getPlayoffsLeaderboard: RouteHandler = async (
   req,

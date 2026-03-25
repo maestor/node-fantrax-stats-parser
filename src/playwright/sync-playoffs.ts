@@ -24,12 +24,12 @@ import {
   scrapePlayoffsPeriodsFromStandingsTables,
   standingsNameCandidates,
   tryGetRosterTeamIdFromStandingsLink,
-} from "./helpers";
-import { TEAMS } from "../config";
-import type { Team } from "../shared/types";
-import { getDbClient } from "../db/client";
+} from "./helpers.js";
+import { TEAMS } from "../config/index.js";
+import type { Team } from "../shared/types/index.js";
+import { getDbClient } from "../db/client.js";
 
-import { computeManual2018PlayoffsTeamRuns } from "./compute-manual-data";
+import { computeManual2018PlayoffsTeamRuns } from "./compute-manual-data.js";
 
 type LeaguePeriods = {
   regularStartDate: string;
