@@ -48,6 +48,32 @@ const parseReportTypeArg = (args: string[]): ReportType | null => {
   return value;
 };
 
+const parseTeamIdArgs = (args: string[]): string[] | null => {
+  const rawTeamIds = args
+    .filter((arg) => arg.startsWith("--team-id="))
+    .flatMap((arg) => arg.slice("--team-id=".length).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (rawTeamIds.length === 0) {
+    return null;
+  }
+
+  const uniqueTeamIds = new Set(rawTeamIds);
+  const validTeamIds = new Set(TEAMS.map((team) => team.id));
+  const invalidTeamId = [...uniqueTeamIds].find((teamId) => !validTeamIds.has(teamId));
+
+  if (invalidTeamId) {
+    throw new Error(
+      `Invalid --team-id value: ${invalidTeamId}. Valid values: ${TEAMS.map((team) => team.id).join(", ")}.`,
+    );
+  }
+
+  return TEAMS.map((team) => team.id).filter((teamId) =>
+    uniqueTeamIds.has(teamId),
+  );
+};
+
 const getEnvOrThrow = (key: string): string => {
   const value = process.env[key];
   if (!value) {
@@ -162,10 +188,16 @@ const buildManifest = (
   csvDir: string,
   onlySeasonStartYear?: number,
   onlyReportType?: ReportType | null,
+  onlyTeamIds?: readonly string[] | null,
 ): Record<string, ManifestEntry> => {
   const manifest: Record<string, ManifestEntry> = {};
+  const allowedTeamIds = onlyTeamIds ? new Set(onlyTeamIds) : null;
 
   for (const team of TEAMS) {
+    if (allowedTeamIds && !allowedTeamIds.has(team.id)) {
+      continue;
+    }
+
     const teamDir = path.join(csvDir, team.id);
     if (!fs.existsSync(teamDir)) continue;
 
@@ -210,6 +242,7 @@ const main = async () => {
   const onlyCurrentSeason = args.includes("--current-only");
   const seasonFilter = parseSeasonArg(args);
   const reportTypeFilter = parseReportTypeArg(args);
+  const teamIdsFilter = parseTeamIdArgs(args);
   const forceAll = args.includes("--force");
   const dryRun = args.includes("--dry-run");
 
@@ -228,6 +261,7 @@ const main = async () => {
     }`
   );
   console.log(`   Report type: ${reportTypeFilter ?? "all"}`);
+  console.log(`   Teams: ${teamIdsFilter?.join(", ") ?? "all"}`);
   console.log(`   Force upload: ${forceAll}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
@@ -240,7 +274,13 @@ const main = async () => {
   };
 
   // Upload CSV files
+  const allowedTeamIds = teamIdsFilter ? new Set(teamIdsFilter) : null;
+
   for (const team of TEAMS) {
+    if (allowedTeamIds && !allowedTeamIds.has(team.id)) {
+      continue;
+    }
+
     const teamDir = path.join(csvDir, team.id);
     if (!fs.existsSync(teamDir)) {
       console.log(`⚠️  Team ${team.id} (${team.name}): No CSV directory, skipping`);
@@ -308,15 +348,20 @@ const main = async () => {
   console.log("📋 Generating manifest...");
 
   let manifest: Record<string, ManifestEntry>;
-  if (onlyCurrentSeason || seasonFilter !== null || reportTypeFilter !== null) {
+  if (
+    onlyCurrentSeason ||
+    seasonFilter !== null ||
+    reportTypeFilter !== null ||
+    teamIdsFilter !== null
+  ) {
     // In current-only mode, merge local seasons into existing R2 manifest
     // to preserve historical season entries not present on local disk
     console.log("  📥 Fetching existing manifest from R2 for merge...");
     const existingManifest = await fetchExistingManifest(client, bucketName);
     const localManifest =
       seasonFilter !== null
-        ? buildManifest(csvDir, seasonFilter, reportTypeFilter)
-        : buildManifest(csvDir, undefined, reportTypeFilter);
+        ? buildManifest(csvDir, seasonFilter, reportTypeFilter, teamIdsFilter)
+        : buildManifest(csvDir, undefined, reportTypeFilter, teamIdsFilter);
     manifest = mergeManifests(existingManifest, localManifest);
     if (existingManifest) {
       console.log("  🔀 Merged local seasons into existing manifest");
@@ -324,7 +369,7 @@ const main = async () => {
       console.log("  ⚠️  No existing manifest found, using local manifest");
     }
   } else {
-    manifest = buildManifest(csvDir, undefined, reportTypeFilter);
+    manifest = buildManifest(csvDir, undefined, reportTypeFilter, teamIdsFilter);
   }
 
   const manifestJson = JSON.stringify(manifest, null, 2);

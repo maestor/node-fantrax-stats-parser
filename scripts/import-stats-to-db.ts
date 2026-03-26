@@ -38,6 +38,32 @@ const parseReportTypeArg = (args: string[]): ReportType | null => {
   return value;
 };
 
+const parseTeamIdArgs = (args: string[]): string[] | null => {
+  const rawTeamIds = args
+    .filter((arg) => arg.startsWith("--team-id="))
+    .flatMap((arg) => arg.slice("--team-id=".length).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (rawTeamIds.length === 0) {
+    return null;
+  }
+
+  const uniqueTeamIds = new Set(rawTeamIds);
+  const validTeamIds = new Set(TEAMS.map((team) => team.id));
+  const invalidTeamId = [...uniqueTeamIds].find((teamId) => !validTeamIds.has(teamId));
+
+  if (invalidTeamId) {
+    throw new Error(
+      `Invalid --team-id value: ${invalidTeamId}. Valid values: ${TEAMS.map((team) => team.id).join(", ")}.`,
+    );
+  }
+
+  return TEAMS.map((team) => team.id).filter((teamId) =>
+    uniqueTeamIds.has(teamId),
+  );
+};
+
 const main = async () => {
   const args = process.argv.slice(2);
   const onlyCurrentSeason = args.includes("--current-only");
@@ -48,6 +74,7 @@ const main = async () => {
     throw new Error(`Invalid --season value: ${seasonArg.split("=")[1]}`);
   }
   const reportTypeFilter = parseReportTypeArg(args);
+  const teamIdsFilter = parseTeamIdArgs(args);
   const dryRun = args.includes("--dry-run");
 
   const csvDir = path.resolve(process.cwd(), "csv");
@@ -69,6 +96,7 @@ const main = async () => {
     }`,
   );
   console.log(`   Report type: ${reportTypeFilter ?? "all"}`);
+  console.log(`   Teams: ${teamIdsFilter?.join(", ") ?? "all"}`);
   console.log(`   Dry run: ${dryRun}`);
   console.log("");
 
@@ -82,7 +110,13 @@ const main = async () => {
   const missingIdMessages: string[] = [];
   const snapshotTeamIds = new Set<string>();
 
+  const allowedTeamIds = teamIdsFilter ? new Set(teamIdsFilter) : null;
+
   for (const team of TEAMS) {
+    if (allowedTeamIds && !allowedTeamIds.has(team.id)) {
+      continue;
+    }
+
     const teamDir = path.join(csvDir, team.id);
     if (!fs.existsSync(teamDir)) {
       console.log(
@@ -255,7 +289,7 @@ const main = async () => {
     }
   }
 
-  if (!dryRun) {
+  if (!dryRun && totalFiles > 0) {
     await db.execute({
       sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
       args: ["last_modified", new Date().toISOString()],
@@ -284,6 +318,11 @@ const main = async () => {
     if (snapshotRun.status !== 0) {
       throw new Error("Snapshot generation failed after DB import");
     }
+  } else if (!dryRun) {
+    console.log("");
+    console.log(
+      "📸 Skipping import metadata update and stats snapshot regeneration because no CSV files matched the current filters.",
+    );
   }
 
   console.log("");
