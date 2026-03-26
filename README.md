@@ -361,6 +361,31 @@ Useful options:
 - `--url=https://ffhl.kld.im/threads/...` (required opening-draft thread URL)
 - `--out=./custom/drafts` (override output dir)
 
+### 3g) Import FFHL draft JSON into the database
+
+Run:
+
+```bash
+npx tsx scripts/db-import-drafts.ts
+```
+
+Notes:
+
+- This one-off importer reads the local JSON files under `src/playwright/.fantrax/drafts/`.
+- It imports every `entry-draft-{season}.json` file into `entry_draft_picks`.
+- It imports `opening-draft.json` into `opening_draft_picks`.
+- Entry-draft imports replace only the imported `season` rows.
+- Opening-draft import always clears and reloads the whole `opening_draft_picks` table.
+- The database stores only `teamId` links plus pick metadata, not duplicated team names or source-file references.
+- By default it targets `local.db`. Set `USE_REMOTE_DB=true` in `.env` to target remote Turso instead.
+
+Useful options:
+
+- `--dir=./custom/drafts` (override the draft JSON directory)
+- `--season=2025` (import only one entry draft season and leave opening draft untouched)
+- `--opening-only` (refresh only `opening_draft_picks`)
+- `--dry-run` (validate files and print counts without writing to DB)
+
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
@@ -683,6 +708,7 @@ The API reads all data from a Turso (libSQL/SQLite) database. CSV files are impo
 
 Stats imports also maintain a global `fantrax_entities` table with one row per Fantrax ID. Each row stores the canonical Fantrax `name`, `position`, and the `first_seen_season` / `last_seen_season` bounds derived from imported data. `npm run db:migrate` backfills this table when upgrading an older database or rebuilding an empty registry, and later `db:import:stats` runs keep it incrementally in sync with cheap UPSERTs instead of full refreshes. Career endpoints now prefer canonical name/position data from this registry while still aggregating season/team stats from `players` and `goalies`.
 Transaction imports use that same registry to link claim/drop/trade player rows whenever possible. Matching prefers exact `name + position`, then same-season fantasy-team context, and finally the candidate with the latest `last_seen_season` when duplicate Fantrax IDs appear to represent merged player history. Normalized transaction storage lives in four tables: `claim_events`, `claim_event_items`, `trade_source_blocks`, and `trade_block_items`. `claim_event_items` also mirrors `season`, `team_id`, and `occurred_at` from its parent event so most claim/drop lookups can read straight from the item table.
+Forum draft history can also be imported into dedicated `entry_draft_picks` and `opening_draft_picks` tables after the local draft JSON files have been scraped.
 
 ### Local development
 

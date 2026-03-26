@@ -138,7 +138,8 @@ src/
 └── __tests__/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
-    ├── db.schema.test.ts # Schema migration/backfill behavior for fantrax_entities
+    ├── db.schema.test.ts # Schema migration/backfill behavior for fantrax_entities and draft tables
+    ├── drafts.import.test.ts # Draft JSON validation and DB import behavior
     ├── drafts.parser.test.ts # FFHL forum draft parsing for entry and opening draft topics
     ├── helpers.goalies.test.ts # Goalie scoring helpers
     ├── helpers.players.test.ts # Player scoring helpers

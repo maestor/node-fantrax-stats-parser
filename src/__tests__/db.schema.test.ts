@@ -120,6 +120,8 @@ describe("db schema migration", () => {
            AND name IN (
              'claim_events',
              'claim_event_items',
+             'entry_draft_picks',
+             'opening_draft_picks',
              'trade_source_blocks',
              'trade_block_items'
            )
@@ -129,6 +131,8 @@ describe("db schema migration", () => {
       expect(tables.rows).toEqual([
         { name: "claim_event_items" },
         { name: "claim_events" },
+        { name: "entry_draft_picks" },
+        { name: "opening_draft_picks" },
         { name: "trade_block_items" },
         { name: "trade_source_blocks" },
       ]);

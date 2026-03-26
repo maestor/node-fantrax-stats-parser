@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 
-const DB_SCHEMA_VERSION = "7";
+const DB_SCHEMA_VERSION = "8";
 const FANTRAX_ENTITIES_SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = [
@@ -56,6 +56,25 @@ const SCHEMA_SQL = [
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS entry_draft_picks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    season INTEGER NOT NULL,
+    pick_number INTEGER NOT NULL,
+    round INTEGER NOT NULL,
+    drafted_team_id TEXT NOT NULL,
+    owner_team_id TEXT NOT NULL,
+    player_name TEXT,
+    UNIQUE(season, pick_number)
+  )`,
+  `CREATE TABLE IF NOT EXISTS opening_draft_picks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pick_number INTEGER NOT NULL,
+    round INTEGER NOT NULL,
+    drafted_team_id TEXT NOT NULL,
+    owner_team_id TEXT NOT NULL,
+    player_name TEXT NOT NULL,
+    UNIQUE(pick_number)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_players_lookup ON players(team_id, season, report_type)`,
   `CREATE INDEX IF NOT EXISTS idx_goalies_lookup ON goalies(team_id, season, report_type)`,
   `CREATE INDEX IF NOT EXISTS idx_players_career_id
@@ -68,6 +87,18 @@ const SCHEMA_SQL = [
     ON fantrax_entities(name)`,
   `CREATE INDEX IF NOT EXISTS idx_fantrax_entities_position
     ON fantrax_entities(position)`,
+  `CREATE INDEX IF NOT EXISTS idx_entry_draft_picks_season
+    ON entry_draft_picks(season, pick_number)`,
+  `CREATE INDEX IF NOT EXISTS idx_entry_draft_picks_drafted_team
+    ON entry_draft_picks(drafted_team_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_entry_draft_picks_owner_team
+    ON entry_draft_picks(owner_team_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_opening_draft_picks_pick
+    ON opening_draft_picks(pick_number)`,
+  `CREATE INDEX IF NOT EXISTS idx_opening_draft_picks_drafted_team
+    ON opening_draft_picks(drafted_team_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_opening_draft_picks_owner_team
+    ON opening_draft_picks(owner_team_id)`,
   `CREATE TABLE IF NOT EXISTS playoff_results (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     team_id TEXT    NOT NULL,
