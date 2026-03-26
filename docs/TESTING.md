@@ -139,6 +139,7 @@ src/
     ├── auth.test.ts      # API key authentication
     ├── cache.test.ts     # Response caching & ETags
     ├── db.schema.test.ts # Schema migration/backfill behavior for fantrax_entities
+    ├── drafts.parser.test.ts # FFHL forum entry-draft parsing and team-alias coverage
     ├── helpers.goalies.test.ts # Goalie scoring helpers
     ├── helpers.players.test.ts # Player scoring helpers
     ├── helpers.test.ts   # Shared helper utilities

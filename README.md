@@ -313,6 +313,32 @@ Notes:
 - Resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` / `goalies` when duplicate names exist, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs.
 - Leaves unresolved player rows in the database with null `fantrax_entity_id` plus explicit match metadata.
 
+### 3e) Sync FFHL forum entry draft picks
+
+Run:
+
+```bash
+npm run playwright:sync:draft -- --url=https://ffhl.kld.im/threads/entry-draft-2025-varatut-pelaajat.5862/
+```
+
+Notes:
+
+- This scraper reads the public FFHL forum thread HTML directly. It does **not** require Fantrax auth state or a Playwright browser session.
+- It scrapes only the first post on page 1, because completed draft topics keep the maintained pick list there and later replies are just manager-by-manager history.
+- The season is parsed from the topic title, for example `Entry draft 2025 - varatut pelaajat`.
+- Output directory defaults to `src/playwright/.fantrax/drafts/` and stays local-only because `src/playwright/.fantrax/` is gitignored.
+- Output filenames follow `entry-draft-{season}.json`.
+- Each JSON file contains only draft-pick items. Teams are enriched from `TEAMS` with `abbreviation`, `teamId`, and current `teamName`.
+- Traded-pick rows such as `BUF (FLA) - Caleb Desnoyers` are parsed as `draftedTeam=BUF` and `originalOwnerTeam=FLA`.
+- Non-team reward-note parentheses such as `(mestari)` or `(divisioonavoittaja)` are ignored. If a line contains multiple parenthetical notes, the first one that matches a known NHL team abbreviation is used as the original owner.
+- In the 2013 topic, placeholder rows with player text `SKIPATTU` are preserved as draft picks but stored with `playerName: null`.
+- Utah franchise aliases `UTA`, `ARI`, and `PHX` all resolve to the same `teamId` / team record.
+
+Useful options:
+
+- `--url=https://ffhl.kld.im/threads/...` (required draft thread URL)
+- `--out=./custom/drafts` (override output dir)
+
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
