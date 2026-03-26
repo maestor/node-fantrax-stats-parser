@@ -339,6 +339,28 @@ Useful options:
 - `--url=https://ffhl.kld.im/threads/...` (required draft thread URL)
 - `--out=./custom/drafts` (override output dir)
 
+### 3f) Sync FFHL forum opening draft picks
+
+Run:
+
+```bash
+npm run playwright:sync:opening-draft -- --url=https://ffhl.kld.im/threads/varatut-pelaajat-j%C3%A4rjestyksess%C3%A4.10/
+```
+
+Notes:
+
+- This scraper also reads the public FFHL forum thread HTML directly and writes local-only JSON under `src/playwright/.fantrax/drafts/`.
+- Output filename is always `opening-draft.json`.
+- Items use the same shape as entry-draft items except there is no `season` field.
+- Teams are resolved from full NHL team names instead of abbreviations.
+- Traded-pick owner teams are parsed from `(via Team Name)` notes; if there are multiple `via` hops, the last team in the chain is treated as the original owner.
+- Round markers such as `Kierros 1`, `Kierros 2`, etc. are ignored except for setting each pick’s `round`.
+
+Useful options:
+
+- `--url=https://ffhl.kld.im/threads/...` (required opening-draft thread URL)
+- `--out=./custom/drafts` (override output dir)
+
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:

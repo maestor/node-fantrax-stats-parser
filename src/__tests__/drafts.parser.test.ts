@@ -2,7 +2,9 @@ import path from "path";
 
 import {
   buildEntryDraftOutputPath,
+  buildOpeningDraftOutputPath,
   parseEntryDraftHtml,
+  parseOpeningDraftHtml,
 } from "../features/drafts/parser.js";
 
 const buildJsonLdScript = (payload: unknown): string =>
@@ -269,6 +271,161 @@ ${buildJsonLdScript([
     ]);
   });
 
+  test("parses opening draft rows with full team names and via chains", () => {
+    const parsed = parseOpeningDraftHtml(
+      buildThreadHtml({
+        headline: "Varatut pelaajat järjestyksessä",
+        articleBody: `Kierros 1
+
+1. Anaheim Ducks - Jevgeni Malkin
+22. Nashville Predators (via Boston Bruins) - Carey Price
+26. Detroit Red Wings (via Nashville Predators) - Jimmy Howard
+30. Calgary Flames - Cam Ward
+31. Phoenix Coyotes - Zdeno Chara
+
+Kierros 2
+
+35. Boston Bruins (via Nashville Predators) - Braden Holtby
+70. Edmonton Oilers (via Winnipeg Jets via Colorado Avalanche) - Martin St. Louis`,
+      }),
+    );
+
+    expect(parsed.picks).toEqual([
+      {
+        round: 1,
+        pickNumber: 1,
+        playerName: "Jevgeni Malkin",
+        draftedTeam: {
+          abbreviation: "Anaheim Ducks",
+          teamId: "12",
+          teamName: "Anaheim Ducks",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Anaheim Ducks",
+          teamId: "12",
+          teamName: "Anaheim Ducks",
+        },
+      },
+      {
+        round: 1,
+        pickNumber: 22,
+        playerName: "Carey Price",
+        draftedTeam: {
+          abbreviation: "Nashville Predators",
+          teamId: "10",
+          teamName: "Nashville Predators",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Boston Bruins",
+          teamId: "18",
+          teamName: "Boston Bruins",
+        },
+      },
+      {
+        round: 1,
+        pickNumber: 26,
+        playerName: "Jimmy Howard",
+        draftedTeam: {
+          abbreviation: "Detroit Red Wings",
+          teamId: "6",
+          teamName: "Detroit Red Wings",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Nashville Predators",
+          teamId: "10",
+          teamName: "Nashville Predators",
+        },
+      },
+      {
+        round: 1,
+        pickNumber: 30,
+        playerName: "Cam Ward",
+        draftedTeam: {
+          abbreviation: "Calgary Flames",
+          teamId: "3",
+          teamName: "Calgary Flames",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Calgary Flames",
+          teamId: "3",
+          teamName: "Calgary Flames",
+        },
+      },
+      {
+        round: 1,
+        pickNumber: 31,
+        playerName: "Zdeno Chara",
+        draftedTeam: {
+          abbreviation: "Phoenix Coyotes",
+          teamId: "31",
+          teamName: "Utah Mammoth",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Phoenix Coyotes",
+          teamId: "31",
+          teamName: "Utah Mammoth",
+        },
+      },
+      {
+        round: 2,
+        pickNumber: 35,
+        playerName: "Braden Holtby",
+        draftedTeam: {
+          abbreviation: "Boston Bruins",
+          teamId: "18",
+          teamName: "Boston Bruins",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Nashville Predators",
+          teamId: "10",
+          teamName: "Nashville Predators",
+        },
+      },
+      {
+        round: 2,
+        pickNumber: 70,
+        playerName: "Martin St. Louis",
+        draftedTeam: {
+          abbreviation: "Edmonton Oilers",
+          teamId: "7",
+          teamName: "Edmonton Oilers",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Colorado Avalanche",
+          teamId: "1",
+          teamName: "Colorado Avalanche",
+        },
+      },
+    ]);
+  });
+
+  test("falls back to the drafted team when a via segment does not contain a team name", () => {
+    const parsed = parseOpeningDraftHtml(
+      buildThreadHtml({
+        headline: "Varatut pelaajat järjestyksessä",
+        articleBody: "1. Anaheim Ducks (via) - Jevgeni Malkin",
+      }),
+    );
+
+    expect(parsed.picks).toEqual([
+      {
+        round: 1,
+        pickNumber: 1,
+        playerName: "Jevgeni Malkin",
+        draftedTeam: {
+          abbreviation: "Anaheim Ducks",
+          teamId: "12",
+          teamName: "Anaheim Ducks",
+        },
+        originalOwnerTeam: {
+          abbreviation: "Anaheim Ducks",
+          teamId: "12",
+          teamName: "Anaheim Ducks",
+        },
+      },
+    ]);
+  });
+
   test("builds the default entry draft file naming convention", () => {
     expect(
       buildEntryDraftOutputPath({
@@ -276,6 +433,14 @@ ${buildJsonLdScript([
         season: 2025,
       }),
     ).toBe(path.resolve("tmp/drafts", "entry-draft-2025.json"));
+  });
+
+  test("builds the default opening draft file naming convention", () => {
+    expect(
+      buildOpeningDraftOutputPath({
+        outDir: "tmp/drafts",
+      }),
+    ).toBe(path.resolve("tmp/drafts", "opening-draft.json"));
   });
 
   test("throws when structured draft data cannot be found in the html", () => {
@@ -319,6 +484,52 @@ ${buildJsonLdScript([
         }),
       ),
     ).toThrow("Could not find any draft pick rows in the first-post body.");
+  });
+
+  test("throws when the opening draft contains an unknown full team name", () => {
+    expect(() =>
+      parseOpeningDraftHtml(
+        buildThreadHtml({
+          headline: "Varatut pelaajat järjestyksessä",
+          articleBody: "1. Unknown Team - Player Person",
+        }),
+      ),
+    ).toThrow("Unsupported team name in opening draft: Unknown Team");
+  });
+
+  test("throws when the opening draft first-post body is empty", () => {
+    expect(() =>
+      parseOpeningDraftHtml(
+        buildThreadHtml({
+          headline: "Varatut pelaajat järjestyksessä",
+          articleBody: "   ",
+        }),
+      ),
+    ).toThrow("Opening draft first-post body was empty.");
+  });
+
+  test("throws when the opening draft contains no pick rows", () => {
+    expect(() =>
+      parseOpeningDraftHtml(
+        buildThreadHtml({
+          headline: "Varatut pelaajat järjestyksessä",
+          articleBody: "Kierros 1 alkaa nyt",
+        }),
+      ),
+    ).toThrow("Could not find any opening-draft pick rows in the first-post body.");
+  });
+
+  test("throws when an opening draft pick row is missing the player name", () => {
+    expect(() =>
+      parseOpeningDraftHtml(
+        buildThreadHtml({
+          headline: "Varatut pelaajat järjestyksessä",
+          articleBody: "1. Anaheim Ducks -    ",
+        }),
+      ),
+    ).toThrow(
+      "Opening draft pick row was missing a player name: 1. Anaheim Ducks -    ",
+    );
   });
 
   test("throws when a draft pick row is missing the player name", () => {

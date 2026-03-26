@@ -17,6 +17,8 @@ export type EntryDraftPick = {
   originalOwnerTeam: EntryDraftTeam;
 };
 
+export type OpeningDraftPick = Omit<EntryDraftPick, "season">;
+
 export const DEFAULT_ENTRY_DRAFT_OUT_DIR = path.resolve(
   "src",
   "playwright",
@@ -28,9 +30,12 @@ const JSON_LD_SCRIPT_PATTERN =
   /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/giu;
 const PICK_LINE_PATTERN =
   /^(\d+)\.\s*([A-Z]{2,4})((?:\s*\([^)]*\))*)\s*-\s*(.+)$/u;
+const OPENING_PICK_LINE_PATTERN =
+  /^(\d+)\.\s*(.+?)(?:\s*\((.+)\))?\s*-\s*(.+)$/u;
 const PARENTHETICAL_PATTERN = /\(([^)]*)\)/gu;
 const ABBREVIATION_TOKEN_PATTERN = /\b[A-Z]{2,4}\b/gu;
 const SEASON_IN_TITLE_PATTERN = /entry draft\s+(\d{4})/iu;
+const VIA_SEPARATOR_PATTERN = /\bvia\b/iu;
 
 const TEAM_ID_BY_ABBREVIATION = new Map<string, string>([
   ["ANA", "12"],
@@ -70,6 +75,14 @@ const TEAM_ID_BY_ABBREVIATION = new Map<string, string>([
 ]);
 const TEAM_NAME_BY_ID = new Map(
   TEAMS.map((team) => [team.id, team.presentName] as const),
+);
+const TEAM_ID_BY_NAME = new Map(
+  TEAMS.flatMap((team) =>
+    [team.presentName, ...(team.nameAliases ?? [])].map((name) => [
+      name.replace(/\s+/gu, " ").trim().toLowerCase(),
+      team.id,
+    ]),
+  ),
 );
 
 type ThreadStructuredData = {
@@ -145,6 +158,24 @@ const resolveTeamFromAbbreviation = (rawAbbreviation: string): EntryDraftTeam =>
   };
 };
 
+const resolveTeamFromName = (rawTeamName: string): EntryDraftTeam => {
+  const normalizedTeamName = rawTeamName
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLowerCase();
+  const teamId = TEAM_ID_BY_NAME.get(normalizedTeamName);
+
+  if (!teamId) {
+    throw new Error(`Unsupported team name in opening draft: ${rawTeamName.trim()}`);
+  }
+
+  return {
+    abbreviation: rawTeamName.trim(),
+    teamId,
+    teamName: TEAM_NAME_BY_ID.get(teamId)!,
+  };
+};
+
 const resolveOriginalOwnerAbbreviation = (
   rawParentheticalSegment: string,
   draftedTeamAbbreviation: string,
@@ -166,6 +197,22 @@ const resolveOriginalOwnerAbbreviation = (
   }
 
   return draftedTeamAbbreviation;
+};
+
+const resolveOpeningOriginalOwnerName = (
+  rawViaSegment: string | undefined,
+  draftedTeamName: string,
+): string => {
+  if (!rawViaSegment) {
+    return draftedTeamName;
+  }
+
+  const viaSegments = rawViaSegment
+    .split(VIA_SEPARATOR_PATTERN)
+    .map((segment) => segment.replace(/\s+/gu, " ").trim())
+    .filter(Boolean);
+
+  return viaSegments.at(-1) ?? draftedTeamName;
 };
 
 const parseDraftBody = (body: string, season: number): EntryDraftPick[] => {
@@ -242,7 +289,78 @@ export const parseEntryDraftHtml = (
   };
 };
 
+const parseOpeningDraftBody = (body: string): OpeningDraftPick[] => {
+  if (!body.trim()) {
+    throw new Error("Opening draft first-post body was empty.");
+  }
+  const normalizedBody = body.replace(/\r\n?/gu, "\n");
+
+  const picks: OpeningDraftPick[] = [];
+  let round = 0;
+
+  for (const block of normalizedBody.split(/\n\s*\n+/u)) {
+    const lines = block
+      .split("\n")
+      .filter((line) => line.trim().length > 0);
+    let sawPickInBlock = false;
+
+    for (const line of lines) {
+      const normalizedLine = line.trimStart();
+      const pickMatch = OPENING_PICK_LINE_PATTERN.exec(normalizedLine);
+      if (!pickMatch) {
+        continue;
+      }
+
+      if (!sawPickInBlock) {
+        round += 1;
+        sawPickInBlock = true;
+      }
+
+      const pickNumber = Number.parseInt(pickMatch[1], 10);
+      const draftedTeamName = pickMatch[2].trim();
+      const originalOwnerTeamName = resolveOpeningOriginalOwnerName(
+        pickMatch[3],
+        draftedTeamName,
+      );
+      const rawPlayerName = pickMatch[4].trim();
+
+      if (!rawPlayerName) {
+        throw new Error(
+          `Opening draft pick row was missing a player name: ${normalizedLine}`,
+        );
+      }
+
+      picks.push({
+        round,
+        pickNumber,
+        playerName: rawPlayerName,
+        draftedTeam: resolveTeamFromName(draftedTeamName),
+        originalOwnerTeam: resolveTeamFromName(originalOwnerTeamName),
+      });
+    }
+  }
+
+  if (!picks.length) {
+    throw new Error("Could not find any opening-draft pick rows in the first-post body.");
+  }
+
+  return picks;
+};
+
+export const parseOpeningDraftHtml = (
+  html: string,
+): { picks: OpeningDraftPick[] } => {
+  const { body } = extractThreadStructuredData(html);
+
+  return {
+    picks: parseOpeningDraftBody(body),
+  };
+};
+
 export const buildEntryDraftOutputPath = (args: {
   outDir: string;
   season: number;
 }): string => path.resolve(args.outDir, `entry-draft-${args.season}.json`);
+
+export const buildOpeningDraftOutputPath = (args: { outDir: string }): string =>
+  path.resolve(args.outDir, "opening-draft.json");
