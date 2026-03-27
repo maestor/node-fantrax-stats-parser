@@ -121,7 +121,7 @@ components:
           type: string
           example: Anaheim Ducks
 
-    OriginalDraftPick:
+    DraftPick:
       type: object
       required: [round, pickNumber, draftedPlayer, originalOwner]
       properties:
@@ -137,7 +137,7 @@ components:
         originalOwner:
           $ref: "#/components/schemas/DraftTeamRef"
 
-    OriginalDraftTeamGroup:
+    OpeningDraftTeamGroup:
       type: object
       required: [team, picks]
       properties:
@@ -146,7 +146,30 @@ components:
         picks:
           type: array
           items:
-            $ref: "#/components/schemas/OriginalDraftPick"
+            $ref: "#/components/schemas/DraftPick"
+
+    EntryDraftSeasonGroup:
+      type: object
+      required: [season, picks]
+      properties:
+        season:
+          type: integer
+          example: 2025
+        picks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftPick"
+
+    EntryDraftTeamGroup:
+      type: object
+      required: [team, seasons]
+      properties:
+        team:
+          $ref: "#/components/schemas/DraftTeamRef"
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryDraftSeasonGroup"
 
     Season:
       type: object
@@ -1461,6 +1484,26 @@ paths:
         "401":
           description: Missing or invalid API key.
 
+  /draft/entry:
+    get:
+      summary: Entry draft history grouped by drafted team and season
+      description: |
+        Returns the imported FFHL entry draft history from `entry_draft_picks`.
+        Teams are grouped alphabetically by current fantasy-team name.
+        Each team's `seasons` array is sorted newest-first, and picks within one season
+        are sorted by draft order.
+      responses:
+        "200":
+          description: Entry draft picks grouped by drafted fantasy team and season.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryDraftTeamGroup"
+        "401":
+          description: Missing or invalid API key.
+
   /draft/original:
     get:
       summary: Opening draft history grouped by drafted team
@@ -1476,7 +1519,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/OriginalDraftTeamGroup"
+                  $ref: "#/components/schemas/OpeningDraftTeamGroup"
         "401":
           description: Missing or invalid API key.
 

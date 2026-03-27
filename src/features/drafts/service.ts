@@ -1,5 +1,7 @@
 import { TEAMS } from "../../config/index.js";
 import {
+  getEntryDraftPicksFromDb,
+  type EntryDraftPickDbRow,
   getOpeningDraftPicksFromDb,
   type OpeningDraftPickDbRow,
 } from "../../db/queries.js";
@@ -9,16 +11,26 @@ export type DraftTeamRef = {
   name: string;
 };
 
-export type OriginalDraftPick = {
+export type DraftPick = {
   round: number;
   pickNumber: number;
   draftedPlayer: string;
   originalOwner: DraftTeamRef;
 };
 
-export type OriginalDraftTeamGroup = {
+export type OpeningDraftTeamGroup = {
   team: DraftTeamRef;
-  picks: OriginalDraftPick[];
+  picks: DraftPick[];
+};
+
+export type EntryDraftSeasonGroup = {
+  season: number;
+  picks: DraftPick[];
+};
+
+export type EntryDraftTeamGroup = {
+  team: DraftTeamRef;
+  seasons: EntryDraftSeasonGroup[];
 };
 
 const TEAM_NAME_BY_ID = new Map(
@@ -30,29 +42,40 @@ const toDraftTeamRef = (teamId: string): DraftTeamRef => ({
   name: TEAM_NAME_BY_ID.get(teamId) ?? teamId,
 });
 
-const compareOriginalDraftPicks = (
-  left: OriginalDraftPick,
-  right: OriginalDraftPick,
+const compareDraftPicks = (
+  left: DraftPick,
+  right: DraftPick,
 ): number => left.pickNumber - right.pickNumber;
 
-const compareOriginalDraftGroups = (
-  left: OriginalDraftTeamGroup,
-  right: OriginalDraftTeamGroup,
+const compareDraftTeamGroups = (
+  left: { team: DraftTeamRef },
+  right: { team: DraftTeamRef },
 ): number => left.team.name.localeCompare(right.team.name);
 
-const mapOriginalDraftPick = (row: OpeningDraftPickDbRow): OriginalDraftPick => ({
+const compareEntryDraftSeasons = (
+  left: EntryDraftSeasonGroup,
+  right: EntryDraftSeasonGroup,
+): number => right.season - left.season;
+
+type DraftPickDbRow = Pick<
+  OpeningDraftPickDbRow,
+  "round" | "pickNumber" | "draftedPlayer" | "originalOwnerTeamId"
+> &
+  Partial<Pick<EntryDraftPickDbRow, "season" | "draftedTeamId">>;
+
+const mapDraftPick = (row: DraftPickDbRow): DraftPick => ({
   round: row.round,
   pickNumber: row.pickNumber,
   draftedPlayer: row.draftedPlayer,
   originalOwner: toDraftTeamRef(row.originalOwnerTeamId),
 });
 
-export const getOriginalDraftData = async (): Promise<OriginalDraftTeamGroup[]> => {
+export const getOriginalDraftData = async (): Promise<OpeningDraftTeamGroup[]> => {
   const rows = await getOpeningDraftPicksFromDb();
-  const groups = new Map<string, OriginalDraftTeamGroup>();
+  const groups = new Map<string, OpeningDraftTeamGroup>();
 
   for (const row of rows) {
-    const pick = mapOriginalDraftPick(row);
+    const pick = mapDraftPick(row);
     const existingGroup = groups.get(row.draftedTeamId);
 
     if (existingGroup) {
@@ -69,7 +92,51 @@ export const getOriginalDraftData = async (): Promise<OriginalDraftTeamGroup[]> 
   return [...groups.values()]
     .map((group) => ({
       team: group.team,
-      picks: group.picks.slice().sort(compareOriginalDraftPicks),
+      picks: group.picks.slice().sort(compareDraftPicks),
     }))
-    .sort(compareOriginalDraftGroups);
+    .sort(compareDraftTeamGroups);
+};
+
+export const getEntryDraftData = async (): Promise<EntryDraftTeamGroup[]> => {
+  const rows = await getEntryDraftPicksFromDb();
+  const teams = new Map<
+    string,
+    {
+      team: DraftTeamRef;
+      seasons: Map<number, DraftPick[]>;
+    }
+  >();
+
+  for (const row of rows) {
+    const existingTeam = teams.get(row.draftedTeamId);
+    const team =
+      existingTeam ??
+      {
+        team: toDraftTeamRef(row.draftedTeamId),
+        seasons: new Map<number, DraftPick[]>(),
+      };
+    const seasonPicks = team.seasons.get(row.season);
+
+    if (seasonPicks) {
+      seasonPicks.push(mapDraftPick(row));
+    } else {
+      team.seasons.set(row.season, [mapDraftPick(row)]);
+    }
+
+    if (!existingTeam) {
+      teams.set(row.draftedTeamId, team);
+    }
+  }
+
+  return [...teams.values()]
+    .map((team) => ({
+      team: team.team,
+      seasons: [...team.seasons.entries()]
+        .map(([season, picks]) => ({
+          season,
+          picks: picks.slice().sort(compareDraftPicks),
+        }))
+        .sort(compareEntryDraftSeasons),
+    }))
+    .sort(compareDraftTeamGroups);
 };

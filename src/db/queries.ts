@@ -557,6 +557,33 @@ export const getOpeningDraftPicksFromDb = async (): Promise<
   return castRows<OpeningDraftPickRow>(result.rows).map(mapOpeningDraftPickRow);
 };
 
+interface EntryDraftPickRow extends OpeningDraftPickRow {
+  season: number;
+}
+
+export type EntryDraftPickDbRow = OpeningDraftPickDbRow & {
+  season: number;
+};
+
+const mapEntryDraftPickRow = (row: EntryDraftPickRow): EntryDraftPickDbRow => ({
+  season: row.season,
+  round: row.round,
+  pickNumber: row.pick_number,
+  draftedTeamId: row.drafted_team_id,
+  originalOwnerTeamId: row.owner_team_id,
+  draftedPlayer: row.player_name,
+});
+
+export const getEntryDraftPicksFromDb = async (): Promise<EntryDraftPickDbRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name
+     FROM entry_draft_picks
+     ORDER BY season DESC, pick_number ASC`,
+  );
+  return castRows<EntryDraftPickRow>(result.rows).map(mapEntryDraftPickRow);
+};
+
 interface PlayoffLeaderboardRow {
   team_id: string;
   championships: number;

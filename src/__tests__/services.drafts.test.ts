@@ -1,5 +1,11 @@
-import { getOpeningDraftPicksFromDb } from "../db/queries.js";
-import { getOriginalDraftData } from "../features/drafts/service.js";
+import {
+  getEntryDraftPicksFromDb,
+  getOpeningDraftPicksFromDb,
+} from "../db/queries.js";
+import {
+  getEntryDraftData,
+  getOriginalDraftData,
+} from "../features/drafts/service.js";
 
 jest.mock("../db/queries");
 
@@ -106,6 +112,98 @@ describe("draft services", () => {
         },
       ]);
     });
+  });
 
+  describe("getEntryDraftData", () => {
+    test("groups entry draft picks by drafted team and seasons", async () => {
+      (getEntryDraftPicksFromDb as jest.Mock).mockResolvedValue([
+        {
+          season: 2025,
+          round: 1,
+          pickNumber: 1,
+          draftedTeamId: "19",
+          originalOwnerTeamId: "19",
+          draftedPlayer: "Player A",
+        },
+        {
+          season: 2024,
+          round: 2,
+          pickNumber: 33,
+          draftedTeamId: "19",
+          originalOwnerTeamId: "1",
+          draftedPlayer: "Player C",
+        },
+        {
+          season: 2025,
+          round: 1,
+          pickNumber: 2,
+          draftedTeamId: "12",
+          originalOwnerTeamId: "10",
+          draftedPlayer: "Player B",
+        },
+        {
+          season: 2024,
+          round: 1,
+          pickNumber: 4,
+          draftedTeamId: "19",
+          originalOwnerTeamId: "19",
+          draftedPlayer: "Player D",
+        },
+      ]);
+
+      const result = await getEntryDraftData();
+
+      expect(result).toEqual([
+        {
+          team: { id: "12", name: "Anaheim Ducks" },
+          seasons: [
+            {
+              season: 2025,
+              picks: [
+                {
+                  round: 1,
+                  pickNumber: 2,
+                  draftedPlayer: "Player B",
+                  originalOwner: { id: "10", name: "Nashville Predators" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          team: { id: "19", name: "Toronto Maple Leafs" },
+          seasons: [
+            {
+              season: 2025,
+              picks: [
+                {
+                  round: 1,
+                  pickNumber: 1,
+                  draftedPlayer: "Player A",
+                  originalOwner: { id: "19", name: "Toronto Maple Leafs" },
+                },
+              ],
+            },
+            {
+              season: 2024,
+              picks: [
+                {
+                  round: 1,
+                  pickNumber: 4,
+                  draftedPlayer: "Player D",
+                  originalOwner: { id: "19", name: "Toronto Maple Leafs" },
+                },
+                {
+                  round: 2,
+                  pickNumber: 33,
+                  draftedPlayer: "Player C",
+                  originalOwner: { id: "1", name: "Colorado Avalanche" },
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
   });
 });
