@@ -110,6 +110,168 @@ components:
           description: First season year (YYYY) for expansion/relocated teams.
           example: 2017
 
+    DraftTeamRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: "12"
+        name:
+          type: string
+          example: Anaheim Ducks
+
+    DraftPick:
+      type: object
+      required: [round, pickNumber, draftedPlayer, originalOwner]
+      properties:
+        round:
+          type: integer
+          example: 1
+        pickNumber:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          nullable: true
+          example: Connor McDavid
+        originalOwner:
+          $ref: "#/components/schemas/DraftTeamRef"
+
+    OpeningDraftPick:
+      type: object
+      required: [round, pickNumber, draftedPlayer, originalOwner]
+      properties:
+        round:
+          type: integer
+          example: 1
+        pickNumber:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          example: Sidney Crosby
+        originalOwner:
+          $ref: "#/components/schemas/DraftTeamRef"
+
+    OpeningDraftTeamGroup:
+      type: object
+      required: [team, picks]
+      properties:
+        team:
+          $ref: "#/components/schemas/DraftTeamRef"
+        picks:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpeningDraftPick"
+
+    EntryDraftSeasonGroup:
+      type: object
+      required: [season, picks]
+      properties:
+        season:
+          type: integer
+          example: 2025
+        picks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftPick"
+
+    EntryDraftHighestPickItem:
+      type: object
+      required: [season, round, draftedPlayer]
+      properties:
+        season:
+          type: integer
+          example: 2025
+        round:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          example: Connor McDavid
+
+    EntryDraftHighestPick:
+      type: object
+      required: [pickNumber, items]
+      properties:
+        pickNumber:
+          type: integer
+          example: 15
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryDraftHighestPickItem"
+
+    EntryDraftAmountsSummary:
+      type: object
+      required: [total, ownPicks, tradedPicks, playersPerDraftAverage]
+      properties:
+        total:
+          type: integer
+          example: 40
+        ownPicks:
+          type: integer
+          example: 32
+        tradedPicks:
+          type: integer
+          example: 8
+        playersPerDraftAverage:
+          type: number
+          description: Average drafted players per entry draft season rounded to two decimals.
+          example: 5.71
+
+    EntryDraftRoundsSummary:
+      type: object
+      required: [first, second, third, fourth, fifth]
+      properties:
+        first:
+          type: integer
+          example: 12
+        second:
+          type: integer
+          example: 8
+        third:
+          type: integer
+          example: 6
+        fourth:
+          type: integer
+          example: 3
+        fifth:
+          type: integer
+          example: 1
+
+    EntryDraftTeamSummary:
+      type: object
+      required: [highestPick, averageDraftPosition, amounts, rounds]
+      properties:
+        highestPick:
+          allOf:
+            - $ref: "#/components/schemas/EntryDraftHighestPick"
+          nullable: true
+        averageDraftPosition:
+          type: number
+          nullable: true
+          description: Average overall draft position across drafted players only, rounded to two decimals.
+          example: 54.23
+        amounts:
+          $ref: "#/components/schemas/EntryDraftAmountsSummary"
+        rounds:
+          $ref: "#/components/schemas/EntryDraftRoundsSummary"
+
+    EntryDraftTeamGroup:
+      type: object
+      required: [team, summary, seasons]
+      properties:
+        team:
+          $ref: "#/components/schemas/DraftTeamRef"
+        summary:
+          $ref: "#/components/schemas/EntryDraftTeamSummary"
+        seasons:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryDraftSeasonGroup"
+
     Season:
       type: object
       required: [season, text]
@@ -1420,6 +1582,49 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Team"
+        "401":
+          description: Missing or invalid API key.
+
+  /draft/entry:
+    get:
+      summary: Entry draft history grouped by drafted team and season
+      description: |
+        Returns the imported FFHL entry draft history from `entry_draft_picks`.
+        Teams are grouped alphabetically by current fantasy-team name.
+        Each team's `seasons` array is sorted newest-first, and picks within one season
+        are sorted by draft order.
+        Team roots also include a `summary` object with highest-pick, average-position,
+        pick-count aggregates, and a fixed round breakdown calculated from the grouped data.
+        Picks with `draftedPlayer: null` stay in the season pick lists but are excluded from
+        all summary calculations.
+      responses:
+        "200":
+          description: Entry draft picks grouped by drafted fantasy team and season.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryDraftTeamGroup"
+        "401":
+          description: Missing or invalid API key.
+
+  /draft/original:
+    get:
+      summary: Opening draft history grouped by drafted team
+      description: |
+        Returns the imported FFHL opening draft history from `opening_draft_picks`.
+        Teams are grouped alphabetically by current fantasy-team name and each group's
+        picks are sorted by draft order.
+      responses:
+        "200":
+          description: Opening draft picks grouped by drafted fantasy team.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpeningDraftTeamGroup"
         "401":
           description: Missing or invalid API key.
 
