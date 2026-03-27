@@ -313,6 +313,79 @@ Notes:
 - Resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` / `goalies` when duplicate names exist, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs.
 - Leaves unresolved player rows in the database with null `fantrax_entity_id` plus explicit match metadata.
 
+### 3e) Sync FFHL forum entry draft picks
+
+Run:
+
+```bash
+npm run playwright:sync:draft -- --url=https://ffhl.kld.im/threads/entry-draft-2025-varatut-pelaajat.5862/
+```
+
+Notes:
+
+- This scraper reads the public FFHL forum thread HTML directly. It does **not** require Fantrax auth state or a Playwright browser session.
+- It scrapes only the first post on page 1, because completed draft topics keep the maintained pick list there and later replies are just manager-by-manager history.
+- The season is parsed from the topic title, for example `Entry draft 2025 - varatut pelaajat`.
+- Output directory defaults to `src/playwright/.fantrax/drafts/` and stays local-only because `src/playwright/.fantrax/` is gitignored.
+- Output filenames follow `entry-draft-{season}.json`.
+- Each JSON file contains only draft-pick items. Teams are enriched from `TEAMS` with `abbreviation`, `teamId`, and current `teamName`.
+- Traded-pick rows such as `BUF (FLA) - Caleb Desnoyers` are parsed as `draftedTeam=BUF` and `originalOwnerTeam=FLA`.
+- Non-team reward-note parentheses such as `(mestari)` or `(divisioonavoittaja)` are ignored. If a line contains multiple parenthetical notes, the first one that matches a known NHL team abbreviation is used as the original owner.
+- In the 2013 topic, placeholder rows with player text `SKIPATTU` are preserved as draft picks but stored with `playerName: null`.
+- Utah franchise aliases `UTA`, `ARI`, and `PHX` all resolve to the same `teamId` / team record.
+
+Useful options:
+
+- `--url=https://ffhl.kld.im/threads/...` (required draft thread URL)
+- `--out=./custom/drafts` (override output dir)
+
+### 3f) Sync FFHL forum opening draft picks
+
+Run:
+
+```bash
+npm run playwright:sync:opening-draft -- --url=https://ffhl.kld.im/threads/varatut-pelaajat-j%C3%A4rjestyksess%C3%A4.10/
+```
+
+Notes:
+
+- This scraper also reads the public FFHL forum thread HTML directly and writes local-only JSON under `src/playwright/.fantrax/drafts/`.
+- Output filename is always `opening-draft.json`.
+- Items use the same shape as entry-draft items except there is no `season` field.
+- Teams are resolved from full NHL team names instead of abbreviations.
+- Traded-pick owner teams are parsed from `(via Team Name)` notes; if there are multiple `via` hops, the last team in the chain is treated as the original owner.
+- Round markers such as `Kierros 1`, `Kierros 2`, etc. are ignored except for setting each pick’s `round`.
+
+Useful options:
+
+- `--url=https://ffhl.kld.im/threads/...` (required opening-draft thread URL)
+- `--out=./custom/drafts` (override output dir)
+
+### 3g) Import FFHL draft JSON into the database
+
+Run:
+
+```bash
+npx tsx scripts/db-import-drafts.ts
+```
+
+Notes:
+
+- This one-off importer reads the local JSON files under `src/playwright/.fantrax/drafts/`.
+- It imports every `entry-draft-{season}.json` file into `entry_draft_picks`.
+- It imports `opening-draft.json` into `opening_draft_picks`.
+- Entry-draft imports replace only the imported `season` rows.
+- Opening-draft import always clears and reloads the whole `opening_draft_picks` table.
+- The database stores only `teamId` links plus pick metadata, not duplicated team names or source-file references.
+- By default it targets `local.db`. Set `USE_REMOTE_DB=true` in `.env` to target remote Turso instead.
+
+Useful options:
+
+- `--dir=./custom/drafts` (override the draft JSON directory)
+- `--season=2025` (import only one entry draft season and leave opening draft untouched)
+- `--opening-only` (refresh only `opening_draft_picks`)
+- `--dry-run` (validate files and print counts without writing to DB)
+
 ### 4) Normalize + move downloaded files into `csv/<teamId>/`
 
 The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
@@ -635,6 +708,7 @@ The API reads all data from a Turso (libSQL/SQLite) database. CSV files are impo
 
 Stats imports also maintain a global `fantrax_entities` table with one row per Fantrax ID. Each row stores the canonical Fantrax `name`, `position`, and the `first_seen_season` / `last_seen_season` bounds derived from imported data. `npm run db:migrate` backfills this table when upgrading an older database or rebuilding an empty registry, and later `db:import:stats` runs keep it incrementally in sync with cheap UPSERTs instead of full refreshes. Career endpoints now prefer canonical name/position data from this registry while still aggregating season/team stats from `players` and `goalies`.
 Transaction imports use that same registry to link claim/drop/trade player rows whenever possible. Matching prefers exact `name + position`, then same-season fantasy-team context, and finally the candidate with the latest `last_seen_season` when duplicate Fantrax IDs appear to represent merged player history. Normalized transaction storage lives in four tables: `claim_events`, `claim_event_items`, `trade_source_blocks`, and `trade_block_items`. `claim_event_items` also mirrors `season`, `team_id`, and `occurred_at` from its parent event so most claim/drop lookups can read straight from the item table.
+Forum draft history can also be imported into dedicated `entry_draft_picks` and `opening_draft_picks` tables after the local draft JSON files have been scraped.
 
 ### Local development
 

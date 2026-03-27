@@ -31,6 +31,8 @@
     "playwright:sync:playoffs": "tsx src/playwright/sync-playoffs.ts",
     "preplaywright:sync:regular": "npm run playwright:install",
     "playwright:sync:regular": "tsx src/playwright/sync-regular.ts",
+    "playwright:sync:draft": "tsx src/playwright/sync-entry-draft.ts",
+    "playwright:sync:opening-draft": "tsx src/playwright/sync-opening-draft.ts",
     "preplaywright:import:regular": "npm run playwright:install",
     "playwright:import:regular": "tsx src/playwright/import-league-regular.ts",
     "preplaywright:import:playoffs": "npm run playwright:install",
