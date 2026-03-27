@@ -110,6 +110,44 @@ components:
           description: First season year (YYYY) for expansion/relocated teams.
           example: 2017
 
+    DraftTeamRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: "12"
+        name:
+          type: string
+          example: Anaheim Ducks
+
+    OriginalDraftPick:
+      type: object
+      required: [round, pickNumber, draftedPlayer, originalOwner]
+      properties:
+        round:
+          type: integer
+          example: 1
+        pickNumber:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          example: Connor McDavid
+        originalOwner:
+          $ref: "#/components/schemas/DraftTeamRef"
+
+    OriginalDraftTeamGroup:
+      type: object
+      required: [team, picks]
+      properties:
+        team:
+          $ref: "#/components/schemas/DraftTeamRef"
+        picks:
+          type: array
+          items:
+            $ref: "#/components/schemas/OriginalDraftPick"
+
     Season:
       type: object
       required: [season, text]
@@ -1420,6 +1458,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Team"
+        "401":
+          description: Missing or invalid API key.
+
+  /draft/original:
+    get:
+      summary: Opening draft history grouped by drafted team
+      description: |
+        Returns the imported FFHL opening draft history from `opening_draft_picks`.
+        Teams are grouped alphabetically by current fantasy-team name and each group's
+        picks are sorted by draft order.
+      responses:
+        "200":
+          description: Opening draft picks grouped by drafted fantasy team.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OriginalDraftTeamGroup"
         "401":
           description: Missing or invalid API key.
 

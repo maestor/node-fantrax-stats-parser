@@ -33,17 +33,6 @@ Transaction imports now also normalize `csv/transactions/*.csv` into dedicated d
 See [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs) for the interactive API reference (Swagger UI).
 The OpenAPI spec is also available as JSON at [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json).
 
-The API includes team-scoped season/combined leaderboards plus career endpoints for list, detail, and highlight lookups:
-`/career/players`, `/career/goalies`, `/career/player/{id}`, `/career/goalie/{id}`, and `/career/highlights/{type}`.
-Leaderboard routes are `/leaderboard/regular`, `/leaderboard/playoffs`, and `/leaderboard/transactions`.
-When present in goalie payloads, `gaa` is returned as a string with two decimals and `savePercent` as a string with three decimals, so trailing zeros are preserved for clients. Played zero values are returned as `0.00` / `0.000`; only non-played placeholder zero rates stay omitted.
-The highlights route supports `skip` / `take` paging and the route tokens `most-teams-played`, `most-teams-owned`, `same-team-seasons-played`, `same-team-seasons-owned`, `most-stanley-cups`, `reunion-king`, `stash-king`, `regular-grinder-without-playoffs`, `most-trades`, `most-claims`, and `most-drops`.
-Each career highlight page also includes `minAllowed`, the backend threshold used for that highlight leaderboard.
-`reunion-king` items include a `reunions` array of `{ date, type }` entries, where `type` is `claim` or `trade`.
-`regular-grinder-without-playoffs` items include the played fantasy `teams` list in addition to `regularGames`.
-Transaction highlight items include total `transactionCount` plus a per-team `teams` breakdown with per-team `count` values sorted descending; `most-trades` uses the fantasy team that traded the player away.
-Current highlight minimums are: `most-teams-played` 4, `most-teams-owned` 5, `same-team-seasons-played` 8, `same-team-seasons-owned` 10, `most-stanley-cups` 2, `reunion-king` 2, `stash-king` 10, `regular-grinder-without-playoffs` 60, `most-trades` 4, and `most-claims` / `most-drops` 3.
-
 ### Viewing docs locally
 
 Start the dev server (`npm start`), then open [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
@@ -708,7 +697,7 @@ The API reads all data from a Turso (libSQL/SQLite) database. CSV files are impo
 
 Stats imports also maintain a global `fantrax_entities` table with one row per Fantrax ID. Each row stores the canonical Fantrax `name`, `position`, and the `first_seen_season` / `last_seen_season` bounds derived from imported data. `npm run db:migrate` backfills this table when upgrading an older database or rebuilding an empty registry, and later `db:import:stats` runs keep it incrementally in sync with cheap UPSERTs instead of full refreshes. Career endpoints now prefer canonical name/position data from this registry while still aggregating season/team stats from `players` and `goalies`.
 Transaction imports use that same registry to link claim/drop/trade player rows whenever possible. Matching prefers exact `name + position`, then same-season fantasy-team context, and finally the candidate with the latest `last_seen_season` when duplicate Fantrax IDs appear to represent merged player history. Normalized transaction storage lives in four tables: `claim_events`, `claim_event_items`, `trade_source_blocks`, and `trade_block_items`. `claim_event_items` also mirrors `season`, `team_id`, and `occurred_at` from its parent event so most claim/drop lookups can read straight from the item table.
-Forum draft history can also be imported into dedicated `entry_draft_picks` and `opening_draft_picks` tables after the local draft JSON files have been scraped.
+Forum draft history can also be imported into dedicated `entry_draft_picks` and `opening_draft_picks` tables after the local draft JSON files have been scraped. Imported opening-draft rows back the `/draft/original` API.
 
 ### Local development
 

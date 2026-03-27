@@ -519,6 +519,44 @@ export const getLastModifiedFromDb = async (): Promise<string | null> => {
   return castRows<{ value: string }>(result.rows)[0].value;
 };
 
+interface OpeningDraftPickRow {
+  pick_number: number;
+  round: number;
+  drafted_team_id: string;
+  owner_team_id: string;
+  player_name: string;
+}
+
+export type OpeningDraftPickDbRow = {
+  round: number;
+  pickNumber: number;
+  draftedTeamId: string;
+  originalOwnerTeamId: string;
+  draftedPlayer: string;
+};
+
+const mapOpeningDraftPickRow = (
+  row: OpeningDraftPickRow,
+): OpeningDraftPickDbRow => ({
+  round: row.round,
+  pickNumber: row.pick_number,
+  draftedTeamId: row.drafted_team_id,
+  originalOwnerTeamId: row.owner_team_id,
+  draftedPlayer: row.player_name,
+});
+
+export const getOpeningDraftPicksFromDb = async (): Promise<
+  OpeningDraftPickDbRow[]
+> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name
+     FROM opening_draft_picks
+     ORDER BY pick_number ASC`,
+  );
+  return castRows<OpeningDraftPickRow>(result.rows).map(mapOpeningDraftPickRow);
+};
+
 interface PlayoffLeaderboardRow {
   team_id: string;
   championships: number;
