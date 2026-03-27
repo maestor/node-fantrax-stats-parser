@@ -133,7 +133,24 @@ components:
           example: 1
         draftedPlayer:
           type: string
+          nullable: true
           example: Connor McDavid
+        originalOwner:
+          $ref: "#/components/schemas/DraftTeamRef"
+
+    OpeningDraftPick:
+      type: object
+      required: [round, pickNumber, draftedPlayer, originalOwner]
+      properties:
+        round:
+          type: integer
+          example: 1
+        pickNumber:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          example: Sidney Crosby
         originalOwner:
           $ref: "#/components/schemas/DraftTeamRef"
 
@@ -146,7 +163,7 @@ components:
         picks:
           type: array
           items:
-            $ref: "#/components/schemas/DraftPick"
+            $ref: "#/components/schemas/OpeningDraftPick"
 
     EntryDraftSeasonGroup:
       type: object
@@ -160,12 +177,96 @@ components:
           items:
             $ref: "#/components/schemas/DraftPick"
 
+    EntryDraftHighestPickItem:
+      type: object
+      required: [season, round, draftedPlayer]
+      properties:
+        season:
+          type: integer
+          example: 2025
+        round:
+          type: integer
+          example: 1
+        draftedPlayer:
+          type: string
+          example: Connor McDavid
+
+    EntryDraftHighestPick:
+      type: object
+      required: [pickNumber, items]
+      properties:
+        pickNumber:
+          type: integer
+          example: 15
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryDraftHighestPickItem"
+
+    EntryDraftAmountsSummary:
+      type: object
+      required: [total, ownPicks, tradedPicks, playersPerDraftAverage]
+      properties:
+        total:
+          type: integer
+          example: 40
+        ownPicks:
+          type: integer
+          example: 32
+        tradedPicks:
+          type: integer
+          example: 8
+        playersPerDraftAverage:
+          type: number
+          description: Average drafted players per entry draft season rounded to two decimals.
+          example: 5.71
+
+    EntryDraftRoundsSummary:
+      type: object
+      required: [first, second, third, fourth, fifth]
+      properties:
+        first:
+          type: integer
+          example: 12
+        second:
+          type: integer
+          example: 8
+        third:
+          type: integer
+          example: 6
+        fourth:
+          type: integer
+          example: 3
+        fifth:
+          type: integer
+          example: 1
+
+    EntryDraftTeamSummary:
+      type: object
+      required: [highestPick, averageDraftPosition, amounts, rounds]
+      properties:
+        highestPick:
+          allOf:
+            - $ref: "#/components/schemas/EntryDraftHighestPick"
+          nullable: true
+        averageDraftPosition:
+          type: number
+          nullable: true
+          description: Average overall draft position across drafted players only, rounded to two decimals.
+          example: 54.23
+        amounts:
+          $ref: "#/components/schemas/EntryDraftAmountsSummary"
+        rounds:
+          $ref: "#/components/schemas/EntryDraftRoundsSummary"
+
     EntryDraftTeamGroup:
       type: object
-      required: [team, seasons]
+      required: [team, summary, seasons]
       properties:
         team:
           $ref: "#/components/schemas/DraftTeamRef"
+        summary:
+          $ref: "#/components/schemas/EntryDraftTeamSummary"
         seasons:
           type: array
           items:
@@ -1492,6 +1593,10 @@ paths:
         Teams are grouped alphabetically by current fantasy-team name.
         Each team's `seasons` array is sorted newest-first, and picks within one season
         are sorted by draft order.
+        Team roots also include a `summary` object with highest-pick, average-position,
+        pick-count aggregates, and a fixed round breakdown calculated from the grouped data.
+        Picks with `draftedPlayer: null` stay in the season pick lists but are excluded from
+        all summary calculations.
       responses:
         "200":
           description: Entry draft picks grouped by drafted fantasy team and season.

@@ -519,11 +519,14 @@ export const getLastModifiedFromDb = async (): Promise<string | null> => {
   return castRows<{ value: string }>(result.rows)[0].value;
 };
 
-interface OpeningDraftPickRow {
+interface DraftPickRowBase {
   pick_number: number;
   round: number;
   drafted_team_id: string;
   owner_team_id: string;
+}
+
+interface OpeningDraftPickRow extends DraftPickRowBase {
   player_name: string;
 }
 
@@ -557,12 +560,14 @@ export const getOpeningDraftPicksFromDb = async (): Promise<
   return castRows<OpeningDraftPickRow>(result.rows).map(mapOpeningDraftPickRow);
 };
 
-interface EntryDraftPickRow extends OpeningDraftPickRow {
+interface EntryDraftPickRow extends DraftPickRowBase {
   season: number;
+  player_name: string | null;
 }
 
-export type EntryDraftPickDbRow = OpeningDraftPickDbRow & {
+export type EntryDraftPickDbRow = Omit<OpeningDraftPickDbRow, "draftedPlayer"> & {
   season: number;
+  draftedPlayer: string | null;
 };
 
 const mapEntryDraftPickRow = (row: EntryDraftPickRow): EntryDraftPickDbRow => ({

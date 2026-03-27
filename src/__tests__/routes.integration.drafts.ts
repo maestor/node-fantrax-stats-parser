@@ -39,8 +39,9 @@ const insertOpeningDraftPicks = async (
   }
 };
 
-type EntryDraftSeed = OpeningDraftSeed & {
+type EntryDraftSeed = Omit<OpeningDraftSeed, "playerName"> & {
   season: number;
+  playerName: string | null;
 };
 
 const insertEntryDraftPicks = async (
@@ -166,8 +167,16 @@ export const registerDraftRouteIntegrationTests = (): void => {
         await insertEntryDraftPicks(db.db, [
           {
             season: 2024,
-            pickNumber: 33,
+            pickNumber: 35,
             round: 2,
+            draftedTeamId: "12",
+            ownerTeamId: "12",
+            playerName: null,
+          },
+          {
+            season: 2024,
+            pickNumber: 1,
+            round: 1,
             draftedTeamId: "19",
             ownerTeamId: "1",
             playerName: "Player C",
@@ -187,6 +196,14 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "19",
             ownerTeamId: "19",
             playerName: "Player A",
+          },
+          {
+            season: 2024,
+            pickNumber: 33,
+            round: 2,
+            draftedTeamId: "19",
+            ownerTeamId: "19",
+            playerName: "Player E",
           },
           {
             season: 2024,
@@ -224,7 +241,44 @@ export const registerDraftRouteIntegrationTests = (): void => {
                   },
                 ],
               },
+              {
+                season: 2024,
+                picks: [
+                  {
+                    round: 2,
+                    pickNumber: 35,
+                    draftedPlayer: null,
+                    originalOwner: { id: "12", name: "Anaheim Ducks" },
+                  },
+                ],
+              },
             ],
+            summary: {
+              highestPick: {
+                pickNumber: 2,
+                items: [
+                  {
+                    season: 2025,
+                    round: 1,
+                    draftedPlayer: "Player B",
+                  },
+                ],
+              },
+              averageDraftPosition: 2,
+              amounts: {
+                total: 1,
+                ownPicks: 0,
+                tradedPicks: 1,
+                playersPerDraftAverage: 0.5,
+              },
+              rounds: {
+                first: 1,
+                second: 0,
+                third: 0,
+                fourth: 0,
+                fifth: 0,
+              },
+            },
           },
           {
             team: { id: "19", name: "Toronto Maple Leafs" },
@@ -245,6 +299,12 @@ export const registerDraftRouteIntegrationTests = (): void => {
                 picks: [
                   {
                     round: 1,
+                    pickNumber: 1,
+                    draftedPlayer: "Player C",
+                    originalOwner: { id: "1", name: "Colorado Avalanche" },
+                  },
+                  {
+                    round: 1,
                     pickNumber: 4,
                     draftedPlayer: "Player D",
                     originalOwner: { id: "19", name: "Toronto Maple Leafs" },
@@ -252,12 +312,43 @@ export const registerDraftRouteIntegrationTests = (): void => {
                   {
                     round: 2,
                     pickNumber: 33,
-                    draftedPlayer: "Player C",
-                    originalOwner: { id: "1", name: "Colorado Avalanche" },
+                    draftedPlayer: "Player E",
+                    originalOwner: { id: "19", name: "Toronto Maple Leafs" },
                   },
                 ],
               },
             ],
+            summary: {
+              highestPick: {
+                pickNumber: 1,
+                items: [
+                  {
+                    season: 2025,
+                    round: 1,
+                    draftedPlayer: "Player A",
+                  },
+                  {
+                    season: 2024,
+                    round: 1,
+                    draftedPlayer: "Player C",
+                  },
+                ],
+              },
+              averageDraftPosition: 9.75,
+              amounts: {
+                total: 4,
+                ownPicks: 3,
+                tradedPicks: 1,
+                playersPerDraftAverage: 2,
+              },
+              rounds: {
+                first: 3,
+                second: 1,
+                third: 0,
+                fourth: 0,
+                fifth: 0,
+              },
+            },
           },
         ]);
         expectArraySchema("EntryDraftTeamGroup", body);
