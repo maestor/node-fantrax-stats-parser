@@ -302,10 +302,12 @@ Notes:
 - stored rows keep only team IDs plus pick metadata, not duplicated team names or source-file references
 - unresolved draft rows stay in the tables with `fantrax_entity_id = NULL` and their original scraped `player_name`
 - by default the importer targets `local.db`
+- use `--entities-only` to update only existing draft-table rows from the local mapping JSONs without rereading `entry-draft-{season}.json` or `opening-draft.json`
 
 Useful options:
 
 - `--dir=./custom/drafts`
+- `--entities-only`
 - `--season=2025`
 - `--opening-only`
 - `--dry-run`

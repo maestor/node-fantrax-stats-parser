@@ -40,7 +40,14 @@ export type DraftImportSummary = {
   dryRun: boolean;
 };
 
-type DraftDbWriter = Pick<Client, "batch">;
+export type DraftEntityBackfillSummary = {
+  draftsDir: string;
+  entryUpdatedCount: number;
+  openingUpdatedCount: number;
+  dryRun: boolean;
+};
+
+type DraftDbClient = Pick<Client, "batch" | "execute">;
 type EntryDraftEntityMapping = {
   id: number;
   season: number;
@@ -62,6 +69,8 @@ type EntryDraftStoredRow = EntryDraftImportRow & {
 type OpeningDraftStoredRow = OpeningDraftImportRow & {
   fantraxEntityId: string | null;
 };
+type EntryDraftDbRow = EntryDraftStoredRow;
+type OpeningDraftDbRow = OpeningDraftStoredRow;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -288,6 +297,21 @@ const readOpeningDraftEntityMappings = async (
   );
 };
 
+const loadDraftEntityMappings = async (draftsDir: string): Promise<{
+  entryMappingsByKey: ReadonlyMap<string, EntryDraftEntityMapping>;
+  openingMappingsByKey: ReadonlyMap<string, OpeningDraftEntityMapping>;
+}> => {
+  const [entryMappings, openingMappings] = await Promise.all([
+    readEntryDraftEntityMappings(path.resolve(draftsDir, ENTRY_DRAFT_ENTITY_FILE_NAME)),
+    readOpeningDraftEntityMappings(path.resolve(draftsDir, OPENING_DRAFT_ENTITY_FILE_NAME)),
+  ]);
+
+  return {
+    entryMappingsByKey: buildEntryDraftEntityMappingByKey(entryMappings),
+    openingMappingsByKey: buildOpeningDraftEntityMappingByKey(openingMappings),
+  };
+};
+
 const resolveDraftFiles = async (args: {
   draftsDir: string;
   season?: number;
@@ -469,8 +493,61 @@ const buildOpeningDraftStatements = (
   })),
 ];
 
+const loadEntryDraftRowsFromDb = async (
+  db: Pick<Client, "execute">,
+  season?: number,
+): Promise<EntryDraftDbRow[]> => {
+  const result =
+    season === undefined
+      ? await db.execute(
+          `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name,
+                  fantrax_entity_id
+           FROM entry_draft_picks
+           ORDER BY season ASC, pick_number ASC`,
+        )
+      : await db.execute({
+          sql: `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name,
+                       fantrax_entity_id
+                FROM entry_draft_picks
+                WHERE season = ?
+                ORDER BY season ASC, pick_number ASC`,
+          args: [season],
+        });
+
+  return result.rows.map((row) => ({
+    season: Number(row.season),
+    pickNumber: Number(row.pick_number),
+    round: Number(row.round),
+    draftedTeamId: String(row.drafted_team_id),
+    ownerTeamId: String(row.owner_team_id),
+    playerName: row.player_name === null ? null : String(row.player_name),
+    fantraxEntityId:
+      row.fantrax_entity_id === null ? null : String(row.fantrax_entity_id),
+  }));
+};
+
+const loadOpeningDraftRowsFromDb = async (
+  db: Pick<Client, "execute">,
+): Promise<OpeningDraftDbRow[]> => {
+  const result = await db.execute(
+    `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name, fantrax_entity_id
+     FROM opening_draft_picks
+     ORDER BY pick_number ASC`,
+  );
+
+  return result.rows.map((row) => ({
+    pickNumber: Number(row.pick_number),
+    round: Number(row.round),
+    draftedTeamId: String(row.drafted_team_id),
+    ownerTeamId: String(row.owner_team_id),
+    playerName: String(row.player_name),
+    fantraxEntityId:
+      row.fantrax_entity_id === null ? null : String(row.fantrax_entity_id),
+  }));
+};
+
 export const importDraftPicksToDb = async (args: {
-  db: DraftDbWriter;
+  db: DraftDbClient;
   draftsDir?: string;
   dryRun?: boolean;
   importedAt?: string;
@@ -487,11 +564,14 @@ export const importDraftPicksToDb = async (args: {
     season: args.season,
     openingOnly: args.openingOnly,
   });
-  const [entryDrafts, openingDraft, entryMappings, openingMappings] = await Promise.all([
+  const [
+    entryDrafts,
+    openingDraft,
+    { entryMappingsByKey, openingMappingsByKey },
+  ] = await Promise.all([
     Promise.all(entryFiles.map(readEntryDraftFile)),
     openingFile ? readOpeningDraftFile(openingFile) : Promise.resolve([]),
-    readEntryDraftEntityMappings(path.resolve(draftsDir, ENTRY_DRAFT_ENTITY_FILE_NAME)),
-    readOpeningDraftEntityMappings(path.resolve(draftsDir, OPENING_DRAFT_ENTITY_FILE_NAME)),
+    loadDraftEntityMappings(draftsDir),
   ]);
   const summary: DraftImportSummary = {
     draftsDir,
@@ -506,8 +586,6 @@ export const importDraftPicksToDb = async (args: {
     return summary;
   }
 
-  const entryMappingsByKey = buildEntryDraftEntityMappingByKey(entryMappings);
-  const openingMappingsByKey = buildOpeningDraftEntityMappingByKey(openingMappings);
   const storedEntryDrafts = entryDrafts.map((draft) => ({
     season: draft.season,
     picks: draft.picks.map<EntryDraftStoredRow>((pick) => {
@@ -538,6 +616,98 @@ export const importDraftPicksToDb = async (args: {
       args: ["last_modified", args.importedAt ?? new Date().toISOString()],
     },
   ];
+
+  await args.db.batch(statements, "write");
+
+  return summary;
+};
+
+export const applyDraftEntityMappingsToDb = async (args: {
+  db: DraftDbClient;
+  draftsDir?: string;
+  dryRun?: boolean;
+  importedAt?: string;
+  season?: number;
+  openingOnly?: boolean;
+}): Promise<DraftEntityBackfillSummary> => {
+  if (args.openingOnly && args.season !== undefined) {
+    throw new Error("Use either season or openingOnly, not both.");
+  }
+
+  const draftsDir = path.resolve(args.draftsDir ?? getDefaultDraftsDir());
+  const [{ entryMappingsByKey, openingMappingsByKey }, entryRows, openingRows] =
+    await Promise.all([
+      loadDraftEntityMappings(draftsDir),
+      args.openingOnly ? Promise.resolve([]) : loadEntryDraftRowsFromDb(args.db, args.season),
+      args.season !== undefined ? Promise.resolve([]) : loadOpeningDraftRowsFromDb(args.db),
+    ]);
+  const statements: InStatement[] = [];
+  const summary: DraftEntityBackfillSummary = {
+    draftsDir,
+    entryUpdatedCount: 0,
+    openingUpdatedCount: 0,
+    dryRun: args.dryRun ?? false,
+  };
+
+  for (const row of entryRows) {
+    const mapping = getEntryDraftEntityMapping(entryMappingsByKey, row);
+    if (
+      mapping === undefined ||
+      (row.fantraxEntityId === mapping.fantraxEntityId &&
+        row.playerName === mapping.fantraxEntityName)
+    ) {
+      continue;
+    }
+
+    summary.entryUpdatedCount += 1;
+
+    statements.push({
+      sql: `UPDATE entry_draft_picks
+            SET fantrax_entity_id = ?, player_name = ?
+            WHERE season = ? AND pick_number = ? AND drafted_team_id = ?`,
+      args: [
+        mapping.fantraxEntityId,
+        mapping.fantraxEntityName,
+        row.season,
+        row.pickNumber,
+        row.draftedTeamId,
+      ],
+    });
+  }
+
+  for (const row of openingRows) {
+    const mapping = getOpeningDraftEntityMapping(openingMappingsByKey, row);
+    if (
+      mapping === undefined ||
+      (row.fantraxEntityId === mapping.fantraxEntityId &&
+        row.playerName === mapping.fantraxEntityName)
+    ) {
+      continue;
+    }
+
+    summary.openingUpdatedCount += 1;
+
+    statements.push({
+      sql: `UPDATE opening_draft_picks
+            SET fantrax_entity_id = ?, player_name = ?
+            WHERE pick_number = ? AND drafted_team_id = ?`,
+      args: [
+        mapping.fantraxEntityId,
+        mapping.fantraxEntityName,
+        row.pickNumber,
+        row.draftedTeamId,
+      ],
+    });
+  }
+
+  if (summary.dryRun || statements.length === 0) {
+    return summary;
+  }
+
+  statements.push({
+    sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
+    args: ["last_modified", args.importedAt ?? new Date().toISOString()],
+  });
 
   await args.db.batch(statements, "write");
 
