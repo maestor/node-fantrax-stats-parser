@@ -331,7 +331,9 @@ export const registerDraftRouteIntegrationTests = (): void => {
                 tradedPicks: 1,
                 playersPerDraftAverage: 0.5,
                 playedInLeague: 1,
+                playedInLeaguePercent: 1,
                 playedForDraftingTeam: 0,
+                playedForDraftingTeamPercent: 0,
               },
               rounds: {
                 first: 1,
@@ -411,7 +413,9 @@ export const registerDraftRouteIntegrationTests = (): void => {
                 tradedPicks: 1,
                 playersPerDraftAverage: 2,
                 playedInLeague: 3,
+                playedInLeaguePercent: 0.75,
                 playedForDraftingTeam: 2,
+                playedForDraftingTeamPercent: 0.5,
               },
               rounds: {
                 first: 3,
