@@ -112,7 +112,7 @@ npm run snapshot:generate
 
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - development workflow, code standards, project structure, OpenAPI maintenance
 - [docs/TESTING.md](docs/TESTING.md) - test strategy, coverage expectations, integration testing rules
-- [docs/IMPORTING.md](docs/IMPORTING.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking, CSV normalization
+- [docs/IMPORTING.md](docs/IMPORTING.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking/backfill, CSV normalization
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Vercel, Turso, R2, API auth, caching, operational commands
 - [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) - snapshot-backed endpoints, generation rules, R2 snapshot storage
 - [docs/SCORING.md](docs/SCORING.md) - player and goalie scoring model details

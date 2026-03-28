@@ -911,6 +911,158 @@ describe("draft DB import", () => {
     }
   });
 
+  test("uses the default draft directory for opening-only entity backfill", async () => {
+    const dbContext = await createIntegrationDb();
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ffhl-draft-entities-defaults-"));
+    const previousCwd = process.cwd();
+    const defaultDraftDir = path.join(tempRoot, "src", "playwright", ".fantrax", "drafts");
+
+    try {
+      await fs.mkdir(defaultDraftDir, { recursive: true });
+      await insertOpeningDraftRow(dbContext.db, {
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "12",
+        ownerTeamId: "12",
+        playerName: "Old Opening Alias",
+        fantraxEntityId: "old-opening-id",
+      });
+      await writeDraftFile(defaultDraftDir, "entities-opening-draft.json", [
+        createOpeningEntityMapping(),
+      ]);
+
+      process.chdir(tempRoot);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        openingOnly: true,
+      });
+
+      expect(summary).toEqual({
+        draftsDir: await fs.realpath(defaultDraftDir),
+        entryUpdatedCount: 0,
+        openingUpdatedCount: 1,
+        dryRun: false,
+      });
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM opening_draft_picks`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          player_name: "Canonical Opening Player",
+          fantrax_entity_id: "ftx-opening-1",
+        },
+      ]);
+
+      const metadata = await dbContext.db.execute({
+        sql: "SELECT value FROM import_metadata WHERE key = ?",
+        args: ["last_modified"],
+      });
+      expect(metadata.rows).toHaveLength(1);
+      expect((metadata.rows[0] as unknown as { value: string }).value).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u,
+      );
+    } finally {
+      process.chdir(previousCwd);
+      await fs.rm(tempRoot, { recursive: true, force: true });
+      await dbContext.cleanup();
+    }
+  });
+
+  test("skips unchanged opening rows during entity-only backfill", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await insertOpeningDraftRow(dbContext.db, {
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "12",
+        ownerTeamId: "12",
+        playerName: "Canonical Opening Player",
+        fantraxEntityId: "ftx-opening-1",
+      });
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping(),
+      ]);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+        openingOnly: true,
+      });
+
+      expect(summary).toEqual({
+        draftsDir: path.resolve(draftDir.dir),
+        entryUpdatedCount: 0,
+        openingUpdatedCount: 0,
+        dryRun: false,
+      });
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM opening_draft_picks`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          player_name: "Canonical Opening Player",
+          fantrax_entity_id: "ftx-opening-1",
+        },
+      ]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("updates null entry player names during entity-only backfill", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await insertEntryDraftRow(dbContext.db, {
+        season: 2025,
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "21",
+        ownerTeamId: "17",
+        playerName: null,
+      });
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping(),
+      ]);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+        season: 2025,
+      });
+
+      expect(summary).toEqual({
+        draftsDir: path.resolve(draftDir.dir),
+        entryUpdatedCount: 1,
+        openingUpdatedCount: 0,
+        dryRun: false,
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM entry_draft_picks`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          player_name: "Canonical Entry Player",
+          fantrax_entity_id: "ftx-entry-1",
+        },
+      ]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
   test("throws when entity-only mode combines season and openingOnly", async () => {
     const dbContext = await createIntegrationDb();
     const draftDir = await createTempDraftDir();
