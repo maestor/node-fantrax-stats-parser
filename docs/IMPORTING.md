@@ -297,6 +297,7 @@ Notes:
 - entry-draft entity mappings are matched by `season + pickNumber`
 - opening-draft entity mappings are matched by `pickNumber`
 - draft entity mappings also carry `draftedTeamId`; if the imported row no longer matches that team, the importer skips the mapping instead of forcing a stale link
+- entry-draft `fantrax_entity_id` links also power the API's per-pick `playedInLeague` and `playedForDraftingTeam` flags plus matching team summary counts
 - entry-draft imports replace only the imported season rows
 - opening-draft import clears and reloads the whole `opening_draft_picks` table
 - stored rows keep only team IDs plus pick metadata, not duplicated team names or source-file references
