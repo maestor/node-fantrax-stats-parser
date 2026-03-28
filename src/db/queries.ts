@@ -563,11 +563,15 @@ export const getOpeningDraftPicksFromDb = async (): Promise<
 interface EntryDraftPickRow extends DraftPickRowBase {
   season: number;
   player_name: string | null;
+  played_in_league: number;
+  played_for_drafted_team: number;
 }
 
 export type EntryDraftPickDbRow = Omit<OpeningDraftPickDbRow, "draftedPlayer"> & {
   season: number;
   draftedPlayer: string | null;
+  playedInLeague: boolean;
+  playedForDraftingTeam: boolean;
 };
 
 const mapEntryDraftPickRow = (row: EntryDraftPickRow): EntryDraftPickDbRow => ({
@@ -577,14 +581,53 @@ const mapEntryDraftPickRow = (row: EntryDraftPickRow): EntryDraftPickDbRow => ({
   draftedTeamId: row.drafted_team_id,
   originalOwnerTeamId: row.owner_team_id,
   draftedPlayer: row.player_name,
+  playedInLeague: Boolean(row.played_in_league),
+  playedForDraftingTeam: Boolean(row.played_for_drafted_team),
 });
 
 export const getEntryDraftPicksFromDb = async (): Promise<EntryDraftPickDbRow[]> => {
   const db = getDbClient();
   const result = await db.execute(
-    `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name
-     FROM entry_draft_picks
-     ORDER BY season DESC, pick_number ASC`,
+    `WITH played_entities AS (
+       SELECT DISTINCT player_id AS fantrax_entity_id
+       FROM players
+       WHERE games > 0
+       UNION
+       SELECT DISTINCT goalie_id AS fantrax_entity_id
+       FROM goalies
+       WHERE games > 0
+     ),
+     played_entities_by_team AS (
+       SELECT DISTINCT player_id AS fantrax_entity_id, team_id
+       FROM players
+       WHERE games > 0
+       UNION
+       SELECT DISTINCT goalie_id AS fantrax_entity_id, team_id
+       FROM goalies
+       WHERE games > 0
+     )
+     SELECT
+       edp.season,
+       edp.pick_number,
+       edp.round,
+       edp.drafted_team_id,
+       edp.owner_team_id,
+       edp.player_name,
+       CASE
+         WHEN pe.fantrax_entity_id IS NULL THEN 0
+         ELSE 1
+       END AS played_in_league,
+       CASE
+         WHEN pet.fantrax_entity_id IS NULL THEN 0
+         ELSE 1
+       END AS played_for_drafted_team
+     FROM entry_draft_picks edp
+     LEFT JOIN played_entities pe
+       ON pe.fantrax_entity_id = edp.fantrax_entity_id
+     LEFT JOIN played_entities_by_team pet
+       ON pet.fantrax_entity_id = edp.fantrax_entity_id
+      AND pet.team_id = edp.drafted_team_id
+     ORDER BY edp.season DESC, edp.pick_number ASC`,
   );
   return castRows<EntryDraftPickRow>(result.rows).map(mapEntryDraftPickRow);
 };

@@ -42,6 +42,7 @@ const insertOpeningDraftPicks = async (
 type EntryDraftSeed = Omit<OpeningDraftSeed, "playerName"> & {
   season: number;
   playerName: string | null;
+  fantraxEntityId?: string | null;
 };
 
 const insertEntryDraftPicks = async (
@@ -51,8 +52,9 @@ const insertEntryDraftPicks = async (
   for (const row of rows) {
     await db.execute({
       sql: `INSERT INTO entry_draft_picks (
-              season, pick_number, round, drafted_team_id, owner_team_id, player_name
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
+              season, pick_number, round, drafted_team_id, owner_team_id, player_name,
+              fantrax_entity_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       args: [
         row.season,
         row.pickNumber,
@@ -60,6 +62,7 @@ const insertEntryDraftPicks = async (
         row.draftedTeamId,
         row.ownerTeamId,
         row.playerName,
+        row.fantraxEntityId ?? null,
       ],
     });
   }
@@ -172,6 +175,7 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "12",
             ownerTeamId: "12",
             playerName: null,
+            fantraxEntityId: null,
           },
           {
             season: 2024,
@@ -180,6 +184,7 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "19",
             ownerTeamId: "1",
             playerName: "Player C",
+            fantraxEntityId: "player-c",
           },
           {
             season: 2025,
@@ -188,6 +193,7 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "12",
             ownerTeamId: "10",
             playerName: "Player B",
+            fantraxEntityId: "goalie-b",
           },
           {
             season: 2025,
@@ -196,6 +202,7 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "19",
             ownerTeamId: "19",
             playerName: "Player A",
+            fantraxEntityId: "player-a",
           },
           {
             season: 2024,
@@ -204,6 +211,7 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "19",
             ownerTeamId: "19",
             playerName: "Player E",
+            fantraxEntityId: "player-e",
           },
           {
             season: 2024,
@@ -212,6 +220,54 @@ export const registerDraftRouteIntegrationTests = (): void => {
             draftedTeamId: "19",
             ownerTeamId: "19",
             playerName: "Player D",
+            fantraxEntityId: "goalie-d",
+          },
+        ]);
+        await db.insertPlayers([
+          {
+            teamId: "19",
+            season: 2025,
+            reportType: "regular",
+            playerId: "player-a",
+            name: "Player A",
+            position: "F",
+            games: 12,
+          },
+          {
+            teamId: "1",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-c",
+            name: "Player C",
+            position: "F",
+            games: 7,
+          },
+          {
+            teamId: "19",
+            season: 2024,
+            reportType: "regular",
+            playerId: "player-e",
+            name: "Player E",
+            position: "F",
+            games: 0,
+          },
+        ]);
+        await db.insertGoalies([
+          {
+            teamId: "10",
+            season: 2025,
+            reportType: "regular",
+            goalieId: "goalie-b",
+            name: "Player B",
+            games: 5,
+          },
+          {
+            teamId: "19",
+            season: 2024,
+            reportType: "playoffs",
+            goalieId: "goalie-d",
+            name: "Player D",
+            games: 3,
           },
         ]);
 
@@ -237,6 +293,8 @@ export const registerDraftRouteIntegrationTests = (): void => {
                     round: 1,
                     pickNumber: 2,
                     draftedPlayer: "Player B",
+                    playedInLeague: true,
+                    playedForDraftingTeam: false,
                     originalOwner: { id: "10", name: "Nashville Predators" },
                   },
                 ],
@@ -248,6 +306,8 @@ export const registerDraftRouteIntegrationTests = (): void => {
                     round: 2,
                     pickNumber: 35,
                     draftedPlayer: null,
+                    playedInLeague: false,
+                    playedForDraftingTeam: false,
                     originalOwner: { id: "12", name: "Anaheim Ducks" },
                   },
                 ],
@@ -270,6 +330,8 @@ export const registerDraftRouteIntegrationTests = (): void => {
                 ownPicks: 0,
                 tradedPicks: 1,
                 playersPerDraftAverage: 0.5,
+                playedInLeague: 1,
+                playedForDraftingTeam: 0,
               },
               rounds: {
                 first: 1,
@@ -290,6 +352,8 @@ export const registerDraftRouteIntegrationTests = (): void => {
                     round: 1,
                     pickNumber: 1,
                     draftedPlayer: "Player A",
+                    playedInLeague: true,
+                    playedForDraftingTeam: true,
                     originalOwner: { id: "19", name: "Toronto Maple Leafs" },
                   },
                 ],
@@ -301,18 +365,24 @@ export const registerDraftRouteIntegrationTests = (): void => {
                     round: 1,
                     pickNumber: 1,
                     draftedPlayer: "Player C",
+                    playedInLeague: true,
+                    playedForDraftingTeam: false,
                     originalOwner: { id: "1", name: "Colorado Avalanche" },
                   },
                   {
                     round: 1,
                     pickNumber: 4,
                     draftedPlayer: "Player D",
+                    playedInLeague: true,
+                    playedForDraftingTeam: true,
                     originalOwner: { id: "19", name: "Toronto Maple Leafs" },
                   },
                   {
                     round: 2,
                     pickNumber: 33,
                     draftedPlayer: "Player E",
+                    playedInLeague: false,
+                    playedForDraftingTeam: false,
                     originalOwner: { id: "19", name: "Toronto Maple Leafs" },
                   },
                 ],
@@ -340,6 +410,8 @@ export const registerDraftRouteIntegrationTests = (): void => {
                 ownPicks: 3,
                 tradedPicks: 1,
                 playersPerDraftAverage: 2,
+                playedInLeague: 3,
+                playedForDraftingTeam: 2,
               },
               rounds: {
                 first: 3,

@@ -80,6 +80,8 @@ curl -H "x-api-key: <your-key>" \
   "https://ffhl-stats-api.vercel.app/draft/entry"
 ```
 
+`/draft/entry` includes per-pick `playedInLeague` and `playedForDraftingTeam` flags plus matching team-summary counts.
+
 ### Meta
 
 ```bash

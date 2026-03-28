@@ -2,6 +2,7 @@ import { TEAMS } from "../../config/index.js";
 import {
   getEntryDraftPicksFromDb,
   getOpeningDraftPicksFromDb,
+  type EntryDraftPickDbRow,
 } from "../../db/queries.js";
 
 export type DraftTeamRef = {
@@ -13,12 +14,15 @@ export type DraftPick = {
   round: number;
   pickNumber: number;
   draftedPlayer: string | null;
+  playedInLeague: boolean;
+  playedForDraftingTeam: boolean;
   originalOwner: DraftTeamRef;
 };
 
-export type OpeningDraftPick = Omit<DraftPick, "draftedPlayer"> & {
-  draftedPlayer: string;
-};
+export type OpeningDraftPick = Omit<
+  DraftPick,
+  "draftedPlayer" | "playedInLeague" | "playedForDraftingTeam"
+> & { draftedPlayer: string };
 
 export type OpeningDraftTeamGroup = {
   team: DraftTeamRef;
@@ -57,6 +61,8 @@ export type EntryDraftTeamSummary = {
     ownPicks: number;
     tradedPicks: number;
     playersPerDraftAverage: number;
+    playedInLeague: number;
+    playedForDraftingTeam: number;
   };
   rounds: EntryDraftRoundsSummary;
 };
@@ -96,19 +102,17 @@ const compareHighestPickItems = (
   right: EntryDraftHighestPickItem,
 ): number => right.season - left.season;
 
-type DraftPickDbRow = {
-  round: number;
-  pickNumber: number;
-  draftedPlayer: string | null;
-  originalOwnerTeamId: string;
-  season?: number;
-  draftedTeamId?: string;
+type EntryDraftSeasonGroupInternal = {
+  season: number;
+  picks: DraftPick[];
 };
 
-const mapDraftPick = (row: DraftPickDbRow): DraftPick => ({
+const mapEntryDraftPick = (row: EntryDraftPickDbRow): DraftPick => ({
   round: row.round,
   pickNumber: row.pickNumber,
   draftedPlayer: row.draftedPlayer,
+  playedInLeague: row.playedInLeague,
+  playedForDraftingTeam: row.playedForDraftingTeam,
   originalOwner: toDraftTeamRef(row.originalOwnerTeamId),
 });
 
@@ -129,6 +133,15 @@ type DraftedEntryPick = DraftPick & {
   draftedPlayer: string;
 };
 
+const toDraftPickResponse = (pick: DraftPick): DraftPick => ({
+  round: pick.round,
+  pickNumber: pick.pickNumber,
+  draftedPlayer: pick.draftedPlayer,
+  playedInLeague: pick.playedInLeague,
+  playedForDraftingTeam: pick.playedForDraftingTeam,
+  originalOwner: pick.originalOwner,
+});
+
 const roundDraftAverage = (value: number): number =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -148,7 +161,7 @@ const buildRoundsSummary = (
 
 const buildEntryDraftTeamSummary = (
   teamId: string,
-  seasons: readonly EntryDraftSeasonGroup[],
+  seasons: readonly EntryDraftSeasonGroupInternal[],
 ): EntryDraftTeamSummary => {
   const picksWithSeason = seasons.flatMap((season) =>
     season.picks.map((pick) => ({
@@ -192,6 +205,10 @@ const buildEntryDraftTeamSummary = (
       ownPicks,
       tradedPicks: total - ownPicks,
       playersPerDraftAverage: roundDraftAverage(total / seasons.length),
+      playedInLeague: draftedPicks.filter((pick) => pick.playedInLeague).length,
+      playedForDraftingTeam: draftedPicks.filter(
+        (pick) => pick.playedForDraftingTeam,
+      ).length,
     },
     rounds: buildRoundsSummary(draftedPicks),
   };
@@ -242,12 +259,13 @@ export const getEntryDraftData = async (): Promise<EntryDraftTeamGroup[]> => {
         team: toDraftTeamRef(row.draftedTeamId),
         seasons: new Map<number, DraftPick[]>(),
       };
+    const pick = mapEntryDraftPick(row);
     const seasonPicks = team.seasons.get(row.season);
 
     if (seasonPicks) {
-      seasonPicks.push(mapDraftPick(row));
+      seasonPicks.push(pick);
     } else {
-      team.seasons.set(row.season, [mapDraftPick(row)]);
+      team.seasons.set(row.season, [pick]);
     }
 
     if (!existingTeam) {
@@ -267,7 +285,10 @@ export const getEntryDraftData = async (): Promise<EntryDraftTeamGroup[]> => {
       return {
         team: team.team,
         summary: buildEntryDraftTeamSummary(team.team.id, seasons),
-        seasons,
+        seasons: seasons.map((season) => ({
+          season: season.season,
+          picks: season.picks.map(toDraftPickResponse),
+        })),
       };
     })
     .sort(compareDraftTeamGroups);
