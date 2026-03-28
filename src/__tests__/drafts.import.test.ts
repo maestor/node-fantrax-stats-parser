@@ -69,6 +69,42 @@ const createOpeningPick = (
   ...overrides,
 });
 
+const createEntryEntityMapping = (
+  overrides: Partial<{
+    id: number;
+    season: number;
+    pickNumber: number;
+    draftedTeamId: string;
+    fantraxEntityId: string;
+    fantraxEntityName: string;
+  }> = {},
+) => ({
+  id: 1,
+  season: 2025,
+  pickNumber: 1,
+  draftedTeamId: "21",
+  fantraxEntityId: "ftx-entry-1",
+  fantraxEntityName: "Canonical Entry Player",
+  ...overrides,
+});
+
+const createOpeningEntityMapping = (
+  overrides: Partial<{
+    id: number;
+    pickNumber: number;
+    draftedTeamId: string;
+    fantraxEntityId: string;
+    fantraxEntityName: string;
+  }> = {},
+) => ({
+  id: 1,
+  pickNumber: 1,
+  draftedTeamId: "12",
+  fantraxEntityId: "ftx-opening-1",
+  fantraxEntityName: "Canonical Opening Player",
+  ...overrides,
+});
+
 describe("draft DB import", () => {
   test("imports entry and opening draft picks into the database", async () => {
     const dbContext = await createIntegrationDb();
@@ -143,7 +179,8 @@ describe("draft DB import", () => {
       });
 
       const entryRows = await dbContext.db.execute(
-        `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name
+        `SELECT season, pick_number, round, drafted_team_id, owner_team_id, player_name,
+                fantrax_entity_id
          FROM entry_draft_picks
          ORDER BY season ASC, pick_number ASC`,
       );
@@ -155,6 +192,7 @@ describe("draft DB import", () => {
           drafted_team_id: "21",
           owner_team_id: "17",
           player_name: "Macklin Celebrini",
+          fantrax_entity_id: null,
         },
         {
           season: 2024,
@@ -163,6 +201,7 @@ describe("draft DB import", () => {
           drafted_team_id: "31",
           owner_team_id: "31",
           player_name: null,
+          fantrax_entity_id: null,
         },
         {
           season: 2025,
@@ -171,11 +210,13 @@ describe("draft DB import", () => {
           drafted_team_id: "21",
           owner_team_id: "17",
           player_name: "Michael Misa",
+          fantrax_entity_id: null,
         },
       ]);
 
       const openingRows = await dbContext.db.execute(
-        `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name
+        `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name,
+                fantrax_entity_id
          FROM opening_draft_picks
          ORDER BY pick_number ASC`,
       );
@@ -186,6 +227,7 @@ describe("draft DB import", () => {
           drafted_team_id: "12",
           owner_team_id: "12",
           player_name: "Jevgeni Malkin",
+          fantrax_entity_id: null,
         },
         {
           pick_number: 22,
@@ -193,6 +235,7 @@ describe("draft DB import", () => {
           drafted_team_id: "10",
           owner_team_id: "18",
           player_name: "Carey Price",
+          fantrax_entity_id: null,
         },
       ]);
 
@@ -201,6 +244,132 @@ describe("draft DB import", () => {
         args: ["last_modified"],
       });
       expect(metadata.rows).toEqual([{ value: "2026-03-27T09:30:00.000Z" }]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("applies mapped entity ids and canonical names using draft-table natural keys", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [
+        createEntryPick({
+          season: 2025,
+          pickNumber: 1,
+          playerName: "Entry Alias",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [
+        createOpeningPick({
+          pickNumber: 1,
+          playerName: "Opening Alias",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping(),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping(),
+      ]);
+
+      await importDraftPicksToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+        importedAt: "2026-03-28T10:15:00.000Z",
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT season, pick_number, player_name, fantrax_entity_id
+         FROM entry_draft_picks
+         ORDER BY season ASC, pick_number ASC`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          season: 2025,
+          pick_number: 1,
+          player_name: "Canonical Entry Player",
+          fantrax_entity_id: "ftx-entry-1",
+        },
+      ]);
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT pick_number, player_name, fantrax_entity_id
+         FROM opening_draft_picks
+         ORDER BY pick_number ASC`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          pick_number: 1,
+          player_name: "Canonical Opening Player",
+          fantrax_entity_id: "ftx-opening-1",
+        },
+      ]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("skips mappings when drafted team ids do not match the draft rows", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [
+        createEntryPick({
+          season: 2025,
+          pickNumber: 1,
+          playerName: "Entry Alias",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [
+        createOpeningPick({
+          pickNumber: 1,
+          playerName: "Opening Alias",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping({
+          draftedTeamId: "24",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping({
+          draftedTeamId: "8",
+        }),
+      ]);
+
+      await importDraftPicksToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM entry_draft_picks
+         ORDER BY season ASC, pick_number ASC`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          player_name: "Entry Alias",
+          fantrax_entity_id: null,
+        },
+      ]);
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM opening_draft_picks
+         ORDER BY pick_number ASC`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          player_name: "Opening Alias",
+          fantrax_entity_id: null,
+        },
+      ]);
     } finally {
       await draftDir.cleanup();
       await dbContext.cleanup();
@@ -792,6 +961,108 @@ describe("draft DB import", () => {
     }
   });
 
+  test("throws when an entry entity mapping file is not an array", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", {
+        bad: "payload",
+      });
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow(
+        `Draft entity mapping file must contain an array: ${path.resolve(
+          draftDir.dir,
+          "entities-entry-draft.json",
+        )}`,
+      );
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when an opening entity mapping file is not an array", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", {
+        bad: "payload",
+      });
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow(
+        `Draft entity mapping file must contain an array: ${path.resolve(
+          draftDir.dir,
+          "entities-opening-draft.json",
+        )}`,
+      );
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when an entry entity mapping row is not an object", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", ["bad-row"]);
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow(
+        "Draft entity mapping entities-entry-draft.json row 1 must be an object.",
+      );
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when an opening entity mapping row is not an object", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", ["bad-row"]);
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow(
+        "Draft entity mapping entities-opening-draft.json row 1 must be an object.",
+      );
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
   test("throws when an opening draft file is empty", async () => {
     const dbContext = await createIntegrationDb();
     const draftDir = await createTempDraftDir();
@@ -862,6 +1133,87 @@ describe("draft DB import", () => {
           draftsDir: draftDir.dir,
         }),
       ).rejects.toThrow("Duplicate entry draft season in import set: 2025");
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when entry entity mappings duplicate a season and pick number", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping({
+          id: 1,
+        }),
+        createEntryEntityMapping({
+          id: 2,
+        }),
+      ]);
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow(
+        "Duplicate entry draft entity mapping for season 2025, pick 1.",
+      );
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when opening entity mappings duplicate a pick number", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping({
+          id: 1,
+        }),
+        createOpeningEntityMapping({
+          id: 2,
+        }),
+      ]);
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toThrow("Duplicate opening draft entity mapping for pick 1.");
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("rethrows mapping file read errors other than missing files", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await writeDraftFile(draftDir.dir, "entry-draft-2025.json", [createEntryPick()]);
+      await writeDraftFile(draftDir.dir, "opening-draft.json", [createOpeningPick()]);
+      await fs.mkdir(path.join(draftDir.dir, "entities-entry-draft.json"));
+
+      await expect(
+        importDraftPicksToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+        }),
+      ).rejects.toMatchObject({
+        code: "EISDIR",
+      });
     } finally {
       await draftDir.cleanup();
       await dbContext.cleanup();

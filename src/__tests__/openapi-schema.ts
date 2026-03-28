@@ -10,8 +10,34 @@ const rawSpec = fs.readFileSync(specPath, "utf8");
 const spec = yaml.load(rawSpec) as {
   components: { schemas: Record<string, unknown> };
 };
+
+const normalizeNullable = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeNullable);
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const normalized = Object.fromEntries(
+    Object.entries(record)
+      .filter(([key]) => key !== "nullable")
+      .map(([key, entryValue]) => [key, normalizeNullable(entryValue)]),
+  );
+
+  if (record.nullable === true) {
+    return {
+      anyOf: [normalized, { type: "null" }],
+    };
+  }
+
+  return normalized;
+};
+
 const definitions = JSON.parse(
-  JSON.stringify(spec.components.schemas).replace(
+  JSON.stringify(normalizeNullable(spec.components.schemas)).replace(
     /#\/components\/schemas\//g,
     "#/definitions/",
   ),

@@ -153,10 +153,12 @@ src/
     ├── r2-retry.test.ts # Snapshot R2 retry/backoff classification and limits
     ├── routes.integration.helpers.ts # Shared helpers for route integration suites
     ├── routes.integration.test.ts # Entry point for the categorized route integration suites
+    ├── routes.integration.drafts.ts # DB-backed opening-draft route coverage
     ├── routes.integration.*.ts # Domain-focused route integration modules (seasons, players, goalies, career, leaderboard)
     ├── routes.test.ts    # Route guard/cache edge cases and lightweight schema checks
     ├── snapshot-generation.test.ts # Snapshot scope/report selection helpers
     ├── services.career.fixtures.ts # Shared career-service row builders
+    ├── services.drafts.test.ts # Opening-draft grouping and team-name mapping
     ├── services.*.test.ts # Domain-focused service unit suites (meta, season/combined, career detail/list, leaderboard)
     ├── snapshots.test.ts # Snapshot loading, R2 fallback, cache behavior
     ├── transactions.import.test.ts # Transaction entity matching, grouping, and DB import behavior

@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 
-const DB_SCHEMA_VERSION = "8";
+const DB_SCHEMA_VERSION = "9";
 const FANTRAX_ENTITIES_SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = [
@@ -64,6 +64,7 @@ const SCHEMA_SQL = [
     drafted_team_id TEXT NOT NULL,
     owner_team_id TEXT NOT NULL,
     player_name TEXT,
+    fantrax_entity_id TEXT,
     UNIQUE(season, pick_number)
   )`,
   `CREATE TABLE IF NOT EXISTS opening_draft_picks (
@@ -73,6 +74,7 @@ const SCHEMA_SQL = [
     drafted_team_id TEXT NOT NULL,
     owner_team_id TEXT NOT NULL,
     player_name TEXT NOT NULL,
+    fantrax_entity_id TEXT,
     UNIQUE(pick_number)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_players_lookup ON players(team_id, season, report_type)`,
@@ -404,12 +406,35 @@ const ensureClaimEventItemColumns = async (db: DbExecutor): Promise<void> => {
   );
 };
 
+const ensureDraftPickEntityColumns = async (db: DbExecutor): Promise<void> => {
+  const entryColumnNames = await getTableColumnNames(db, "entry_draft_picks");
+  if (!entryColumnNames.has("fantrax_entity_id")) {
+    await db.execute("ALTER TABLE entry_draft_picks ADD COLUMN fantrax_entity_id TEXT");
+  }
+
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_entry_draft_picks_entity
+      ON entry_draft_picks(fantrax_entity_id)`,
+  );
+
+  const openingColumnNames = await getTableColumnNames(db, "opening_draft_picks");
+  if (!openingColumnNames.has("fantrax_entity_id")) {
+    await db.execute("ALTER TABLE opening_draft_picks ADD COLUMN fantrax_entity_id TEXT");
+  }
+
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_opening_draft_picks_entity
+      ON opening_draft_picks(fantrax_entity_id)`,
+  );
+};
+
 export const migrateDb = async (db: DbExecutor): Promise<void> => {
   for (const sql of SCHEMA_SQL) {
     await db.execute(sql);
   }
 
   await ensureClaimEventItemColumns(db);
+  await ensureDraftPickEntityColumns(db);
 
   if (await shouldBackfillFantraxEntities(db)) {
     for (const sql of FANTRAX_ENTITIES_BACKFILL_SQL) {

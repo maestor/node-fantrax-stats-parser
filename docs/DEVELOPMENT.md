@@ -32,6 +32,19 @@ This should:
 
 ---
 
+## Documentation Map
+
+- [../README.md](../README.md) - project overview, quick start, API doc links, grouped endpoint examples
+- [TESTING.md](TESTING.md) - testing strategy and coverage rules
+- [IMPORTING.md](IMPORTING.md) - Fantrax and FFHL draft import runbooks, CSV handling
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Vercel, Turso, R2, auth, caching
+- [SNAPSHOTS.md](SNAPSHOTS.md) - snapshot-backed endpoints and generation rules
+- [SCORING.md](SCORING.md) - player and goalie scoring behavior
+
+Keep the README concise. Put deep operational detail in the topic docs above instead of growing the top-level readme again.
+
+---
+
 ## Development Workflow
 
 ### Daily Development Loop
@@ -107,70 +120,13 @@ npm run verify
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run verify` - **Full quality gate** (lint + typecheck + unused exports + build + coverage)
 
-### CSV Data Import
+### Operational Data Workflows
 
-- `npm run playwright:install` - Installs or refreshes Playwright's Chromium browser binaries
-- `npm run playwright:sync:leagues` - Scrape and save league IDs + season dates mapping
-- `npm run playwright:sync:playoffs` - Scrape and save playoff bracket data (schemaVersion 3: includes `roundReached` and `isChampion` per team). Ongoing current-season brackets are supported as long as Fantrax shows a valid prefix like 16 teams in round 1, then 8 / 4 / 2 in later visible rounds. Use `--import-db` to upsert results into the local database after syncing.
-- `npm run playwright:sync:regular` - Scrapes regular season standings (W/L/T/Pts/division record) for all seasons from Fantrax and saves to `src/playwright/.fantrax/fantrax-regular.json`. Sets `isRegularChampion: true` on the rank-1 team only if `fantrax-playoffs.json` already contains data for that year (season not yet complete = no champion). Flags: `--headed`, `--year=XXXX`, `--import-db`, `--slowmo=N`, `--timeout=N`
-- `npm run playwright:sync:draft -- --url=https://ffhl.kld.im/threads/...` - Scrapes the maintained first post from a public FFHL entry-draft forum topic and saves `entry-draft-{season}.json` into `src/playwright/.fantrax/drafts/`. No Fantrax auth or browser install is required; supports `--out=/custom/dir`. Traded-pick owner abbreviations are resolved from parenthetical notes, non-team reward notes like `(mestari)` are ignored, and 2013 placeholder rows with `SKIPATTU` are emitted as `playerName: null`.
-- `npm run playwright:sync:opening-draft -- --url=https://ffhl.kld.im/threads/...` - Scrapes the maintained first post from the public FFHL opening-draft topic and saves `opening-draft.json` into `src/playwright/.fantrax/drafts/`. No Fantrax auth or browser install is required; supports `--out=/custom/dir`. Full team names are resolved through `TEAMS`, `(via Team Name)` notes set the original owner team, and multi-hop `via` chains use the last team as the original owner.
-- `npx tsx scripts/db-import-drafts.ts` - One-off importer for the scraped FFHL draft JSON files. Imports every `entry-draft-{season}.json` into `entry_draft_picks` and `opening-draft.json` into `opening_draft_picks`, defaults to `src/playwright/.fantrax/drafts/`, supports `--dir=/custom/dir`, `--season=YYYY`, `--opening-only`, and `--dry-run`, replaces entry rows by imported `season`, and fully refreshes the opening-draft table on each run. `--season=YYYY` leaves opening-draft rows untouched, while `--opening-only` leaves entry-draft rows untouched.
-- `npm run playwright:import:regular` - Import regular season data via Playwright. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to regular files (and `--year=YYYY` when provided).
-- `npm run playwright:import:playoffs` - Import playoffs data via Playwright. Without `--year`, it defaults to the most recent mapped season and only downloads teams whose mapped playoff `endDate` is yesterday or later, giving one local follow-up day after elimination. With `--year=YYYY`, it downloads all mapped playoff teams for that season unless `--remaining-teams` is also passed. If output is `csv/temp`, post-import script defaults to `parseAndUploadCsv`; set `RAW_UPLOAD=true` to use `parseAndUploadRawCsv` instead. Post-import remains restricted to playoffs files (and `--year=YYYY` when provided).
-- `npm run playwright:import:transactions` - Download season transaction CSVs (`claims-YYYY-YYYY.csv`, `trades-YYYY-YYYY.csv`) into `csv/transactions/`. Defaults to the most recent mapped season, supports `--year=YYYY` and `--all`, refreshes files in place, retries failed downloads by default (`--retries`, `--retry-delay`), auto-runs `db:import:transactions` after a plain no-arg scrape when the default output dir is used, and auto-runs `r2:upload:transactions` when `USE_R2_STORAGE=true` and the default output dir is used.
-- All `playwright:*` scripts run `playwright:install` automatically first so browser updates do not break local runs.
-- `./scripts/handle-csv.sh input.csv [output.csv]` - Normalizes Fantrax CSV format. Preserves first-column Fantrax `ID` values when present, removes only empty placeholder first columns + `Age`, and fixes the known malformed goalie row `*06mqq*` to goalie position `G` inside the `Goalies` section.
-- `scripts/csv.ts` intentionally supports two import shapes: sectioned Fantrax roster exports (`"Skaters"` / `"Goalies"`) for stats imports and ordinary header-row CSVs for transaction imports.
-- `./scripts/import-temp-csv.sh [--dry-run] [--keep-temp] [--season=YYYY] [--report-type=regular|playoffs|both]` - Cleans files from `csv/temp/`, writes them to `csv/<teamId>/`, optionally uploads to R2, and imports to DB. By default it removes successfully imported source files from `csv/temp/`; use `--keep-temp` to preserve them. If `--season` is omitted it processes all matched seasons; if `--report-type` is omitted, `both` is the default. When it auto-runs `r2:upload` / `db:import:stats`, those chained steps are limited to the team IDs imported from that `csv/temp` run.
+- [IMPORTING.md](IMPORTING.md) covers Playwright sync/import flows, FFHL draft scraping, `csv/temp` normalization, and Fantrax ID handling
+- [DEPLOYMENT.md](DEPLOYMENT.md) covers Turso, R2, auth, caching, local-vs-remote import targets, and the `db:*` / `r2:*` operational commands
+- [SNAPSHOTS.md](SNAPSHOTS.md) covers `npm run snapshot:generate`, snapshot scopes, and `x-stats-data-source`
 
-### Fantrax IDs in imports
-
-- Fantrax roster CSVs may include an `ID` column with values like `*00qs7*`.
-- Import parses these IDs and stores them as:
-  - `id` for skaters
-  - `id` for goalies
-- The import pipeline expects Fantrax's leading `ID` column to be preserved.
-- Rows with a missing Fantrax ID are skipped during DB import and reported after the import completes; the rest of the file still imports.
-- Rows with `0` games are imported into the database, except playoff placeholder rows with `Status "-"` and `0` GP, which are skipped during DB import; player/goalie API queries still filter the remaining `0`-game rows out.
-
-### Database (Turso/SQLite)
-
-- `/teams` and `regular` / `both` season availability are derived from code-owned config and shared utilities (`src/config/settings.ts` and `src/shared/seasons.ts`), not runtime DB lookups. Only playoff season availability remains DB-backed.
-- `npm run db:migrate` - Create/update database schema and performance indexes, including career lookup indexes on `player_id` and `goalie_id`
-- `entry_draft_picks` and `opening_draft_picks` store FFHL forum draft history as lightweight pick rows keyed by fantasy team IDs. Entry drafts are season-scoped; opening draft rows have no season column.
-- `fantrax_entities` is the canonical global Fantrax identity registry (`fantrax_id`, `name`, `position`, `first_seen_season`, `last_seen_season`). `db:migrate` backfills it when upgrading an older database or rebuilding an empty registry, and `db:import:stats` keeps it current with incremental UPSERTs so import order does not change the seen-season range semantics. Career queries now prefer canonical metadata from this table instead of trusting the first stats row for a player/goalie.
-- Goalie API responses preserve display precision for rate stats: `gaa` is serialized with two decimals and `savePercent` with three, while the database still stores numeric `REAL` values without trailing-zero padding. If a goalie has played games, zero rates are returned as `0.00` / `0.000`; zero placeholders on non-played rows remain omitted.
-- Transaction CSV imports normalize into `claim_events` / `claim_event_items` and `trade_source_blocks` / `trade_block_items`. Claim/drop and trade storage are intentionally separate, transaction CSV files remain the raw source of truth in `csv/transactions/` / R2, and player links are best-effort via `fantrax_entities` plus same-season fantasy-team context from `players` / `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs. `claim_event_items` mirrors `season`, `team_id`, and `occurred_at` from `claim_events` so common claim/drop queries can hit one table directly.
-- `/leaderboard/transactions` combines normalized transaction data with roster history. Claims and drops come from `claim_event_items`, trades count distinct team participations by `season + occurred_at`, and `players` / `goalies` count distinct Fantrax entity IDs from the `players` / `goalies` tables (deduped across regular/playoff rows within a season). The route is snapshot-capable through `npm run snapshot:generate -- --scope=transactions`.
-- Transaction-driven career highlights (`reunion-king`, `most-trades`, `most-claims`, `most-drops`) also read the normalized transaction tables directly. `reunion-king` counts every matched claim or trade-in back to a fantasy team after that player/goalie's first matched drop from the same team and returns those return events as `reunions`. Claim/drop counts come from matched `claim_event_items`, while `most-trades` counts matched `trade_block_items` by `from_team_id` so the team breakdown represents trading players away. These payloads are part of the `career-highlights` snapshot scope.
-- `/career/highlights/{type}` page payloads include `minAllowed` so clients can read the active backend threshold dynamically instead of duplicating those cutoffs in frontend copy/translations.
-- `npm run db:pull:remote` - Replace `local.db` by pulling full schema + data from remote Turso (`TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` in `.env`); creates timestamped backup in `.backups/`
-- `npm run db:backups:clean` - Remove all files under `.backups/`
-- `npm run db:import:stats` - Import all CSV files into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Regenerates only combined player/goalie snapshots after a successful import.
-- `npm run db:import:stats -- --season=YYYY` - Import only one season into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Regenerates only combined player/goalie snapshots after a successful import.
-- `npm run db:import:stats:current` - Import only current season into database. Regenerates only combined player/goalie snapshots after a successful import.
-- `npm run db:import:stats -- --report-type=regular|playoffs` - Import only one report type into database. Regenerates only the matching combined snapshots plus `both`.
-- `npm run db:import:stats -- --team-id=<id>` - Import only selected fantasy team IDs. Repeat `--team-id` or pass a comma-separated list to target multiple teams.
-- `npm run db:import:transactions` - Incrementally import current-season transaction rows from `csv/transactions/` into database (local by default; set `USE_REMOTE_DB=true` in `.env` for remote). Updates `import_metadata.last_modified` and refreshes only the transactions snapshot. Supports `--full`, `--all`, `--season=YYYY`, `--current-only`, `--dry-run`, and `--dir=/custom/path`.
-- `npm run db:import:playoff-results` - Import playoff round results from `fantrax-playoffs.json` into database (set `USE_REMOTE_DB=true` to target remote Turso). Regenerates only the playoff leaderboard snapshot after a successful import.
-- `npm run db:import:regular-results` - Imports regular season standings from `fantrax-regular.json` into the `regular_results` table. Set `USE_REMOTE_DB=true` to target remote Turso. Regenerates only the regular leaderboard snapshot after a successful import.
-- `npm run snapshot:generate` - Generate JSON snapshots into `generated/snapshots/`. Supports `--scope=transactions|leaderboard-regular|leaderboard-playoffs|stats|career|career-highlights|all`; if `stats` is included, `--report-type=regular|playoffs|both|all` limits which combined report snapshots are rebuilt and repeated `--team-id=<id>` flags can narrow stats regeneration to specific fantasy teams. If `USE_R2_SNAPSHOTS=true`, uploads each generated JSON payload to the configured snapshot bucket/prefix, adds `generated-at` metadata, uploads `manifest.json` last, retries transient R2/TLS failures with exponential backoff, and logs successful uploads with progress counters.
-- Snapshot-backed routes expose `x-stats-data-source: snapshot|db` so you can inspect whether a successful response came from a snapshot or a live DB path.
-
-### R2 Storage (CSV backup + optional API snapshots)
-
-- `npm run r2:upload` - Upload all CSV files to R2
-- `npm run r2:upload -- --season=YYYY` - Upload only one season to R2
-- `npm run r2:upload:current` - Upload only current season to R2
-- `npm run r2:upload -- --report-type=regular|playoffs` - Upload only one report type to R2
-- `npm run r2:upload -- --team-id=<id>` - Upload only selected fantasy team IDs. Repeat `--team-id` or pass a comma-separated list to target multiple teams.
-- `npm run r2:download` - Download CSV files from R2. Snapshot objects under the configured snapshot prefix are ignored.
-- `npm run r2:upload:transactions` - Upload `csv/transactions/*.csv` to `transactions/` in R2. Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--force`.
-- `npm run r2:download:transactions` - Download `transactions/*.csv` from R2 into `csv/transactions/`. Supports `--season=YYYY`, `--current-only`, `--dry-run`, and `--force`.
-- `npm run r2:upload:raw` - Force-upload raw `csv/temp/*.csv` to `rawFiles/<teamId>/...` and remove uploaded temp files
-- `npm run r2:download:raw` - Download all `rawFiles/` objects from R2 into `csv/temp/` (force overwrite)
-- `npm run parseAndUploadRawCsv` - Post-import raw pipeline: upload `csv/temp` to `rawFiles/` and clean uploaded temp files
+Most data-operation scripts are documented in those topic docs instead of being duplicated here. Keep this file focused on development workflow and code standards.
 
 ### Utilities
 
