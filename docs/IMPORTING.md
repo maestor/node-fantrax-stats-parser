@@ -293,9 +293,14 @@ Notes:
 - reads local JSON files under `src/playwright/.fantrax/drafts/`
 - imports every `entry-draft-{season}.json` file into `entry_draft_picks`
 - imports `opening-draft.json` into `opening_draft_picks`
+- if `entities-entry-draft.json` and `entities-opening-draft.json` exist in the same directory, the importer also fills nullable `fantrax_entity_id` and overwrites `player_name` with the canonical `fantrax_entities.name`
+- entry-draft entity mappings are matched by `season + pickNumber`
+- opening-draft entity mappings are matched by `pickNumber`
+- draft entity mappings also carry `draftedTeamId`; if the imported row no longer matches that team, the importer skips the mapping instead of forcing a stale link
 - entry-draft imports replace only the imported season rows
 - opening-draft import clears and reloads the whole `opening_draft_picks` table
 - stored rows keep only team IDs plus pick metadata, not duplicated team names or source-file references
+- unresolved draft rows stay in the tables with `fantrax_entity_id = NULL` and their original scraped `player_name`
 - by default the importer targets `local.db`
 
 Useful options:
