@@ -137,6 +137,22 @@ describe("db schema migration", () => {
         { name: "trade_source_blocks" },
       ]);
 
+      let columns = await db.execute("PRAGMA table_info(entry_draft_picks)");
+      let columnNames = columns.rows.map((row) =>
+        String((row as unknown as { name: string }).name),
+      );
+      expect(columnNames).toEqual(
+        expect.arrayContaining(["player_name", "fantrax_entity_id"]),
+      );
+
+      columns = await db.execute("PRAGMA table_info(opening_draft_picks)");
+      columnNames = columns.rows.map((row) =>
+        String((row as unknown as { name: string }).name),
+      );
+      expect(columnNames).toEqual(
+        expect.arrayContaining(["player_name", "fantrax_entity_id"]),
+      );
+
       let result = await db.execute(
         `SELECT fantrax_id, name, position, first_seen_season, last_seen_season
          FROM fantrax_entities
@@ -239,6 +255,27 @@ describe("db schema migration", () => {
         };
       }
 
+      if (sql === "PRAGMA table_info(entry_draft_picks)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "season" },
+            { name: "pick_number" },
+            { name: "fantrax_entity_id" },
+          ],
+        };
+      }
+
+      if (sql === "PRAGMA table_info(opening_draft_picks)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "pick_number" },
+            { name: "fantrax_entity_id" },
+          ],
+        };
+      }
+
       if (sql === "SELECT COUNT(*) AS count FROM fantrax_entities") {
         return { rows: [{ count: 3 }] };
       }
@@ -285,6 +322,27 @@ describe("db schema migration", () => {
             { name: "team_id" },
             { name: "occurred_at" },
             { name: "sequence" },
+          ],
+        };
+      }
+
+      if (sql === "PRAGMA table_info(entry_draft_picks)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "season" },
+            { name: "pick_number" },
+            { name: "fantrax_entity_id" },
+          ],
+        };
+      }
+
+      if (sql === "PRAGMA table_info(opening_draft_picks)") {
+        return {
+          rows: [
+            { name: "id" },
+            { name: "pick_number" },
+            { name: "fantrax_entity_id" },
           ],
         };
       }
@@ -404,6 +462,64 @@ describe("db schema migration", () => {
           team_id: null,
           occurred_at: null,
         },
+      ]);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("adds draft entity columns and indexes when upgrading older draft tables", async () => {
+    const { db, cleanup } = await createLegacyDb();
+
+    try {
+      await db.execute(`CREATE TABLE entry_draft_picks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        season INTEGER NOT NULL,
+        pick_number INTEGER NOT NULL,
+        round INTEGER NOT NULL,
+        drafted_team_id TEXT NOT NULL,
+        owner_team_id TEXT NOT NULL,
+        player_name TEXT,
+        UNIQUE(season, pick_number)
+      )`);
+      await db.execute(`CREATE TABLE opening_draft_picks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pick_number INTEGER NOT NULL,
+        round INTEGER NOT NULL,
+        drafted_team_id TEXT NOT NULL,
+        owner_team_id TEXT NOT NULL,
+        player_name TEXT NOT NULL,
+        UNIQUE(pick_number)
+      )`);
+      await db.execute({
+        sql: "INSERT INTO import_metadata (key, value) VALUES (?, ?)",
+        args: ["schema_version", "8"],
+      });
+
+      await migrateDb(db);
+
+      let columns = await db.execute("PRAGMA table_info(entry_draft_picks)");
+      let columnNames = columns.rows.map((row) =>
+        String((row as unknown as { name: string }).name),
+      );
+      expect(columnNames).toEqual(expect.arrayContaining(["fantrax_entity_id"]));
+
+      columns = await db.execute("PRAGMA table_info(opening_draft_picks)");
+      columnNames = columns.rows.map((row) =>
+        String((row as unknown as { name: string }).name),
+      );
+      expect(columnNames).toEqual(expect.arrayContaining(["fantrax_entity_id"]));
+
+      const indexes = await db.execute(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'index'
+           AND name IN ('idx_entry_draft_picks_entity', 'idx_opening_draft_picks_entity')
+         ORDER BY name ASC`,
+      );
+      expect(indexes.rows).toEqual([
+        { name: "idx_entry_draft_picks_entity" },
+        { name: "idx_opening_draft_picks_entity" },
       ]);
     } finally {
       await cleanup();
