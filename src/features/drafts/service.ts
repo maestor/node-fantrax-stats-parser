@@ -62,7 +62,9 @@ export type EntryDraftTeamSummary = {
     tradedPicks: number;
     playersPerDraftAverage: number;
     playedInLeague: number;
+    playedInLeaguePercent: number;
     playedForDraftingTeam: number;
+    playedForDraftingTeamPercent: number;
   };
   rounds: EntryDraftRoundsSummary;
 };
@@ -145,6 +147,9 @@ const toDraftPickResponse = (pick: DraftPick): DraftPick => ({
 const roundDraftAverage = (value: number): number =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
+const roundDraftPercent = (count: number, total: number): number =>
+  total > 0 ? Math.round(((count / total) + Number.EPSILON) * 1000) / 1000 : 0;
+
 const isDraftedEntryPick = (
   pick: DraftPick & { season: number },
 ): pick is DraftedEntryPick => pick.draftedPlayer !== null;
@@ -173,6 +178,10 @@ const buildEntryDraftTeamSummary = (
   const total = draftedPicks.length;
   const ownPicks = draftedPicks.filter(
     (pick) => pick.originalOwner.id === teamId,
+  ).length;
+  const playedInLeague = draftedPicks.filter((pick) => pick.playedInLeague).length;
+  const playedForDraftingTeam = draftedPicks.filter(
+    (pick) => pick.playedForDraftingTeam,
   ).length;
   const highestPickNumber =
     draftedPicks.length > 0
@@ -205,10 +214,13 @@ const buildEntryDraftTeamSummary = (
       ownPicks,
       tradedPicks: total - ownPicks,
       playersPerDraftAverage: roundDraftAverage(total / seasons.length),
-      playedInLeague: draftedPicks.filter((pick) => pick.playedInLeague).length,
-      playedForDraftingTeam: draftedPicks.filter(
-        (pick) => pick.playedForDraftingTeam,
-      ).length,
+      playedInLeague,
+      playedInLeaguePercent: roundDraftPercent(playedInLeague, total),
+      playedForDraftingTeam,
+      playedForDraftingTeamPercent: roundDraftPercent(
+        playedForDraftingTeam,
+        total,
+      ),
     },
     rounds: buildRoundsSummary(draftedPicks),
   };
