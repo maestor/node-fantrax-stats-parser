@@ -17,13 +17,17 @@ import { migrateDb } from "../src/db/schema.js";
 import {
   DEFAULT_ENTRY_DRAFT_OUT_DIR,
 } from "../src/features/drafts/parser.js";
-import { importDraftPicksToDb } from "../src/features/drafts/import.js";
+import {
+  applyDraftEntityMappingsToDb,
+  importDraftPicksToDb,
+} from "../src/features/drafts/import.js";
 
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2);
   const outDirArg = args.find((arg) => arg.startsWith("--dir="));
   const seasonArg = args.find((arg) => arg.startsWith("--season="));
   const openingOnly = args.includes("--opening-only");
+  const entitiesOnly = args.includes("--entities-only");
   const dryRun = args.includes("--dry-run");
   const season =
     seasonArg !== undefined ? Number.parseInt(seasonArg.split("=")[1], 10) : undefined;
@@ -42,6 +46,32 @@ const main = async (): Promise<void> => {
 
   const db = getDbClient();
   await migrateDb(db);
+
+  if (entitiesOnly) {
+    const summary = await applyDraftEntityMappingsToDb({
+      db,
+      draftsDir,
+      dryRun,
+      season,
+      openingOnly,
+    });
+
+    console.info("✅ Draft entity backfill complete");
+    console.info(`   Draft dir: ${summary.draftsDir}`);
+    console.info(
+      `   Mode: ${
+        openingOnly
+          ? "opening only"
+          : season !== undefined
+            ? `entry season ${season}`
+            : "full backfill"
+      }`,
+    );
+    console.info(`   Entry rows updated: ${summary.entryUpdatedCount}`);
+    console.info(`   Opening rows updated: ${summary.openingUpdatedCount}`);
+    console.info(`   Dry run: ${summary.dryRun}`);
+    return;
+  }
 
   const summary = await importDraftPicksToDb({
     db,

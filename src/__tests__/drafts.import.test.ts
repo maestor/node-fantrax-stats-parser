@@ -3,7 +3,10 @@ import os from "os";
 import path from "path";
 
 import { createIntegrationDb } from "./integration-db.js";
-import { importDraftPicksToDb } from "../features/drafts/import.js";
+import {
+  applyDraftEntityMappingsToDb,
+  importDraftPicksToDb,
+} from "../features/drafts/import.js";
 import type { EntryDraftPick, OpeningDraftPick } from "../features/drafts/parser.js";
 
 const createTempDraftDir = async (): Promise<{
@@ -104,6 +107,61 @@ const createOpeningEntityMapping = (
   fantraxEntityName: "Canonical Opening Player",
   ...overrides,
 });
+
+const insertEntryDraftRow = async (
+  db: Awaited<ReturnType<typeof createIntegrationDb>>["db"],
+  row: {
+    season: number;
+    pickNumber: number;
+    round: number;
+    draftedTeamId: string;
+    ownerTeamId: string;
+    playerName: string | null;
+    fantraxEntityId?: string | null;
+  },
+): Promise<void> => {
+  await db.execute({
+    sql: `INSERT INTO entry_draft_picks (
+            season, pick_number, round, drafted_team_id, owner_team_id, player_name,
+            fantrax_entity_id
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      row.season,
+      row.pickNumber,
+      row.round,
+      row.draftedTeamId,
+      row.ownerTeamId,
+      row.playerName,
+      row.fantraxEntityId ?? null,
+    ],
+  });
+};
+
+const insertOpeningDraftRow = async (
+  db: Awaited<ReturnType<typeof createIntegrationDb>>["db"],
+  row: {
+    pickNumber: number;
+    round: number;
+    draftedTeamId: string;
+    ownerTeamId: string;
+    playerName: string;
+    fantraxEntityId?: string | null;
+  },
+): Promise<void> => {
+  await db.execute({
+    sql: `INSERT INTO opening_draft_picks (
+            pick_number, round, drafted_team_id, owner_team_id, player_name, fantrax_entity_id
+          ) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [
+      row.pickNumber,
+      row.round,
+      row.draftedTeamId,
+      row.ownerTeamId,
+      row.playerName,
+      row.fantraxEntityId ?? null,
+    ],
+  });
+};
 
 describe("draft DB import", () => {
   test("imports entry and opening draft picks into the database", async () => {
@@ -598,6 +656,274 @@ describe("draft DB import", () => {
         "SELECT COUNT(*) AS count FROM opening_draft_picks",
       );
       expect(openingCount.rows).toEqual([{ count: 0 }]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("applies entity mappings to existing draft rows without reimporting draft sources", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await insertEntryDraftRow(dbContext.db, {
+        season: 2025,
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "21",
+        ownerTeamId: "17",
+        playerName: "Entry Alias",
+      });
+      await insertOpeningDraftRow(dbContext.db, {
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "12",
+        ownerTeamId: "12",
+        playerName: "Opening Alias",
+      });
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping(),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping(),
+      ]);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+        importedAt: "2026-03-28T12:00:00.000Z",
+      });
+
+      expect(summary).toEqual({
+        draftsDir: path.resolve(draftDir.dir),
+        entryUpdatedCount: 1,
+        openingUpdatedCount: 1,
+        dryRun: false,
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT season, pick_number, player_name, fantrax_entity_id
+         FROM entry_draft_picks`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          season: 2025,
+          pick_number: 1,
+          player_name: "Canonical Entry Player",
+          fantrax_entity_id: "ftx-entry-1",
+        },
+      ]);
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT pick_number, player_name, fantrax_entity_id
+         FROM opening_draft_picks`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          pick_number: 1,
+          player_name: "Canonical Opening Player",
+          fantrax_entity_id: "ftx-opening-1",
+        },
+      ]);
+
+      const metadata = await dbContext.db.execute({
+        sql: "SELECT value FROM import_metadata WHERE key = ?",
+        args: ["last_modified"],
+      });
+      expect(metadata.rows).toEqual([{ value: "2026-03-28T12:00:00.000Z" }]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("supports season filters and dry-run mode for entity-only backfill", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await insertEntryDraftRow(dbContext.db, {
+        season: 2024,
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "21",
+        ownerTeamId: "17",
+        playerName: "Old 2024 Entry Alias",
+      });
+      await insertEntryDraftRow(dbContext.db, {
+        season: 2025,
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "21",
+        ownerTeamId: "17",
+        playerName: "Old 2025 Entry Alias",
+      });
+      await insertOpeningDraftRow(dbContext.db, {
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "12",
+        ownerTeamId: "12",
+        playerName: "Old Opening Alias",
+      });
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping({
+          season: 2024,
+          fantraxEntityId: "ftx-entry-2024",
+          fantraxEntityName: "Canonical 2024 Entry Player",
+        }),
+        createEntryEntityMapping({
+          season: 2025,
+          fantraxEntityId: "ftx-entry-2025",
+          fantraxEntityName: "Canonical 2025 Entry Player",
+        }),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping(),
+      ]);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+        season: 2025,
+        dryRun: true,
+      });
+
+      expect(summary).toEqual({
+        draftsDir: path.resolve(draftDir.dir),
+        entryUpdatedCount: 1,
+        openingUpdatedCount: 0,
+        dryRun: true,
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT season, player_name, fantrax_entity_id
+         FROM entry_draft_picks
+         ORDER BY season ASC`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          season: 2024,
+          player_name: "Old 2024 Entry Alias",
+          fantrax_entity_id: null,
+        },
+        {
+          season: 2025,
+          player_name: "Old 2025 Entry Alias",
+          fantrax_entity_id: null,
+        },
+      ]);
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM opening_draft_picks`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          player_name: "Old Opening Alias",
+          fantrax_entity_id: null,
+        },
+      ]);
+
+      const metadata = await dbContext.db.execute({
+        sql: "SELECT value FROM import_metadata WHERE key = ?",
+        args: ["last_modified"],
+      });
+      expect(metadata.rows).toEqual([]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("skips unchanged and mismatched rows during entity-only backfill", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await insertEntryDraftRow(dbContext.db, {
+        season: 2025,
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "21",
+        ownerTeamId: "17",
+        playerName: "Canonical Entry Player",
+        fantraxEntityId: "ftx-entry-1",
+      });
+      await insertOpeningDraftRow(dbContext.db, {
+        pickNumber: 1,
+        round: 1,
+        draftedTeamId: "12",
+        ownerTeamId: "12",
+        playerName: "Opening Alias",
+      });
+      await writeDraftFile(draftDir.dir, "entities-entry-draft.json", [
+        createEntryEntityMapping(),
+      ]);
+      await writeDraftFile(draftDir.dir, "entities-opening-draft.json", [
+        createOpeningEntityMapping({
+          draftedTeamId: "8",
+        }),
+      ]);
+
+      const summary = await applyDraftEntityMappingsToDb({
+        db: dbContext.db,
+        draftsDir: draftDir.dir,
+      });
+
+      expect(summary).toEqual({
+        draftsDir: path.resolve(draftDir.dir),
+        entryUpdatedCount: 0,
+        openingUpdatedCount: 0,
+        dryRun: false,
+      });
+
+      const entryRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM entry_draft_picks`,
+      );
+      expect(entryRows.rows).toEqual([
+        {
+          player_name: "Canonical Entry Player",
+          fantrax_entity_id: "ftx-entry-1",
+        },
+      ]);
+
+      const openingRows = await dbContext.db.execute(
+        `SELECT player_name, fantrax_entity_id
+         FROM opening_draft_picks`,
+      );
+      expect(openingRows.rows).toEqual([
+        {
+          player_name: "Opening Alias",
+          fantrax_entity_id: null,
+        },
+      ]);
+
+      const metadata = await dbContext.db.execute({
+        sql: "SELECT value FROM import_metadata WHERE key = ?",
+        args: ["last_modified"],
+      });
+      expect(metadata.rows).toEqual([]);
+    } finally {
+      await draftDir.cleanup();
+      await dbContext.cleanup();
+    }
+  });
+
+  test("throws when entity-only mode combines season and openingOnly", async () => {
+    const dbContext = await createIntegrationDb();
+    const draftDir = await createTempDraftDir();
+
+    try {
+      await expect(
+        applyDraftEntityMappingsToDb({
+          db: dbContext.db,
+          draftsDir: draftDir.dir,
+          season: 2025,
+          openingOnly: true,
+        }),
+      ).rejects.toThrow("Use either season or openingOnly, not both.");
     } finally {
       await draftDir.cleanup();
       await dbContext.cleanup();
