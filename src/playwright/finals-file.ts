@@ -17,11 +17,11 @@ export type FinalSide = "away" | "home";
 export type FinalCategoryWinner = FinalSide | "tie";
 
 export type FinalTotals = Record<FinalCountStatKey, number> & {
-  gaa?: string;
-  savePercent?: string;
+  gaa?: string | null;
+  savePercent?: string | null;
 };
 
-export type FinalCategoryResultValue = number | string;
+export type FinalCategoryResultValue = number | string | null;
 
 export type FinalCategoryResult = {
   away: FinalCategoryResultValue;

@@ -36,7 +36,7 @@ const FINALS_PATH = path.resolve(
   "fantrax-finals.json",
 );
 
-const parseOptionalRate = (value: string | undefined): number | null => {
+const parseOptionalRate = (value: string | null | undefined): number | null => {
   if (value == null || value.trim() === "") return null;
 
   const parsed = Number.parseFloat(value);
@@ -50,7 +50,9 @@ const parseOptionalRate = (value: string | undefined): number | null => {
 const parseCategoryValue = (
   value: FinalCategoryResultValue,
   context: string,
-): number => {
+): number | null => {
+  if (value == null) return null;
+
   const parsed =
     typeof value === "number" ? value : Number.parseFloat(value.trim());
   if (!Number.isFinite(parsed)) {

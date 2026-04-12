@@ -172,8 +172,8 @@ const SCHEMA_SQL = [
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     season         INTEGER NOT NULL,
     stat_key       TEXT    NOT NULL,
-    away_value     REAL    NOT NULL,
-    home_value     REAL    NOT NULL,
+    away_value     REAL,
+    home_value     REAL,
     winner_team_id TEXT,
     UNIQUE(season, stat_key)
   )`,

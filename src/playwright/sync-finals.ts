@@ -27,7 +27,12 @@ import {
   type FinalTeam,
   type FinalTotals,
 } from "./finals-file.js";
-import { formatOptionalGoalieGaa, formatOptionalGoalieSavePercent } from "../shared/goalie-rates.js";
+import {
+  compareFinalGoalieRateWinner,
+  deriveFallbackFinalGoalieGames,
+  formatFinalGoalieGaa,
+  formatFinalGoalieSavePercent,
+} from "./finals-goalie-rules.js";
 
 type PlayoffsTeam = {
   id: string;
@@ -195,8 +200,8 @@ const buildTotalsFromAggregateRows = (
     }
   }
 
-  totals.gaa = formatOptionalGoalieGaa(rawGaa, goalieGames);
-  totals.savePercent = formatOptionalGoalieSavePercent(
+  totals.gaa = formatFinalGoalieGaa(rawGaa, goalieGames);
+  totals.savePercent = formatFinalGoalieSavePercent(
     rawSavePercent,
     goalieGames,
   );
@@ -231,7 +236,7 @@ const deriveGoalieGamesFromTotals = (
     savePercent <= 0 ||
     savePercent > 1
   ) {
-    return Math.max(wins, shutouts, 0);
+    return deriveFallbackFinalGoalieGames({ wins, saves, shutouts });
   }
 
   if (gaa === 0 && savePercent === 1) {
@@ -276,7 +281,19 @@ const compareRawCategoryValues = (
   key: FinalStatKey,
   awayValue: FinalCategoryResultValue,
   homeValue: FinalCategoryResultValue,
+  awayGoalieGames: number,
+  homeGoalieGames: number,
 ): FinalCategoryWinner => {
+  if (key === "gaa" || key === "savePercent") {
+    return compareFinalGoalieRateWinner(
+      key,
+      awayValue,
+      homeValue,
+      awayGoalieGames,
+      homeGoalieGames,
+    );
+  }
+
   const awayNumber = Number(awayValue);
   const homeNumber = Number(homeValue);
 
@@ -288,26 +305,23 @@ const compareRawCategoryValues = (
     return "tie";
   }
 
-  if (key === "gaa") {
-    return awayNumber < homeNumber ? "away" : "home";
-  }
-
   return awayNumber > homeNumber ? "away" : "home";
 };
 
 const buildCategoryResults = (
-  awayTotals: FinalTotals,
-  homeTotals: FinalTotals,
+  awayTeam: FinalTeam,
+  homeTeam: FinalTeam,
   awayCategoryPoints: Partial<Record<FinalStatKey, number>>,
   homeCategoryPoints: Partial<Record<FinalStatKey, number>>,
 ): Record<FinalStatKey, FinalCategoryResult> => {
   const results = {} as Record<FinalStatKey, FinalCategoryResult>;
 
   for (const key of FINAL_STAT_KEYS) {
-    const awayValue = awayTotals[key];
-    const homeValue = homeTotals[key];
+    const isGoalieRateKey = key === "gaa" || key === "savePercent";
+    const awayValue = (awayTeam.totals[key] ?? null) as FinalCategoryResultValue;
+    const homeValue = (homeTeam.totals[key] ?? null) as FinalCategoryResultValue;
 
-    if (awayValue == null || homeValue == null) {
+    if (!isGoalieRateKey && (awayValue == null || homeValue == null)) {
       continue;
     }
 
@@ -320,7 +334,13 @@ const buildCategoryResults = (
           : awayPoints > homePoints
             ? "away"
             : "home"
-        : compareRawCategoryValues(key, awayValue, homeValue);
+        : compareRawCategoryValues(
+            key,
+            awayValue,
+            homeValue,
+            awayTeam.playedGames.goalies,
+            homeTeam.playedGames.goalies,
+          );
 
     results[key] = {
       away: awayValue,
@@ -565,8 +585,8 @@ const buildFinalSeason = (args: {
   });
 
   const categoryResults = buildCategoryResults(
-    away.team.totals,
-    home.team.totals,
+    away.team,
+    home.team,
     away.categoryPointsByKey,
     home.categoryPointsByKey,
   );

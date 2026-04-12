@@ -113,6 +113,17 @@ The finals file includes, per season year:
 - `totals` for every existing project scoring key
 - `categoryResults` with `away`, `home`, and `winner` for each scoring category
 
+For goalie-rate categories, finals sync preserves explicit category rows when a finalist misses the minimum two-goalie-game threshold:
+
+- `gaa` is written as `null`
+- `savePercent` is written as `null`
+
+This only applies to the two relative goalie categories. Amount-based goalie categories such as `wins`, `saves`, and `shutouts` still keep their numeric totals even if the finalist only recorded one goalie game.
+
+This keeps the losing goalie-rate categories visible in the local finals mapping instead of dropping them entirely, while still distinguishing "did not qualify" from a real numeric zero.
+
+If you already created local finals tables before nullable goalie-rate values were added, drop the local `finals_matchups`, `finals_matchup_teams`, and `finals_matchup_categories` tables, then rerun `npm run db:migrate` and `npm run db:import:finals-results`.
+
 Notes:
 
 - requires `fantrax-playoffs.json`
