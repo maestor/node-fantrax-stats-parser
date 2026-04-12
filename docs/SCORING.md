@@ -83,3 +83,28 @@ Weights live in `src/config/settings.ts`:
 - `GOALIE_SCORE_WEIGHTS`
 
 Each weight is a decimal between `0` and `1`. Lowering a weight reduces that stat's influence without changing the overall `0-100` scale.
+
+## Finals Rates
+
+`/leaderboard/finals` returns a `rates` object for each imported finals season:
+
+- `winRate`: the champion's raw finals match-points share, `winnerMatchPoints / totalCategories * 100`
+- `deservedToWinRate`: a games-adjusted finals strength model that compares the actual winner against the loser category by category
+
+The finals model:
+
+- uses skater games for skater counting stats and goalie games for goalie counting stats
+- keeps `hits` and `blocks` at full weight
+- only downweights three noisier swing categories
+
+Current finals weights:
+
+- `plusMinus`: `0.75`
+- `shp`: `0.6`
+- `shutouts`: `0.6`
+- every other finals category: `1.0`
+
+Goalie qualification behavior matches the imported finals data:
+
+- `wins`, `saves`, and `shutouts` always stay numeric
+- `gaa` and `savePercent` become `null` when a finalist misses the two-goalie-game minimum

@@ -68,6 +68,9 @@ curl -H "x-api-key: <your-key>" \
 
 curl -H "x-api-key: <your-key>" \
   "https://ffhl-stats-api.vercel.app/leaderboard/transactions"
+
+curl -H "x-api-key: <your-key>" \
+  "https://ffhl-stats-api.vercel.app/leaderboard/finals"
 ```
 
 ### Draft
