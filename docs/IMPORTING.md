@@ -94,6 +94,40 @@ After syncing, you can import separately without re-scraping:
 npm run db:import:regular-results
 ```
 
+### 2d) Sync final matchup results (local mapping)
+
+```bash
+npm run playwright:sync:finals
+```
+
+This opens each season's Fantrax mobile live-scoring matchup view and writes `src/playwright/.fantrax/fantrax-finals.json` (gitignored).
+
+The finals file includes, per season year:
+
+- `awayTeam` and `homeTeam` using Fantrax matchup order (left team = away, right team = home)
+- `isWinner` on each finalist plus season-level `wonOnHomeTiebreak`
+- category score summary: `categoriesWon`, `categoriesLost`, `categoriesTied`, `rotisseriePoints`
+- `playedGames.total` from Fantrax's final matchup summary
+- `playedGames.goalies`, derived from aggregate goalie live-scoring totals
+- `playedGames.skaters`, calculated as `total - goalies`
+- `totals` for every existing project scoring key
+- `categoryResults` with `away`, `home`, and `winner` for each scoring category
+
+Notes:
+
+- requires `fantrax-playoffs.json`
+- only seasons with exactly one `isChampion: true` team are synced
+- seasons without a champion are skipped entirely
+- if Fantrax does not return a usable final matchup for a champion season, the script skips that season and prints `Manual needed:`
+- raw Fantrax identifiers such as `matchupId` and `scipId` are used only during scraping and are not stored in the output file
+
+Useful options:
+
+- `--year=2024`
+- `--headed`
+- `--slowmo=250`
+- `--timeout=120000`
+
 ## Roster CSV Imports
 
 ### 3) Download regular-season roster CSVs
