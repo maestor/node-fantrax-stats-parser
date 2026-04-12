@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 
-const DB_SCHEMA_VERSION = "9";
+const DB_SCHEMA_VERSION = "10";
 const FANTRAX_ENTITIES_SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = [
@@ -125,6 +125,62 @@ const SCHEMA_SQL = [
     UNIQUE(team_id, season)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_regular_results_season ON regular_results(season)`,
+  `CREATE TABLE IF NOT EXISTS finals_matchups (
+    season            INTEGER PRIMARY KEY,
+    away_team_id      TEXT    NOT NULL,
+    home_team_id      TEXT    NOT NULL,
+    winner_team_id    TEXT    NOT NULL,
+    home_tiebreak_won INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_finals_matchups_winner_team
+    ON finals_matchups(winner_team_id)`,
+  `CREATE TABLE IF NOT EXISTS finals_matchup_teams (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    season              INTEGER NOT NULL,
+    team_id             TEXT    NOT NULL,
+    side                TEXT    NOT NULL,
+    is_winner           INTEGER NOT NULL DEFAULT 0,
+    categories_won      INTEGER NOT NULL,
+    categories_lost     INTEGER NOT NULL,
+    categories_tied     INTEGER NOT NULL,
+    match_points        REAL    NOT NULL,
+    played_games_total  INTEGER NOT NULL,
+    played_games_skaters INTEGER NOT NULL,
+    played_games_goalies INTEGER NOT NULL,
+    goals               INTEGER NOT NULL,
+    assists             INTEGER NOT NULL,
+    points              INTEGER NOT NULL,
+    plus_minus          INTEGER NOT NULL,
+    penalties           INTEGER NOT NULL,
+    shots               INTEGER NOT NULL,
+    ppp                 INTEGER NOT NULL,
+    shp                 INTEGER NOT NULL,
+    hits                INTEGER NOT NULL,
+    blocks              INTEGER NOT NULL,
+    wins                INTEGER NOT NULL,
+    saves               INTEGER NOT NULL,
+    shutouts            INTEGER NOT NULL,
+    gaa                 REAL,
+    save_percent        REAL,
+    UNIQUE(season, team_id),
+    UNIQUE(season, side),
+    CHECK (side IN ('away', 'home'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_finals_matchup_teams_team
+    ON finals_matchup_teams(team_id, season DESC)`,
+  `CREATE TABLE IF NOT EXISTS finals_matchup_categories (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    season         INTEGER NOT NULL,
+    stat_key       TEXT    NOT NULL,
+    away_value     REAL,
+    home_value     REAL,
+    winner_team_id TEXT,
+    UNIQUE(season, stat_key)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_finals_matchup_categories_stat_key
+    ON finals_matchup_categories(stat_key, season DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_finals_matchup_categories_winner_team
+    ON finals_matchup_categories(winner_team_id, season DESC)`,
   `CREATE TABLE IF NOT EXISTS claim_events (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
     season             INTEGER NOT NULL,
