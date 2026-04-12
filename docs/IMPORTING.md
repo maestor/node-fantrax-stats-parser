@@ -128,6 +128,14 @@ Useful options:
 - `--slowmo=250`
 - `--timeout=120000`
 
+After syncing, you can import separately without re-scraping:
+
+```bash
+npm run db:import:finals-results
+```
+
+This populates `finals_matchups`, `finals_matchup_teams`, and `finals_matchup_categories` in the database from the local finals mapping file.
+
 ## Roster CSV Imports
 
 ### 3) Download regular-season roster CSVs

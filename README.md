@@ -106,6 +106,7 @@ npm run dev
 npm run verify
 npm run db:migrate
 npm run db:import:stats
+npm run db:import:finals-results
 npm run playwright:sync:finals
 npm run test:integration
 npm run snapshot:generate

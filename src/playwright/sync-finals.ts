@@ -13,75 +13,21 @@ import {
   parseNumberArg,
   requireAuthStateFile,
 } from "./helpers.js";
+import { FANTRAX_URLS } from "../config/index.js";
 import {
-  FANTRAX_URLS,
-  GOALIE_SCORE_FIELDS,
-  PLAYER_SCORE_FIELDS,
-} from "../config/index.js";
-import type {
-  GoalieOptionalScoreField,
-  GoalieScoreField,
-  PlayerScoreField,
-} from "../features/stats/types.js";
+  FINAL_STAT_KEYS,
+  FINALS_SCHEMA_VERSION,
+  parseFinalsFile,
+  type FinalCategoryResult,
+  type FinalCategoryResultValue,
+  type FinalCategoryWinner,
+  type FinalSeason,
+  type FinalStatKey,
+  type FinalsFile,
+  type FinalTeam,
+  type FinalTotals,
+} from "./finals-file.js";
 import { formatOptionalGoalieGaa, formatOptionalGoalieSavePercent } from "../shared/goalie-rates.js";
-
-type FinalStatKey =
-  | PlayerScoreField
-  | GoalieScoreField
-  | GoalieOptionalScoreField;
-type FinalCountStatKey = Exclude<FinalStatKey, "gaa" | "savePercent">;
-type FinalSide = "away" | "home";
-type FinalCategoryWinner = FinalSide | "tie";
-
-type FinalTotals = Record<FinalCountStatKey, number> & {
-  gaa?: string;
-  savePercent?: string;
-};
-
-type FinalCategoryResultValue = number | string;
-
-type FinalCategoryResult = {
-  away: FinalCategoryResultValue;
-  home: FinalCategoryResultValue;
-  winner: FinalCategoryWinner;
-};
-
-type FinalScore = {
-  categoriesWon: number;
-  categoriesLost: number;
-  categoriesTied: number;
-  rotisseriePoints: number;
-};
-
-type FinalPlayedGames = {
-  total: number;
-  skaters: number;
-  goalies: number;
-};
-
-type FinalTeam = {
-  teamId: string;
-  teamName: string;
-  isWinner: boolean;
-  score: FinalScore;
-  playedGames: FinalPlayedGames;
-  totals: FinalTotals;
-};
-
-type FinalSeason = {
-  year: number;
-  wonOnHomeTiebreak: boolean;
-  awayTeam: FinalTeam;
-  homeTeam: FinalTeam;
-  categoryResults: Record<FinalStatKey, FinalCategoryResult>;
-};
-
-type FinalsFile = {
-  schemaVersion: 1;
-  leagueName: string;
-  scrapedAt: string;
-  seasons: FinalSeason[];
-};
 
 type PlayoffsTeam = {
   id: string;
@@ -143,13 +89,6 @@ type LiveScoringEnvelope = {
 const PLAYOFFS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-playoffs.json");
 const FINALS_PATH = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-finals.json");
 
-const FINAL_STAT_KEYS = [
-  ...PLAYER_SCORE_FIELDS,
-  ...GOALIE_SCORE_FIELDS,
-  "gaa",
-  "savePercent",
-] as const satisfies readonly FinalStatKey[];
-
 const STAT_KEY_BY_CATEGORY_ID: Record<string, FinalStatKey> = {
   "2130": "goals",
   "2090": "assists",
@@ -189,15 +128,7 @@ const readPlayoffsFile = (): PlayoffsFile => {
 const readExistingFinalsFile = (): FinalsFile | null => {
   try {
     const raw = readFileSync(FINALS_PATH, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-
-    const file = parsed as Partial<FinalsFile>;
-    if (file.schemaVersion !== 1 || !Array.isArray(file.seasons)) {
-      return null;
-    }
-
-    return parsed as FinalsFile;
+    return parseFinalsFile(JSON.parse(raw), FINALS_PATH);
   } catch {
     return null;
   }
@@ -431,7 +362,7 @@ const buildFinalTeam = (args: {
   }
 
   const goalieGames = deriveGoalieGamesFromTotals(args.activeStats);
-  const playedGames: FinalPlayedGames = {
+  const playedGames = {
     total: totalPlayedGames,
     goalies: goalieGames,
     skaters: Math.max(0, totalPlayedGames - goalieGames),
@@ -725,7 +656,7 @@ async function main(): Promise<void> {
     }
 
     const file: FinalsFile = {
-      schemaVersion: 1,
+      schemaVersion: FINALS_SCHEMA_VERSION,
       leagueName: playoffs.leagueName,
       scrapedAt: new Date().toISOString(),
       seasons: [...seasonByYear.values()].sort((a, b) => a.year - b.year),
