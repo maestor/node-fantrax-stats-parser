@@ -15,6 +15,7 @@ import {
   getRegularLeaderboard,
   getTransactionsLeaderboard,
 } from "../features/leaderboard/routes.js";
+import { getFinalsLeaderboard } from "../features/finals/routes.js";
 import app, { getHealthcheck } from "../app.js";
 import { send } from "../http/response.js";
 import {
@@ -33,6 +34,7 @@ import {
   getRegularLeaderboardData,
   getTransactionLeaderboardData,
 } from "../features/leaderboard/service.js";
+import { getFinalsLeaderboardData } from "../features/finals/service.js";
 import {
   reportTypeAvailable,
   seasonAvailable,
@@ -49,6 +51,7 @@ jest.mock("../http/response");
 jest.mock("../features/meta/service");
 jest.mock("../features/stats/service");
 jest.mock("../features/leaderboard/service");
+jest.mock("../features/finals/service");
 jest.mock("../shared/seasons");
 jest.mock("../shared/teams");
 jest.mock("../infra/snapshots/store", () => ({
@@ -350,6 +353,16 @@ describe("routes", () => {
             );
           },
         },
+        {
+          handler: getFinalsLeaderboard,
+          req: createRequest({
+            method: "GET",
+            url: "/leaderboard/finals",
+          }),
+          arrange: (error) => {
+            (getFinalsLeaderboardData as jest.Mock).mockRejectedValue(error);
+          },
+        },
       ];
 
       for (const routeCase of cases) {
@@ -408,6 +421,111 @@ describe("routes", () => {
       expect(getTransactionLeaderboardData).toHaveBeenCalledTimes(1);
       expect(res.getHeader("x-stats-data-source")).toBe("db");
       expectArraySchema("TransactionLeaderboardEntry", payload);
+      expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, payload);
+    });
+  });
+
+  describe("getFinalsLeaderboard", () => {
+    test("returns finals leaderboard data from the finals service", async () => {
+      const payload = [
+        {
+          season: 2024,
+          wonOnHomeTiebreak: false,
+          winnerTeamId: "1",
+          winnerTeamName: "Colorado Avalanche",
+          awayTeam: {
+            teamId: "1",
+            teamName: "Colorado Avalanche",
+            score: {
+              matchPoints: 8.5,
+              categoriesWon: 8,
+              categoriesLost: 6,
+              categoriesTied: 1,
+            },
+            playedGames: {
+              total: 51,
+              skaters: 50,
+              goalies: 1,
+            },
+            totals: {
+              goals: 13,
+              assists: 13,
+              points: 26,
+              plusMinus: 5,
+              penalties: 14,
+              shots: 135,
+              ppp: 9,
+              shp: 0,
+              hits: 62,
+              blocks: 34,
+              wins: 0,
+              saves: 17,
+              shutouts: 0,
+              gaa: null,
+              savePercent: null,
+            },
+          },
+          homeTeam: {
+            teamId: "5",
+            teamName: "Montreal Canadiens",
+            score: {
+              matchPoints: 6.5,
+              categoriesWon: 6,
+              categoriesLost: 8,
+              categoriesTied: 1,
+            },
+            playedGames: {
+              total: 52,
+              skaters: 49,
+              goalies: 3,
+            },
+            totals: {
+              goals: 8,
+              assists: 18,
+              points: 26,
+              plusMinus: -8,
+              penalties: 28,
+              shots: 148,
+              ppp: 9,
+              shp: 0,
+              hits: 73,
+              blocks: 40,
+              wins: 1,
+              saves: 107,
+              shutouts: 1,
+              gaa: 3.23,
+              savePercent: 0.907,
+            },
+          },
+          categories: [
+            {
+              statKey: "gaa",
+              awayValue: null,
+              homeValue: 3.23,
+              winnerTeamId: "5",
+            },
+          ],
+          rates: {
+            winRate: 56.7,
+            deservedToWinRate: 60.4,
+          },
+        },
+      ];
+      (getFinalsLeaderboardData as jest.Mock).mockResolvedValue(payload);
+
+      const req = createRequest({
+        method: "GET",
+        url: "/leaderboard/finals",
+      });
+      const res = createResponse();
+
+      await getFinalsLeaderboard(asRouteReq(req), res);
+
+      expect(getFinalsLeaderboardData).toHaveBeenCalledTimes(1);
+      expect(res.getHeader("x-stats-data-source")).toBe("db");
+      expectArraySchema("FinalsLeaderboardEntry", payload);
+      expect(payload[0].awayTeam).not.toHaveProperty("isWinner");
+      expect(payload[0].homeTeam).not.toHaveProperty("isWinner");
       expect(send).toHaveBeenCalledWith(res, HTTP_STATUS.OK, payload);
     });
   });

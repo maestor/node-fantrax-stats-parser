@@ -1505,6 +1505,192 @@ components:
           type: integer
           description: Count of distinct goalie Fantrax entity IDs the team rostered that season.
 
+    FinalsLeaderboardEntry:
+      type: object
+      required:
+        - season
+        - wonOnHomeTiebreak
+        - winnerTeamId
+        - winnerTeamName
+        - awayTeam
+        - homeTeam
+        - categories
+        - rates
+      properties:
+        season:
+          type: integer
+        wonOnHomeTiebreak:
+          type: boolean
+        winnerTeamId:
+          type: string
+        winnerTeamName:
+          type: string
+        awayTeam:
+          $ref: "#/components/schemas/FinalsLeaderboardTeam"
+        homeTeam:
+          $ref: "#/components/schemas/FinalsLeaderboardTeam"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinalsLeaderboardCategory"
+        rates:
+          $ref: "#/components/schemas/FinalsLeaderboardRates"
+
+    FinalsLeaderboardTeam:
+      type: object
+      required:
+        - teamId
+        - teamName
+        - score
+        - playedGames
+        - totals
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        score:
+          $ref: "#/components/schemas/FinalsLeaderboardScore"
+        playedGames:
+          $ref: "#/components/schemas/FinalsLeaderboardPlayedGames"
+        totals:
+          $ref: "#/components/schemas/FinalsLeaderboardTeamTotals"
+
+    FinalsLeaderboardScore:
+      type: object
+      required:
+        - matchPoints
+        - categoriesWon
+        - categoriesLost
+        - categoriesTied
+      properties:
+        matchPoints:
+          type: number
+        categoriesWon:
+          type: integer
+        categoriesLost:
+          type: integer
+        categoriesTied:
+          type: integer
+
+    FinalsLeaderboardPlayedGames:
+      type: object
+      required:
+        - total
+        - skaters
+        - goalies
+      properties:
+        total:
+          type: integer
+        skaters:
+          type: integer
+        goalies:
+          type: integer
+
+    FinalsLeaderboardTeamTotals:
+      type: object
+      required:
+        - goals
+        - assists
+        - points
+        - plusMinus
+        - penalties
+        - shots
+        - ppp
+        - shp
+        - hits
+        - blocks
+        - wins
+        - saves
+        - shutouts
+        - gaa
+        - savePercent
+      properties:
+        goals:
+          type: integer
+        assists:
+          type: integer
+        points:
+          type: integer
+        plusMinus:
+          type: integer
+        penalties:
+          type: integer
+        shots:
+          type: integer
+        ppp:
+          type: integer
+        shp:
+          type: integer
+        hits:
+          type: integer
+        blocks:
+          type: integer
+        wins:
+          type: integer
+        saves:
+          type: integer
+        shutouts:
+          type: integer
+        gaa:
+          type: number
+          nullable: true
+        savePercent:
+          type: number
+          nullable: true
+
+    FinalsStatKey:
+      type: string
+      enum:
+        - goals
+        - assists
+        - points
+        - plusMinus
+        - penalties
+        - shots
+        - ppp
+        - shp
+        - hits
+        - blocks
+        - wins
+        - saves
+        - shutouts
+        - gaa
+        - savePercent
+
+    FinalsLeaderboardCategory:
+      type: object
+      required:
+        - statKey
+        - awayValue
+        - homeValue
+        - winnerTeamId
+      properties:
+        statKey:
+          $ref: "#/components/schemas/FinalsStatKey"
+        awayValue:
+          type: number
+          nullable: true
+        homeValue:
+          type: number
+          nullable: true
+        winnerTeamId:
+          type: string
+          nullable: true
+
+    FinalsLeaderboardRates:
+      type: object
+      required:
+        - winRate
+        - deservedToWinRate
+      properties:
+        winRate:
+          type: number
+          description: The actual finals scoreboard share for the champion, equivalent to raw match-points share.
+        deservedToWinRate:
+          type: number
+          description: A weighted, games-adjusted finals strength model that downweights plusMinus, SHP, and shutouts.
+
 security:
   - apiKey: []
 
@@ -2030,5 +2216,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TransactionLeaderboardEntry"
+        "401":
+          description: Missing or invalid API key.
+
+  /leaderboard/finals:
+    get:
+      summary: Finals matchup leaderboard
+      description: |
+        Returns one finals matchup summary per imported season, including away/home team details,
+        category results, and a `rates` object with both the actual win share and a modeled
+        deserved-to-win percentage.
+      responses:
+        "200":
+          description: Finals matchup summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FinalsLeaderboardEntry"
         "401":
           description: Missing or invalid API key.

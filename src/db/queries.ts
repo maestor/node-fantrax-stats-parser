@@ -9,11 +9,18 @@ import type {
   TransactionLeaderboardEntry,
   TransactionLeaderboardSeason,
 } from "../features/leaderboard/types.js";
+import type {
+  FinalsCategoryDbEntry,
+  FinalsMatchupDbEntry,
+  FinalsTeamData,
+  FinalsTeamTotals,
+} from "../features/finals/types.js";
 import {
   formatOptionalGoalieGaa,
   formatOptionalGoalieSavePercent,
 } from "../shared/goalie-rates.js";
 import type { CsvReport } from "../shared/types/core.js";
+import { FINALS_STAT_KEYS } from "../features/finals/types.js";
 
 /** Cast DB rows to a known shape. Trust the schema — no runtime validation. */
 function castRows<T>(rows: unknown[]): T[] {
@@ -1022,5 +1029,248 @@ export const getTransactionSeasons = async (): Promise<
     trades: row.trades,
     players: row.players,
     goalies: row.goalies,
+  }));
+};
+
+type FinalsMatchupRow = {
+  season: number;
+  home_tiebreak_won: number;
+  winner_team_id: string;
+  away_team_id: string;
+  away_is_winner: number;
+  away_categories_won: number;
+  away_categories_lost: number;
+  away_categories_tied: number;
+  away_match_points: number;
+  away_played_games_total: number;
+  away_played_games_skaters: number;
+  away_played_games_goalies: number;
+  away_goals: number;
+  away_assists: number;
+  away_points: number;
+  away_plus_minus: number;
+  away_penalties: number;
+  away_shots: number;
+  away_ppp: number;
+  away_shp: number;
+  away_hits: number;
+  away_blocks: number;
+  away_wins: number;
+  away_saves: number;
+  away_shutouts: number;
+  away_gaa: number | null;
+  away_save_percent: number | null;
+  home_team_id: string;
+  home_is_winner: number;
+  home_categories_won: number;
+  home_categories_lost: number;
+  home_categories_tied: number;
+  home_match_points: number;
+  home_played_games_total: number;
+  home_played_games_skaters: number;
+  home_played_games_goalies: number;
+  home_goals: number;
+  home_assists: number;
+  home_points: number;
+  home_plus_minus: number;
+  home_penalties: number;
+  home_shots: number;
+  home_ppp: number;
+  home_shp: number;
+  home_hits: number;
+  home_blocks: number;
+  home_wins: number;
+  home_saves: number;
+  home_shutouts: number;
+  home_gaa: number | null;
+  home_save_percent: number | null;
+};
+
+const mapFinalsTeamTotals = (
+  row: FinalsMatchupRow,
+  side: "away" | "home",
+): FinalsTeamTotals =>
+  side === "away"
+    ? {
+        goals: row.away_goals,
+        assists: row.away_assists,
+        points: row.away_points,
+        plusMinus: row.away_plus_minus,
+        penalties: row.away_penalties,
+        shots: row.away_shots,
+        ppp: row.away_ppp,
+        shp: row.away_shp,
+        hits: row.away_hits,
+        blocks: row.away_blocks,
+        wins: row.away_wins,
+        saves: row.away_saves,
+        shutouts: row.away_shutouts,
+        gaa: row.away_gaa,
+        savePercent: row.away_save_percent,
+      }
+    : {
+        goals: row.home_goals,
+        assists: row.home_assists,
+        points: row.home_points,
+        plusMinus: row.home_plus_minus,
+        penalties: row.home_penalties,
+        shots: row.home_shots,
+        ppp: row.home_ppp,
+        shp: row.home_shp,
+        hits: row.home_hits,
+        blocks: row.home_blocks,
+        wins: row.home_wins,
+        saves: row.home_saves,
+        shutouts: row.home_shutouts,
+        gaa: row.home_gaa,
+        savePercent: row.home_save_percent,
+      };
+
+const mapFinalsTeam = (
+  row: FinalsMatchupRow,
+  side: "away" | "home",
+): FinalsTeamData =>
+  side === "away"
+    ? {
+        teamId: row.away_team_id,
+        isWinner: row.away_is_winner === 1,
+        score: {
+          matchPoints: row.away_match_points,
+          categoriesWon: row.away_categories_won,
+          categoriesLost: row.away_categories_lost,
+          categoriesTied: row.away_categories_tied,
+        },
+        playedGames: {
+          total: row.away_played_games_total,
+          skaters: row.away_played_games_skaters,
+          goalies: row.away_played_games_goalies,
+        },
+        totals: mapFinalsTeamTotals(row, side),
+      }
+    : {
+        teamId: row.home_team_id,
+        isWinner: row.home_is_winner === 1,
+        score: {
+          matchPoints: row.home_match_points,
+          categoriesWon: row.home_categories_won,
+          categoriesLost: row.home_categories_lost,
+          categoriesTied: row.home_categories_tied,
+        },
+        playedGames: {
+          total: row.home_played_games_total,
+          skaters: row.home_played_games_skaters,
+          goalies: row.home_played_games_goalies,
+        },
+        totals: mapFinalsTeamTotals(row, side),
+      };
+
+const mapFinalsMatchupRow = (row: FinalsMatchupRow): FinalsMatchupDbEntry => ({
+  season: row.season,
+  wonOnHomeTiebreak: row.home_tiebreak_won === 1,
+  winnerTeamId: row.winner_team_id,
+  awayTeam: mapFinalsTeam(row, "away"),
+  homeTeam: mapFinalsTeam(row, "home"),
+});
+
+type FinalsCategoryRow = {
+  season: number;
+  stat_key: FinalsCategoryDbEntry["statKey"];
+  away_value: number | null;
+  home_value: number | null;
+  winner_team_id: string | null;
+};
+
+const FINALS_STAT_ORDER_SQL = `CASE stat_key
+${FINALS_STAT_KEYS.map((statKey, index) => `  WHEN '${statKey}' THEN ${index}`).join("\n")}
+  ELSE ${FINALS_STAT_KEYS.length}
+END`;
+
+export const getFinalsMatchups = async (): Promise<FinalsMatchupDbEntry[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       fm.season,
+       fm.home_tiebreak_won,
+       fm.winner_team_id,
+       away.team_id AS away_team_id,
+       away.is_winner AS away_is_winner,
+       away.categories_won AS away_categories_won,
+       away.categories_lost AS away_categories_lost,
+       away.categories_tied AS away_categories_tied,
+       away.match_points AS away_match_points,
+       away.played_games_total AS away_played_games_total,
+       away.played_games_skaters AS away_played_games_skaters,
+       away.played_games_goalies AS away_played_games_goalies,
+       away.goals AS away_goals,
+       away.assists AS away_assists,
+       away.points AS away_points,
+       away.plus_minus AS away_plus_minus,
+       away.penalties AS away_penalties,
+       away.shots AS away_shots,
+       away.ppp AS away_ppp,
+       away.shp AS away_shp,
+       away.hits AS away_hits,
+       away.blocks AS away_blocks,
+       away.wins AS away_wins,
+       away.saves AS away_saves,
+       away.shutouts AS away_shutouts,
+       away.gaa AS away_gaa,
+       away.save_percent AS away_save_percent,
+       home.team_id AS home_team_id,
+       home.is_winner AS home_is_winner,
+       home.categories_won AS home_categories_won,
+       home.categories_lost AS home_categories_lost,
+       home.categories_tied AS home_categories_tied,
+       home.match_points AS home_match_points,
+       home.played_games_total AS home_played_games_total,
+       home.played_games_skaters AS home_played_games_skaters,
+       home.played_games_goalies AS home_played_games_goalies,
+       home.goals AS home_goals,
+       home.assists AS home_assists,
+       home.points AS home_points,
+       home.plus_minus AS home_plus_minus,
+       home.penalties AS home_penalties,
+       home.shots AS home_shots,
+       home.ppp AS home_ppp,
+       home.shp AS home_shp,
+       home.hits AS home_hits,
+       home.blocks AS home_blocks,
+       home.wins AS home_wins,
+       home.saves AS home_saves,
+       home.shutouts AS home_shutouts,
+       home.gaa AS home_gaa,
+       home.save_percent AS home_save_percent
+     FROM finals_matchups fm
+     JOIN finals_matchup_teams away
+       ON away.season = fm.season
+      AND away.side = 'away'
+     JOIN finals_matchup_teams home
+       ON home.season = fm.season
+      AND home.side = 'home'
+     ORDER BY fm.season DESC`,
+  );
+
+  return castRows<FinalsMatchupRow>(result.rows).map(mapFinalsMatchupRow);
+};
+
+export const getFinalsCategories = async (): Promise<FinalsCategoryDbEntry[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT
+       season,
+       stat_key,
+       away_value,
+       home_value,
+       winner_team_id
+     FROM finals_matchup_categories
+     ORDER BY season DESC, ${FINALS_STAT_ORDER_SQL}`,
+  );
+
+  return castRows<FinalsCategoryRow>(result.rows).map((row) => ({
+    season: row.season,
+    statKey: row.stat_key,
+    awayValue: row.away_value,
+    homeValue: row.home_value,
+    winnerTeamId: row.winner_team_id,
   }));
 };

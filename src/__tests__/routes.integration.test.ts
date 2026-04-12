@@ -1,5 +1,6 @@
 import { registerCareerRouteIntegrationTests } from "./routes.integration.career.js";
 import { registerDraftRouteIntegrationTests } from "./routes.integration.drafts.js";
+import { registerFinalsRouteIntegrationTests } from "./routes.integration.finals.js";
 import { registerGoalieRouteIntegrationTests } from "./routes.integration.goalies.js";
 import { registerLeaderboardRouteIntegrationTests } from "./routes.integration.leaderboard.js";
 import { registerPlayerRouteIntegrationTests } from "./routes.integration.players.js";
@@ -12,4 +13,5 @@ describe("routes integration", () => {
   registerGoalieRouteIntegrationTests();
   registerCareerRouteIntegrationTests();
   registerLeaderboardRouteIntegrationTests();
+  registerFinalsRouteIntegrationTests();
 });

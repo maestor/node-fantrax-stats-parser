@@ -7,6 +7,8 @@ jest.mock("../db/client", () => {
 
 import { getDbClient } from "../db/client.js";
 import {
+  getFinalsCategories,
+  getFinalsMatchups,
   getPlayoffLeaderboard,
   getPlayoffSeasons,
   getRegularLeaderboard,
@@ -345,6 +347,146 @@ describe("db/queries", () => {
         const result = await getTransactionSeasons();
 
         expect(result).toEqual([]);
+      });
+    });
+
+    describe("getFinalsMatchups", () => {
+      test("returns mapped finals matchup rows with nested away and home teams", async () => {
+        mockExecute.mockResolvedValue({
+          rows: [
+            {
+              season: 2024,
+              home_tiebreak_won: 0,
+              winner_team_id: "4",
+              away_team_id: "1",
+              away_is_winner: 0,
+              away_categories_won: 6,
+              away_categories_lost: 8,
+              away_categories_tied: 1,
+              away_match_points: 6.5,
+              away_played_games_total: 51,
+              away_played_games_skaters: 50,
+              away_played_games_goalies: 1,
+              away_goals: 13,
+              away_assists: 13,
+              away_points: 26,
+              away_plus_minus: 5,
+              away_penalties: 14,
+              away_shots: 135,
+              away_ppp: 9,
+              away_shp: 0,
+              away_hits: 62,
+              away_blocks: 34,
+              away_wins: 0,
+              away_saves: 17,
+              away_shutouts: 0,
+              away_gaa: null,
+              away_save_percent: null,
+              home_team_id: "4",
+              home_is_winner: 1,
+              home_categories_won: 8,
+              home_categories_lost: 6,
+              home_categories_tied: 1,
+              home_match_points: 8.5,
+              home_played_games_total: 52,
+              home_played_games_skaters: 49,
+              home_played_games_goalies: 3,
+              home_goals: 8,
+              home_assists: 18,
+              home_points: 26,
+              home_plus_minus: -8,
+              home_penalties: 28,
+              home_shots: 148,
+              home_ppp: 9,
+              home_shp: 0,
+              home_hits: 73,
+              home_blocks: 40,
+              home_wins: 1,
+              home_saves: 107,
+              home_shutouts: 1,
+              home_gaa: 3.23,
+              home_save_percent: 0.907,
+            },
+          ],
+        });
+
+        const result = await getFinalsMatchups();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("FROM finals_matchups"),
+        );
+        expect(result).toEqual([
+          {
+            season: 2024,
+            wonOnHomeTiebreak: false,
+            winnerTeamId: "4",
+            awayTeam: expect.objectContaining({
+              teamId: "1",
+              isWinner: false,
+              totals: expect.objectContaining({
+                saves: 17,
+                gaa: null,
+                savePercent: null,
+              }),
+            }),
+            homeTeam: expect.objectContaining({
+              teamId: "4",
+              isWinner: true,
+              totals: expect.objectContaining({
+                gaa: 3.23,
+                savePercent: 0.907,
+              }),
+            }),
+          },
+        ]);
+      });
+    });
+
+    describe("getFinalsCategories", () => {
+      test("returns mapped finals category rows in stat order", async () => {
+        mockExecute.mockResolvedValue({
+          rows: [
+            {
+              season: 2024,
+              stat_key: "goals",
+              away_value: 13,
+              home_value: 8,
+              winner_team_id: "1",
+            },
+            {
+              season: 2024,
+              stat_key: "savePercent",
+              away_value: null,
+              home_value: 0.907,
+              winner_team_id: "4",
+            },
+          ],
+        });
+
+        const result = await getFinalsCategories();
+
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("FROM finals_matchup_categories"),
+        );
+        expect(mockExecute).toHaveBeenCalledWith(
+          expect.stringContaining("WHEN 'savePercent' THEN"),
+        );
+        expect(result).toEqual([
+          {
+            season: 2024,
+            statKey: "goals",
+            awayValue: 13,
+            homeValue: 8,
+            winnerTeamId: "1",
+          },
+          {
+            season: 2024,
+            statKey: "savePercent",
+            awayValue: null,
+            homeValue: 0.907,
+            winnerTeamId: "4",
+          },
+        ]);
       });
     });
   });
