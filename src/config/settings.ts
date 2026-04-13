@@ -217,6 +217,17 @@ export const GOALIE_SAVE_PERCENT_BASELINE = 0.85; // .850
 // Minimum games required for games-adjusted scoring (players and goalies)
 export const MIN_GAMES_FOR_ADJUSTED_SCORE = 1;
 
+// Finals deserved-to-win model tuning.
+// One-sided goalie-rate qualification is a meaningful edge, but not a full
+// proof that the qualified team "deserved" those categories on underlying play.
+export const FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE = 0.65;
+
+// If a champion wins specifically via the home-team tiebreak, the deserved model
+// applies a small penalty because the winner benefited from a structural edge
+// earned before the finals started.
+export const FINALS_HOME_TIEBREAK_WINNER_CONFIDENCE = 0.25;
+export const FINALS_HOME_TIEBREAK_WEIGHT = 1.5;
+
 // Games-adjusted scores use stabilized per-game pace. Higher values pull short
 // samples more strongly toward the pool-average rate for that category.
 export const PLAYER_ADJUSTED_SCORE_PRIOR_GAMES: Record<

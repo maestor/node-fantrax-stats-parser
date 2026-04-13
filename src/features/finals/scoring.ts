@@ -1,3 +1,8 @@
+import {
+  FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE,
+  FINALS_HOME_TIEBREAK_WEIGHT,
+  FINALS_HOME_TIEBREAK_WINNER_CONFIDENCE,
+} from "../../config/settings.js";
 import type {
   FinalsMatchupDbEntry,
   FinalsModelWeights,
@@ -87,6 +92,11 @@ const sampleStdDev = (values: readonly number[]): number => {
 const hasQualifiedGoalieRates = (team: FinalsTeamData): boolean =>
   team.playedGames.goalies >= MIN_GOALIE_GAMES_FOR_RATE;
 
+const qualificationConfidence = (qualified: boolean): number =>
+  qualified
+    ? FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE
+    : 1 - FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE;
+
 const confidenceForCountRate = (
   winnerValue: number,
   loserValue: number,
@@ -111,7 +121,7 @@ const confidenceForGaa = (winner: FinalsTeamData, loser: FinalsTeamData): number
   const loserQualified = hasQualifiedGoalieRates(loser);
 
   if (winnerQualified !== loserQualified) {
-    return winnerQualified ? 1 : 0;
+    return qualificationConfidence(winnerQualified);
   }
 
   if (!winnerQualified && !loserQualified) {
@@ -146,7 +156,7 @@ const confidenceForSavePercent = (
   const loserQualified = hasQualifiedGoalieRates(loser);
 
   if (winnerQualified !== loserQualified) {
-    return winnerQualified ? 1 : 0;
+    return qualificationConfidence(winnerQualified);
   }
 
   if (!winnerQualified && !loserQualified) {
@@ -259,7 +269,10 @@ export const calculateWinRate = (
 };
 
 export const calculateWeightedEdgeRate = (
-  matchup: Pick<FinalsMatchupDbEntry, "awayTeam" | "homeTeam">,
+  matchup: Pick<
+    FinalsMatchupDbEntry,
+    "awayTeam" | "homeTeam" | "wonOnHomeTiebreak"
+  >,
   weights: FinalsModelWeights,
   context: FinalsScoringContext,
 ): number => {
@@ -274,6 +287,12 @@ export const calculateWeightedEdgeRate = (
 
     weightedScore += confidenceForCategory(stat, winner, loser, context) * weight;
     totalWeight += weight;
+  }
+
+  if (matchup.wonOnHomeTiebreak) {
+    weightedScore +=
+      FINALS_HOME_TIEBREAK_WINNER_CONFIDENCE * FINALS_HOME_TIEBREAK_WEIGHT;
+    totalWeight += FINALS_HOME_TIEBREAK_WEIGHT;
   }
 
   if (totalWeight <= 0) {

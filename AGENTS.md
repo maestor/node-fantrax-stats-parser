@@ -10,6 +10,7 @@
    - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Vercel, Turso, R2, auth, and caching
    - [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) for snapshot generation and storage
    - [docs/SCORING.md](docs/SCORING.md) for player and goalie scoring behavior
+   - [docs/RATING.md](docs/RATING.md) for finals leaderboard rate behavior
 
 ## Documentation Rules
 - Keep [README.md](README.md) and docs updated after every task.

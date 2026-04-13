@@ -7,6 +7,7 @@ See @README.md for project overview, quick start, and the documentation map, and
 - Use @docs/DEPLOYMENT.md for Vercel, Turso, R2, auth, and caching
 - Use @docs/SNAPSHOTS.md for snapshot generation and storage
 - Use @docs/SCORING.md for player and goalie scoring details
+- Use @docs/RATING.md for finals leaderboard rating details
 
 Keep @README.md and project documentation updated after every task.
 Keep @README.md concise as the front door and move deep operational detail into focused docs under @docs/.

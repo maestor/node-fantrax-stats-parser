@@ -155,6 +155,39 @@ describe("finals scoring", () => {
     ).toBe(0.5);
   });
 
+  test("slightly penalizes winners that needed the home tiebreak", () => {
+    const matchup = createMatchup({
+      wonOnHomeTiebreak: true,
+      awayTeam: {
+        isWinner: false,
+        score: {
+          matchPoints: 7.5,
+          categoriesWon: 7,
+          categoriesLost: 7,
+          categoriesTied: 1,
+        },
+      },
+      homeTeam: {
+        isWinner: true,
+        score: {
+          matchPoints: 7.5,
+          categoriesWon: 7,
+          categoriesLost: 7,
+          categoriesTied: 1,
+        },
+      },
+      winnerTeamId: "2",
+    });
+
+    expect(
+      calculateWeightedEdgeRate(
+        matchup,
+        FINALS_DESERVED_TO_WIN_WEIGHTS,
+        buildFinalsScoringContext([matchup]),
+      ),
+    ).toBe(0.476);
+  });
+
   test("returns neutral when both finalists have zero skater exposure", () => {
     const matchup = createMatchup({
       awayTeam: {
@@ -313,6 +346,62 @@ describe("finals scoring", () => {
   });
 
   test("respects goalie-rate qualification, null rate values, and zero-weight fallbacks", () => {
+    const goalieRateOnlyWeights: FinalsModelWeights = {
+      goals: 0,
+      assists: 0,
+      points: 0,
+      plusMinus: 0,
+      penalties: 0,
+      shots: 0,
+      ppp: 0,
+      shp: 0,
+      hits: 0,
+      blocks: 0,
+      wins: 0,
+      saves: 0,
+      shutouts: 0,
+      gaa: 1,
+      savePercent: 1,
+    };
+    const qualifiedEdgeOnly = createMatchup({
+      winnerTeamId: "2",
+      awayTeam: {
+        isWinner: false,
+        score: {
+          matchPoints: 6.5,
+          categoriesWon: 6,
+          categoriesLost: 8,
+          categoriesTied: 1,
+        },
+        playedGames: { total: 11, skaters: 10, goalies: 1 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+      homeTeam: {
+        isWinner: true,
+        score: {
+          matchPoints: 8.5,
+          categoriesWon: 8,
+          categoriesLost: 6,
+          categoriesTied: 1,
+        },
+      },
+    });
     const qualifiedWinner = createMatchup({
       winnerTeamId: "2",
       awayTeam: {
@@ -480,18 +569,25 @@ describe("finals scoring", () => {
 
     expect(
       calculateWeightedEdgeRate(
+        qualifiedEdgeOnly,
+        goalieRateOnlyWeights,
+        buildFinalsScoringContext([qualifiedEdgeOnly]),
+      ),
+    ).toBe(0.65);
+    expect(
+      calculateWeightedEdgeRate(
         qualifiedWinner,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([qualifiedWinner]),
       ),
-    ).toBeGreaterThan(0.5);
+    ).toBe(0.489);
     expect(
       calculateWeightedEdgeRate(
         disqualifiedWinner,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([disqualifiedWinner]),
       ),
-    ).toBeLessThan(0.5);
+    ).toBe(0.511);
     expect(
       calculateWeightedEdgeRate(
         bothUnqualified,
