@@ -1686,10 +1686,10 @@ components:
       properties:
         winRate:
           type: number
-          description: The actual finals scoreboard share for the champion, equivalent to raw match-points share.
+          description: "The actual finals scoreboard share for the champion as a fraction between 0 and 1, rounded to three decimals. Example: `0.567` means `56.7%`."
         deservedToWinRate:
           type: number
-          description: A weighted, games-adjusted finals strength model that downweights plusMinus, SHP, and shutouts.
+          description: "A weighted, games-adjusted finals strength model returned as a fraction between 0 and 1, rounded to three decimals."
 
 security:
   - apiKey: []
