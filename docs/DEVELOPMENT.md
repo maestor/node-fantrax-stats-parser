@@ -40,6 +40,7 @@ This should:
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Vercel, Turso, R2, auth, caching
 - [SNAPSHOTS.md](SNAPSHOTS.md) - snapshot-backed endpoints and generation rules
 - [SCORING.md](SCORING.md) - player and goalie scoring behavior
+- [RATING.md](RATING.md) - finals leaderboard rate behavior
 
 Keep the README concise. Put deep operational detail in the topic docs above instead of growing the top-level readme again.
 

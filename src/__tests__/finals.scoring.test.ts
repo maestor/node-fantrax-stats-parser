@@ -1,8 +1,10 @@
 import {
+  calculateFinalsFactors,
   buildFinalsScoringContext,
   calculateWeightedEdgeRate,
   calculateWinRate,
   FINALS_DESERVED_TO_WIN_WEIGHTS,
+  testOnlyToFactorPair,
 } from "../features/finals/scoring.js";
 import type {
   FinalsMatchupDbEntry,
@@ -153,6 +155,39 @@ describe("finals scoring", () => {
         buildFinalsScoringContext([matchup]),
       ),
     ).toBe(0.5);
+  });
+
+  test("slightly penalizes winners that needed the home tiebreak", () => {
+    const matchup = createMatchup({
+      wonOnHomeTiebreak: true,
+      awayTeam: {
+        isWinner: false,
+        score: {
+          matchPoints: 7.5,
+          categoriesWon: 7,
+          categoriesLost: 7,
+          categoriesTied: 1,
+        },
+      },
+      homeTeam: {
+        isWinner: true,
+        score: {
+          matchPoints: 7.5,
+          categoriesWon: 7,
+          categoriesLost: 7,
+          categoriesTied: 1,
+        },
+      },
+      winnerTeamId: "2",
+    });
+
+    expect(
+      calculateWeightedEdgeRate(
+        matchup,
+        FINALS_DESERVED_TO_WIN_WEIGHTS,
+        buildFinalsScoringContext([matchup]),
+      ),
+    ).toBe(0.476);
   });
 
   test("returns neutral when both finalists have zero skater exposure", () => {
@@ -313,6 +348,62 @@ describe("finals scoring", () => {
   });
 
   test("respects goalie-rate qualification, null rate values, and zero-weight fallbacks", () => {
+    const goalieRateOnlyWeights: FinalsModelWeights = {
+      goals: 0,
+      assists: 0,
+      points: 0,
+      plusMinus: 0,
+      penalties: 0,
+      shots: 0,
+      ppp: 0,
+      shp: 0,
+      hits: 0,
+      blocks: 0,
+      wins: 0,
+      saves: 0,
+      shutouts: 0,
+      gaa: 1,
+      savePercent: 1,
+    };
+    const qualifiedEdgeOnly = createMatchup({
+      winnerTeamId: "2",
+      awayTeam: {
+        isWinner: false,
+        score: {
+          matchPoints: 6.5,
+          categoriesWon: 6,
+          categoriesLost: 8,
+          categoriesTied: 1,
+        },
+        playedGames: { total: 11, skaters: 10, goalies: 1 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+      homeTeam: {
+        isWinner: true,
+        score: {
+          matchPoints: 8.5,
+          categoriesWon: 8,
+          categoriesLost: 6,
+          categoriesTied: 1,
+        },
+      },
+    });
     const qualifiedWinner = createMatchup({
       winnerTeamId: "2",
       awayTeam: {
@@ -480,18 +571,25 @@ describe("finals scoring", () => {
 
     expect(
       calculateWeightedEdgeRate(
+        qualifiedEdgeOnly,
+        goalieRateOnlyWeights,
+        buildFinalsScoringContext([qualifiedEdgeOnly]),
+      ),
+    ).toBe(0.65);
+    expect(
+      calculateWeightedEdgeRate(
         qualifiedWinner,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([qualifiedWinner]),
       ),
-    ).toBeGreaterThan(0.5);
+    ).toBe(0.489);
     expect(
       calculateWeightedEdgeRate(
         disqualifiedWinner,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([disqualifiedWinner]),
       ),
-    ).toBeLessThan(0.5);
+    ).toBe(0.511);
     expect(
       calculateWeightedEdgeRate(
         bothUnqualified,
@@ -558,6 +656,417 @@ describe("finals scoring", () => {
         buildFinalsScoringContext([matchup]),
       ),
     ).toBeGreaterThan(0.5);
+  });
+
+  test("calculates offence, physical, and goalie factors as matchup shares", () => {
+    const matchup = createMatchup({
+      awayTeam: {
+        playedGames: { total: 11, skaters: 10, goalies: 1 },
+        totals: {
+          goals: 13,
+          assists: 13,
+          points: 26,
+          plusMinus: 5,
+          penalties: 14,
+          shots: 135,
+          ppp: 9,
+          shp: 0,
+          hits: 62,
+          blocks: 34,
+          wins: 0,
+          saves: 17,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 12, skaters: 9, goalies: 3 },
+        totals: {
+          goals: 8,
+          assists: 18,
+          points: 26,
+          plusMinus: -8,
+          penalties: 28,
+          shots: 148,
+          ppp: 9,
+          shp: 0,
+          hits: 73,
+          blocks: 40,
+          wins: 1,
+          saves: 107,
+          shutouts: 1,
+          gaa: 3.23,
+          savePercent: 0.907,
+        },
+      },
+    });
+
+    expect(calculateFinalsFactors(matchup)).toEqual({
+      awayTeam: {
+        offence: 0.482,
+        physical: 0.438,
+        goalies: 0.067,
+      },
+      homeTeam: {
+        offence: 0.518,
+        physical: 0.562,
+        goalies: 0.933,
+      },
+    });
+  });
+
+  test("uses neutral factor shares when both finalists have no production or goalie qualification", () => {
+    const matchup = createMatchup({
+      awayTeam: {
+        playedGames: { total: 0, skaters: 0, goalies: 0 },
+        totals: {
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 0, skaters: 0, goalies: 0 },
+        totals: {
+          goals: 0,
+          assists: 0,
+          points: 0,
+          plusMinus: 0,
+          penalties: 0,
+          shots: 0,
+          ppp: 0,
+          shp: 0,
+          hits: 0,
+          blocks: 0,
+          wins: 0,
+          saves: 0,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+    });
+
+    expect(calculateFinalsFactors(matchup)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+    });
+  });
+
+  test("treats perfect GAA and one-sided goalie qualification as full factor-share edges", () => {
+    const matchup = createMatchup({
+      awayTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 0,
+          savePercent: 0.92,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 11, skaters: 10, goalies: 1 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 30,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+    });
+
+    expect(calculateFinalsFactors(matchup)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.811,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.189,
+      },
+    });
+  });
+
+  test("falls back to neutral goalie-efficiency shares for missing or tied qualified rate stats", () => {
+    const nullQualifiedRates = createMatchup({
+      awayTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: null,
+          savePercent: null,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 2.5,
+          savePercent: 0.91,
+        },
+      },
+    });
+    const tiedPerfectGaa = createMatchup({
+      awayTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 0,
+          savePercent: 0.91,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 0,
+          savePercent: 0.91,
+        },
+      },
+    });
+
+    expect(calculateFinalsFactors(nullQualifiedRates)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+    });
+    expect(calculateFinalsFactors(tiedPerfectGaa)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.5,
+      },
+    });
+  });
+
+  test("normalizes factor-share edge values and handles single perfect qualified GAA edges", () => {
+    expect(testOnlyToFactorPair(Number.POSITIVE_INFINITY)).toEqual({
+      away: 0.5,
+      home: 0.5,
+    });
+    expect(testOnlyToFactorPair(-1)).toEqual({
+      away: 0,
+      home: 1,
+    });
+    expect(testOnlyToFactorPair(2)).toEqual({
+      away: 1,
+      home: 0,
+    });
+
+    const awayPerfectGaa = createMatchup({
+      awayTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 0,
+          savePercent: 0.91,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 2.5,
+          savePercent: 0.91,
+        },
+      },
+    });
+    const homePerfectGaa = createMatchup({
+      awayTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 2.5,
+          savePercent: 0.91,
+        },
+      },
+      homeTeam: {
+        playedGames: { total: 12, skaters: 10, goalies: 2 },
+        totals: {
+          goals: 10,
+          assists: 10,
+          points: 20,
+          plusMinus: 2,
+          penalties: 12,
+          shots: 80,
+          ppp: 6,
+          shp: 1,
+          hits: 30,
+          blocks: 20,
+          wins: 1,
+          saves: 50,
+          shutouts: 0,
+          gaa: 0,
+          savePercent: 0.91,
+        },
+      },
+    });
+
+    expect(calculateFinalsFactors(awayPerfectGaa)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.625,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.375,
+      },
+    });
+    expect(calculateFinalsFactors(homePerfectGaa)).toEqual({
+      awayTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.375,
+      },
+      homeTeam: {
+        offence: 0.5,
+        physical: 0.5,
+        goalies: 0.625,
+      },
+    });
   });
 
   test("treats tied zero-shot save percentage cases as neutral and can penalize the winner", () => {

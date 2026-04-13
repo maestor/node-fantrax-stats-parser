@@ -143,6 +143,18 @@ describe("finals service", () => {
         winRate: 0.567,
         deservedToWinRate: expect.any(Number),
       },
+      factors: {
+        awayTeam: {
+          offence: 0.522,
+          physical: 0.525,
+          goalies: 0.51,
+        },
+        homeTeam: {
+          offence: 0.478,
+          physical: 0.475,
+          goalies: 0.49,
+        },
+      },
     });
     expect(result[0].awayTeam).not.toHaveProperty("isWinner");
     expect(result[0].homeTeam).not.toHaveProperty("isWinner");
@@ -243,6 +255,7 @@ describe("finals service", () => {
       expect.objectContaining({
         season: 2023,
         categories: [],
+        factors: expect.any(Object),
       }),
     ]);
   });

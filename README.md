@@ -123,6 +123,7 @@ npm run snapshot:generate
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Vercel, Turso, R2, API auth, caching, operational commands
 - [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) - snapshot-backed endpoints, generation rules, R2 snapshot storage
 - [docs/SCORING.md](docs/SCORING.md) - player and goalie scoring model details
+- [docs/RATING.md](docs/RATING.md) - finals leaderboard rate model details
 
 ## Technology
 

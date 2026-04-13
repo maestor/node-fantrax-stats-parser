@@ -4,6 +4,7 @@ import {
   getFinalsMatchups,
 } from "../../db/queries.js";
 import {
+  calculateFinalsFactors,
   buildFinalsScoringContext,
   calculateWeightedEdgeRate,
   calculateWinRate,
@@ -94,6 +95,7 @@ export const getFinalsLeaderboardData = async (): Promise<
           scoringContext,
         ),
       },
+      factors: calculateFinalsFactors(matchup),
     };
   });
 };
