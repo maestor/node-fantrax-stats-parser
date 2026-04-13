@@ -88,8 +88,14 @@ Each weight is a decimal between `0` and `1`. Lowering a weight reduces that sta
 
 `/leaderboard/finals` returns a `rates` object for each imported finals season:
 
-- `winRate`: the champion's raw finals match-points share, `winnerMatchPoints / totalCategories * 100`
+- `winRate`: the champion's raw finals match-points share, `winnerMatchPoints / totalCategories`
 - `deservedToWinRate`: a games-adjusted finals strength model that compares the actual winner against the loser category by category
+
+Both rates follow the API's normal percentage convention:
+
+- values are returned as fractions between `0` and `1`
+- values are rounded to three decimals
+- example: `0.567` means `56.7%`
 
 The finals model:
 

@@ -153,7 +153,7 @@ export const registerFinalsRouteIntegrationTests = (): void => {
             teamName: "Montreal Canadiens",
           },
           rates: {
-            winRate: 76.7,
+            winRate: 0.767,
             deservedToWinRate: expect.any(Number),
           },
         });

@@ -140,7 +140,7 @@ describe("finals service", () => {
         totals: expect.any(Object),
       },
       rates: {
-        winRate: 56.7,
+        winRate: 0.567,
         deservedToWinRate: expect.any(Number),
       },
     });

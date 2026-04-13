@@ -506,8 +506,8 @@ describe("routes", () => {
             },
           ],
           rates: {
-            winRate: 56.7,
-            deservedToWinRate: 60.4,
+            winRate: 0.567,
+            deservedToWinRate: 0.604,
           },
         },
       ];

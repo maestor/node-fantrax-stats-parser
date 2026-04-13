@@ -31,7 +31,8 @@ export const FINALS_DESERVED_TO_WIN_WEIGHTS: FinalsModelWeights = {
   savePercent: 1,
 };
 
-const toOneDecimal = (value: number): number => Math.round(value * 10) / 10;
+const toThreeDecimals = (value: number): number =>
+  Math.round(value * 1000) / 1000;
 
 const erf = (x: number): number => {
   const sign = x < 0 ? -1 : 1;
@@ -251,10 +252,10 @@ export const calculateWinRate = (
     winner.score.categoriesTied;
 
   if (totalCategories <= 0) {
-    return 50;
+    return 0.5;
   }
 
-  return toOneDecimal((winner.score.matchPoints / totalCategories) * 100);
+  return toThreeDecimals(winner.score.matchPoints / totalCategories);
 };
 
 export const calculateWeightedEdgeRate = (
@@ -276,8 +277,8 @@ export const calculateWeightedEdgeRate = (
   }
 
   if (totalWeight <= 0) {
-    return 50;
+    return 0.5;
   }
 
-  return toOneDecimal((weightedScore / totalWeight) * 100);
+  return toThreeDecimals(weightedScore / totalWeight);
 };

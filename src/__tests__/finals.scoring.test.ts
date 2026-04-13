@@ -107,8 +107,8 @@ describe("finals scoring", () => {
     });
   });
 
-  test("calculates winRate from match points and falls back to 50 with no categories", () => {
-    expect(calculateWinRate(createMatchup())).toBe(56.7);
+  test("calculates winRate from match points and falls back to 0.5 with no categories", () => {
+    expect(calculateWinRate(createMatchup())).toBe(0.567);
 
     expect(
       calculateWinRate(
@@ -123,10 +123,10 @@ describe("finals scoring", () => {
           },
         }),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
   });
 
-  test("returns 50 when the finalists are identical", () => {
+  test("returns 0.5 when the finalists are identical", () => {
     const matchup = createMatchup({
       awayTeam: {
         score: {
@@ -152,7 +152,7 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([matchup]),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
   });
 
   test("returns neutral when both finalists have zero skater exposure", () => {
@@ -205,7 +205,7 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([matchup]),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
   });
 
   test("favors better per-game pace even when the raw total is lower", () => {
@@ -258,7 +258,7 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([matchup]),
       ),
-    ).toBeGreaterThan(50);
+    ).toBeGreaterThan(0.5);
   });
 
   test("downweights plus-minus, SHP, and shutouts in the deserved rate", () => {
@@ -484,29 +484,29 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([qualifiedWinner]),
       ),
-    ).toBeGreaterThan(50);
+    ).toBeGreaterThan(0.5);
     expect(
       calculateWeightedEdgeRate(
         disqualifiedWinner,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([disqualifiedWinner]),
       ),
-    ).toBeLessThan(50);
+    ).toBeLessThan(0.5);
     expect(
       calculateWeightedEdgeRate(
         bothUnqualified,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([bothUnqualified]),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
     expect(
       calculateWeightedEdgeRate(
         nullRatesDespiteQualification,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([nullRatesDespiteQualification]),
       ),
-    ).toBe(50);
-    expect(zeroWeightRate).toBe(50);
+    ).toBe(0.5);
+    expect(zeroWeightRate).toBe(0.5);
   });
 
   test("handles zero-shot save percentage comparisons without blowing up", () => {
@@ -557,7 +557,7 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([matchup]),
       ),
-    ).toBeGreaterThan(50);
+    ).toBeGreaterThan(0.5);
   });
 
   test("treats tied zero-shot save percentage cases as neutral and can penalize the winner", () => {
@@ -648,14 +648,14 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([tiedZeroShotMatchup]),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
     expect(
       calculateWeightedEdgeRate(
         loserBetterZeroShotMatchup,
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([loserBetterZeroShotMatchup]),
       ),
-    ).toBeLessThan(50);
+    ).toBeLessThan(0.5);
   });
 
   test("treats identical perfect qualified goalie rates as neutral", () => {
@@ -706,6 +706,6 @@ describe("finals scoring", () => {
         FINALS_DESERVED_TO_WIN_WEIGHTS,
         buildFinalsScoringContext([matchup]),
       ),
-    ).toBe(50);
+    ).toBe(0.5);
   });
 });
