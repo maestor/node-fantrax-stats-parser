@@ -138,6 +138,7 @@ export const registerFinalsRouteIntegrationTests = (): void => {
           awayTeam: {
             teamId: "1",
             teamName: "Colorado Avalanche",
+            teamAbbr: "COL",
             playedGames: {
               total: 51,
               skaters: 50,
@@ -152,6 +153,7 @@ export const registerFinalsRouteIntegrationTests = (): void => {
           homeTeam: {
             teamId: "5",
             teamName: "Montreal Canadiens",
+            teamAbbr: "MTL",
           },
           rates: {
             winRate: 0.767,

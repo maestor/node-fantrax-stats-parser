@@ -34,7 +34,10 @@ export type FinalsPlayedGames = {
   goalies: number;
 };
 
-export type FinalsTeamTotals = Record<PlayerScoreField | GoalieScoreField, number> & {
+export type FinalsTeamTotals = Record<
+  PlayerScoreField | GoalieScoreField,
+  number
+> & {
   gaa: number | null;
   savePercent: number | null;
 };
@@ -49,6 +52,7 @@ export type FinalsTeamData = {
 
 export type FinalsTeam = Omit<FinalsTeamData, "isWinner"> & {
   teamName: string;
+  teamAbbr: string;
 };
 
 export type FinalsCategory = {

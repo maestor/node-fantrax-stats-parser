@@ -41,7 +41,7 @@ Multi-team CSV layout:
 - `csv/<teamId>/regular-YYYY-YYYY.csv`
 - `csv/<teamId>/playoffs-YYYY-YYYY.csv`
 
-Team configuration lives in `src/config/settings.ts` via `TEAMS` and `DEFAULT_TEAM_ID`.
+Team configuration lives in `src/config/settings.ts` via `TEAMS` and `DEFAULT_TEAM_ID`. Each `TEAMS` entry now also carries the current official `teamAbbr`, which feeds `/teams` and finals leaderboard team metadata.
 
 ## Database (Turso/SQLite)
 

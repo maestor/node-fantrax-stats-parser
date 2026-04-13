@@ -228,12 +228,14 @@ describe("routes", () => {
         error,
       );
     });
-
   });
 
   describe("route guards and generic service errors", () => {
     test("returns 400 for invalid report type across guarded routes", async () => {
-      const cases: Array<{ handler: RouteHandler; req: ReturnType<typeof createRequest> }> = [
+      const cases: Array<{
+        handler: RouteHandler;
+        req: ReturnType<typeof createRequest>;
+      }> = [
         {
           handler: getSeasons,
           req: createRequest({
@@ -436,6 +438,7 @@ describe("routes", () => {
           awayTeam: {
             teamId: "1",
             teamName: "Colorado Avalanche",
+            teamAbbr: "COL",
             score: {
               matchPoints: 8.5,
               categoriesWon: 8,
@@ -468,6 +471,7 @@ describe("routes", () => {
           homeTeam: {
             teamId: "5",
             teamName: "Montreal Canadiens",
+            teamAbbr: "MTL",
             score: {
               matchPoints: 6.5,
               categoriesWon: 6,
@@ -549,6 +553,7 @@ describe("routes", () => {
           id: "1",
           name: "colorado",
           presentName: "Colorado Avalanche",
+          teamAbbr: "COL",
         },
       ];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
@@ -564,7 +569,7 @@ describe("routes", () => {
     });
 
     test("memoizes successful responses and avoids re-calling the handler", async () => {
-      const filteredTeams = [{ id: "1", name: "colorado" }];
+      const filteredTeams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams" });
@@ -582,7 +587,7 @@ describe("routes", () => {
     });
 
     test("returns 304 for matching If-None-Match", async () => {
-      const filteredTeams = [{ id: "1", name: "colorado" }];
+      const filteredTeams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const req1 = createRequest({ url: "/teams", method: "GET" });
@@ -608,7 +613,7 @@ describe("routes", () => {
     });
 
     test("hits cached 304 branch on repeat request", async () => {
-      const filteredTeams = [{ id: "1", name: "colorado" }];
+      const filteredTeams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const primeReq = {
@@ -639,7 +644,7 @@ describe("routes", () => {
     });
 
     test("returns 304 on first request when If-None-Match matches freshly computed etag", async () => {
-      const filteredTeams = [{ id: "1", name: "colorado" }];
+      const filteredTeams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const etag = makeEtagForJson(filteredTeams);
@@ -660,7 +665,7 @@ describe("routes", () => {
     });
 
     test("works when req is undefined (no caching possible)", async () => {
-      const filteredTeams = [{ id: "1", name: "colorado" }];
+      const filteredTeams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsData as jest.Mock).mockReturnValue(filteredTeams);
 
       const res = createResponse();
