@@ -23,10 +23,13 @@ const getTeamMetadata = (
   teamAbbr: string;
 } => {
   const configuredTeam = TEAMS.find((team) => team.id === teamId);
+  if (!configuredTeam) {
+    throw new Error(`Unknown finals teamId: ${teamId}`);
+  }
 
   return {
-    teamName: configuredTeam?.presentName ?? teamId,
-    teamAbbr: configuredTeam?.teamAbbr ?? teamId,
+    teamName: configuredTeam.presentName,
+    teamAbbr: configuredTeam.teamAbbr,
   };
 };
 

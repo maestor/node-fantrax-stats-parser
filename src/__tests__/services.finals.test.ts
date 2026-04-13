@@ -57,7 +57,7 @@ describe("finals service", () => {
           },
         },
         homeTeam: {
-          teamId: "999",
+          teamId: "2",
           isWinner: false,
           score: {
             matchPoints: 6.5,
@@ -133,9 +133,9 @@ describe("finals service", () => {
         totals: expect.any(Object),
       },
       homeTeam: {
-        teamId: "999",
-        teamName: "999",
-        teamAbbr: "999",
+        teamId: "2",
+        teamName: "Carolina Hurricanes",
+        teamAbbr: "CAR",
         score: expect.any(Object),
         playedGames: expect.any(Object),
         totals: expect.any(Object),
@@ -259,5 +259,76 @@ describe("finals service", () => {
         factors: expect.any(Object),
       }),
     ]);
+  });
+
+  test("throws when finals data contains a team id that is not configured", async () => {
+    mockGetFinalsMatchups.mockResolvedValue([
+      {
+        season: 2024,
+        wonOnHomeTiebreak: false,
+        winnerTeamId: "1",
+        awayTeam: {
+          teamId: "1",
+          isWinner: true,
+          score: {
+            matchPoints: 8.5,
+            categoriesWon: 8,
+            categoriesLost: 6,
+            categoriesTied: 1,
+          },
+          playedGames: { total: 12, skaters: 10, goalies: 2 },
+          totals: {
+            goals: 10,
+            assists: 10,
+            points: 20,
+            plusMinus: 3,
+            penalties: 12,
+            shots: 80,
+            ppp: 6,
+            shp: 1,
+            hits: 30,
+            blocks: 20,
+            wins: 1,
+            gaa: 2.5,
+            saves: 50,
+            savePercent: 0.91,
+            shutouts: 0,
+          },
+        },
+        homeTeam: {
+          teamId: "999",
+          isWinner: false,
+          score: {
+            matchPoints: 6.5,
+            categoriesWon: 6,
+            categoriesLost: 8,
+            categoriesTied: 1,
+          },
+          playedGames: { total: 12, skaters: 10, goalies: 2 },
+          totals: {
+            goals: 9,
+            assists: 9,
+            points: 18,
+            plusMinus: 1,
+            penalties: 10,
+            shots: 75,
+            ppp: 5,
+            shp: 0,
+            hits: 28,
+            blocks: 18,
+            wins: 1,
+            gaa: 2.7,
+            saves: 48,
+            savePercent: 0.9,
+            shutouts: 0,
+          },
+        },
+      },
+    ]);
+    mockGetFinalsCategories.mockResolvedValue([]);
+
+    await expect(getFinalsLeaderboardData()).rejects.toThrow(
+      "Unknown finals teamId: 999",
+    );
   });
 });
