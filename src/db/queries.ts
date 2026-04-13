@@ -1103,10 +1103,10 @@ const mapFinalsTeamTotals = (
         hits: row.away_hits,
         blocks: row.away_blocks,
         wins: row.away_wins,
-        saves: row.away_saves,
-        shutouts: row.away_shutouts,
         gaa: row.away_gaa,
+        saves: row.away_saves,
         savePercent: row.away_save_percent,
+        shutouts: row.away_shutouts,
       }
     : {
         goals: row.home_goals,
@@ -1120,10 +1120,10 @@ const mapFinalsTeamTotals = (
         hits: row.home_hits,
         blocks: row.home_blocks,
         wins: row.home_wins,
-        saves: row.home_saves,
-        shutouts: row.home_shutouts,
         gaa: row.home_gaa,
+        saves: row.home_saves,
         savePercent: row.home_save_percent,
+        shutouts: row.home_shutouts,
       };
 
 const mapFinalsTeam = (

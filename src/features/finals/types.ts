@@ -1,4 +1,4 @@
-import { GOALIE_SCORE_FIELDS, PLAYER_SCORE_FIELDS } from "../../config/index.js";
+import { PLAYER_SCORE_FIELDS } from "../../config/index.js";
 import type {
   GoalieOptionalScoreField,
   GoalieScoreField,
@@ -14,9 +14,11 @@ export type FinalsModelWeights = Record<FinalsStatKey, number>;
 
 export const FINALS_STAT_KEYS = [
   ...PLAYER_SCORE_FIELDS,
-  ...GOALIE_SCORE_FIELDS,
+  "wins",
   "gaa",
+  "saves",
   "savePercent",
+  "shutouts",
 ] as const satisfies readonly FinalsStatKey[];
 
 export type FinalsTeamScore = {
