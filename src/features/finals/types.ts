@@ -63,6 +63,17 @@ export type FinalsRates = {
   deservedToWinRate: number;
 };
 
+export type FinalsFactorSet = {
+  offence: number;
+  physical: number;
+  goalies: number;
+};
+
+export type FinalsFactors = {
+  awayTeam: FinalsFactorSet;
+  homeTeam: FinalsFactorSet;
+};
+
 export type FinalsMatchupDbEntry = {
   season: number;
   wonOnHomeTiebreak: boolean;
@@ -88,4 +99,5 @@ export type FinalsLeaderboardEntry = {
   homeTeam: FinalsTeam;
   categories: FinalsCategory[];
   rates: FinalsRates;
+  factors: FinalsFactors;
 };

@@ -4,6 +4,8 @@ import {
   FINALS_HOME_TIEBREAK_WINNER_CONFIDENCE,
 } from "../../config/settings.js";
 import type {
+  FinalsFactors,
+  FinalsFactorSet,
   FinalsMatchupDbEntry,
   FinalsModelWeights,
   FinalsStatKey,
@@ -17,6 +19,9 @@ type FinalsScoringContext = {
 const MIN_GOALIE_GAMES_FOR_RATE = 2;
 const MIN_PLUS_MINUS_SCALE = 0.05;
 const EPSILON = 0.000001;
+const OFFENCE_FACTOR_KEYS = ["goals", "assists", "shots", "ppp", "shp"] as const;
+const PHYSICAL_FACTOR_KEYS = ["hits", "blocks", "penalties"] as const;
+const GOALIE_VOLUME_FACTOR_KEYS = ["wins", "saves", "shutouts"] as const;
 
 export const FINALS_DESERVED_TO_WIN_WEIGHTS: FinalsModelWeights = {
   goals: 1,
@@ -38,6 +43,21 @@ export const FINALS_DESERVED_TO_WIN_WEIGHTS: FinalsModelWeights = {
 
 const toThreeDecimals = (value: number): number =>
   Math.round(value * 1000) / 1000;
+
+const clampShare = (value: number): number => {
+  if (!Number.isFinite(value)) return 0.5;
+  if (value <= 0) return 0;
+  if (value >= 1) return 1;
+  return value;
+};
+
+const toFactorPair = (awayShare: number): { away: number; home: number } => {
+  const away = toThreeDecimals(clampShare(awayShare));
+  return {
+    away,
+    home: toThreeDecimals(1 - away),
+  };
+};
 
 const erf = (x: number): number => {
   const sign = x < 0 ? -1 : 1;
@@ -96,6 +116,127 @@ const qualificationConfidence = (qualified: boolean): number =>
   qualified
     ? FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE
     : 1 - FINALS_GOALIE_RATE_QUALIFICATION_CONFIDENCE;
+
+const sumFactorTotals = (
+  team: FinalsTeamData,
+  keys: readonly ("goals" | "assists" | "shots" | "ppp" | "shp" | "hits" | "blocks" | "penalties" | "wins" | "saves" | "shutouts")[],
+): number => keys.reduce((sum, key) => sum + team.totals[key], 0);
+
+const calculateShare = (awayValue: number, homeValue: number): number => {
+  const total = awayValue + homeValue;
+  if (total <= 0) return 0.5;
+  return awayValue / total;
+};
+
+const bothTeamsQualifiedForGoalieRates = (
+  awayTeam: FinalsTeamData,
+  homeTeam: FinalsTeamData,
+): boolean => hasQualifiedGoalieRates(awayTeam) && hasQualifiedGoalieRates(homeTeam);
+
+const calculateSavePercentShare = (
+  awayTeam: FinalsTeamData,
+  homeTeam: FinalsTeamData,
+): number => {
+  const awayQualified = hasQualifiedGoalieRates(awayTeam);
+  const homeQualified = hasQualifiedGoalieRates(homeTeam);
+
+  if (awayQualified !== homeQualified) {
+    return awayQualified ? 1 : 0;
+  }
+
+  if (!bothTeamsQualifiedForGoalieRates(awayTeam, homeTeam)) {
+    return 0.5;
+  }
+
+  const awaySavePercent = awayTeam.totals.savePercent;
+  const homeSavePercent = homeTeam.totals.savePercent;
+
+  if (awaySavePercent == null || homeSavePercent == null) {
+    return 0.5;
+  }
+
+  return calculateShare(awaySavePercent, homeSavePercent);
+};
+
+const calculateGaaShare = (
+  awayTeam: FinalsTeamData,
+  homeTeam: FinalsTeamData,
+): number => {
+  const awayQualified = hasQualifiedGoalieRates(awayTeam);
+  const homeQualified = hasQualifiedGoalieRates(homeTeam);
+
+  if (awayQualified !== homeQualified) {
+    return awayQualified ? 1 : 0;
+  }
+
+  if (!bothTeamsQualifiedForGoalieRates(awayTeam, homeTeam)) {
+    return 0.5;
+  }
+
+  const awayGaa = awayTeam.totals.gaa;
+  const homeGaa = homeTeam.totals.gaa;
+
+  if (awayGaa == null || homeGaa == null) {
+    return 0.5;
+  }
+
+  if (awayGaa <= EPSILON && homeGaa <= EPSILON) {
+    return 0.5;
+  }
+
+  if (awayGaa <= EPSILON) return 1;
+  if (homeGaa <= EPSILON) return 0;
+
+  return calculateShare(1 / awayGaa, 1 / homeGaa);
+};
+
+const calculateGoalieEfficiencyShare = (
+  awayTeam: FinalsTeamData,
+  homeTeam: FinalsTeamData,
+): number =>
+  (calculateGaaShare(awayTeam, homeTeam) +
+    calculateSavePercentShare(awayTeam, homeTeam)) /
+  2;
+
+const buildFactorSetPair = (
+  awayTeam: FinalsTeamData,
+  homeTeam: FinalsTeamData,
+): FinalsFactors => {
+  const offence = toFactorPair(
+    calculateShare(
+      sumFactorTotals(awayTeam, OFFENCE_FACTOR_KEYS),
+      sumFactorTotals(homeTeam, OFFENCE_FACTOR_KEYS),
+    ),
+  );
+  const physical = toFactorPair(
+    calculateShare(
+      sumFactorTotals(awayTeam, PHYSICAL_FACTOR_KEYS),
+      sumFactorTotals(homeTeam, PHYSICAL_FACTOR_KEYS),
+    ),
+  );
+  const goalieVolume = calculateShare(
+    sumFactorTotals(awayTeam, GOALIE_VOLUME_FACTOR_KEYS),
+    sumFactorTotals(homeTeam, GOALIE_VOLUME_FACTOR_KEYS),
+  );
+  const goalieEfficiency = calculateGoalieEfficiencyShare(awayTeam, homeTeam);
+  const goalies = toFactorPair((goalieVolume + goalieEfficiency) / 2);
+
+  const awayTeamFactors: FinalsFactorSet = {
+    offence: offence.away,
+    physical: physical.away,
+    goalies: goalies.away,
+  };
+  const homeTeamFactors: FinalsFactorSet = {
+    offence: offence.home,
+    physical: physical.home,
+    goalies: goalies.home,
+  };
+
+  return {
+    awayTeam: awayTeamFactors,
+    homeTeam: homeTeamFactors,
+  };
+};
 
 const confidenceForCountRate = (
   winnerValue: number,
@@ -301,3 +442,10 @@ export const calculateWeightedEdgeRate = (
 
   return toThreeDecimals(weightedScore / totalWeight);
 };
+
+export const calculateFinalsFactors = (
+  matchup: Pick<FinalsMatchupDbEntry, "awayTeam" | "homeTeam">,
+): FinalsFactors => buildFactorSetPair(matchup.awayTeam, matchup.homeTeam);
+
+/** @internal */
+export const testOnlyToFactorPair = toFactorPair;

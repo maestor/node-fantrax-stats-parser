@@ -157,6 +157,18 @@ export const registerFinalsRouteIntegrationTests = (): void => {
             winRate: 0.767,
             deservedToWinRate: expect.any(Number),
           },
+          factors: {
+            awayTeam: {
+              offence: 0.482,
+              physical: 0.438,
+              goalies: 0.067,
+            },
+            homeTeam: {
+              offence: 0.518,
+              physical: 0.562,
+              goalies: 0.933,
+            },
+          },
         });
         expect(body[0].awayTeam).not.toHaveProperty("isWinner");
         expect(body[0].homeTeam).not.toHaveProperty("isWinner");

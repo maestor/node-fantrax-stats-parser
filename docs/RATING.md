@@ -230,3 +230,143 @@ Those two rates are intentionally complementary:
 
 - `winRate` describes what happened on the scoreboard
 - `deservedToWinRate` describes how strong the winner's underlying finals performance looked after adjusting for games played
+
+## Finals Factors
+
+`/leaderboard/finals` also returns a `factors` object at the matchup root:
+
+```json
+{
+  "factors": {
+    "awayTeam": {
+      "offence": 0.54,
+      "physical": 0.46,
+      "goalies": 0.61
+    },
+    "homeTeam": {
+      "offence": 0.46,
+      "physical": 0.54,
+      "goalies": 0.39
+    }
+  }
+}
+```
+
+All factor values:
+
+- be returned as fractions between `0` and `1`
+- be rounded to three decimals
+- be interpreted as matchup-share style percentages
+
+For each factor:
+
+- `awayTeam.factor + homeTeam.factor = 1`
+
+### `offence`
+
+`offence` is a weighted share of the finalists' combined offensive counting production.
+
+Included stats:
+
+- `goals`
+- `assists`
+- `shots`
+- `ppp`
+- `shp`
+
+`points` should be excluded so the group does not double count `goals` and `assists`.
+
+Base formula:
+
+```text
+teamOffence / (awayOffence + homeOffence)
+```
+
+### `physical`
+
+`physical` is a weighted share of the finalists' combined physical-category production.
+
+Included stats:
+
+- `hits`
+- `blocks`
+- `penalties`
+
+Base formula:
+
+```text
+teamPhysical / (awayPhysical + homePhysical)
+```
+
+### `goalies`
+
+`goalies` is a hybrid percentage, not a pure production share.
+
+It should blend:
+
+- goalie volume share
+- goalie efficiency share
+
+#### Goalie volume share
+
+Goalie volume share uses the count-based goalie stats:
+
+- `wins`
+- `saves`
+- `shutouts`
+
+Base formula:
+
+```text
+teamGoalieVolume / (awayGoalieVolume + homeGoalieVolume)
+```
+
+#### Goalie efficiency share
+
+Goalie efficiency share should use:
+
+- `gaa`
+- `savePercent`
+
+`savePercent` is turned into a matchup share directly when both finalists qualify:
+
+```text
+awaySavePercentShare = awaySavePercent / (awaySavePercent + homeSavePercent)
+homeSavePercentShare = 1 - awaySavePercentShare
+```
+
+Because lower `gaa` is better, `gaa` is first converted into strength via its inverse:
+
+```text
+awayGaaStrength = 1 / awayGaa
+homeGaaStrength = 1 / homeGaa
+
+awayGaaShare = awayGaaStrength / (awayGaaStrength + homeGaaStrength)
+homeGaaShare = 1 - awayGaaShare
+```
+
+Then:
+
+```text
+goalieEfficiencyShare = average(gaaShare, savePercentShare)
+```
+
+If only one finalist qualifies for goalie rate stats, the qualified team receives the full goalie-efficiency share for that component.
+
+If neither finalist qualifies, goalie-efficiency share falls back to `0.5` / `0.5`.
+
+#### Final goalie factor
+
+The final `goalies` factor blends goalie volume share and goalie efficiency share with equal weight:
+
+```text
+goalies = 0.5 * goalieVolumeShare + 0.5 * goalieEfficiencyShare
+```
+
+## Intended Usage
+
+These matchup factors are meant to complement, not replace, `rates.winRate` and `rates.deservedToWinRate`.
+
+- `winRate` answers how much of the actual finals scoreboard the winner captured
+- `deservedToWinRate` answers how strong the winner's underlying profile looked
+- `factors` answer how the finalists split offensive, physical, and goalie influence inside the matchup

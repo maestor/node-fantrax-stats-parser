@@ -1516,6 +1516,7 @@ components:
         - homeTeam
         - categories
         - rates
+        - factors
       properties:
         season:
           type: integer
@@ -1535,6 +1536,8 @@ components:
             $ref: "#/components/schemas/FinalsLeaderboardCategory"
         rates:
           $ref: "#/components/schemas/FinalsLeaderboardRates"
+        factors:
+          $ref: "#/components/schemas/FinalsLeaderboardFactors"
 
     FinalsLeaderboardTeam:
       type: object
@@ -1690,6 +1693,34 @@ components:
         deservedToWinRate:
           type: number
           description: "A weighted, games-adjusted finals strength model returned as a fraction between 0 and 1, rounded to three decimals."
+
+    FinalsLeaderboardFactors:
+      type: object
+      required:
+        - awayTeam
+        - homeTeam
+      properties:
+        awayTeam:
+          $ref: "#/components/schemas/FinalsLeaderboardFactorSet"
+        homeTeam:
+          $ref: "#/components/schemas/FinalsLeaderboardFactorSet"
+
+    FinalsLeaderboardFactorSet:
+      type: object
+      required:
+        - offence
+        - physical
+        - goalies
+      properties:
+        offence:
+          type: number
+          description: "Share of combined offensive category production (`goals`, `assists`, `shots`, `ppp`, `shp`) as a fraction between 0 and 1, rounded to three decimals."
+        physical:
+          type: number
+          description: "Share of combined physical category production (`hits`, `blocks`, `penalties`) as a fraction between 0 and 1, rounded to three decimals."
+        goalies:
+          type: number
+          description: "Hybrid goalie matchup share returned as a fraction between 0 and 1, rounded to three decimals. Blends count-stat volume (`wins`, `saves`, `shutouts`) with goalie-rate efficiency (`gaa`, `savePercent`)."
 
 security:
   - apiKey: []
@@ -2224,8 +2255,9 @@ paths:
       summary: Finals matchup leaderboard
       description: |
         Returns one finals matchup summary per imported season, including away/home team details,
-        category results, and a `rates` object with both the actual win share and a modeled
-        deserved-to-win percentage.
+        category results, a `rates` object with both the actual win share and a modeled
+        deserved-to-win percentage, plus `factors` that split matchup influence into offence,
+        physical play, and goaltending.
       responses:
         "200":
           description: Finals matchup summaries.

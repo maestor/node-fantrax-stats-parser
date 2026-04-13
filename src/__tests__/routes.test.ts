@@ -509,6 +509,18 @@ describe("routes", () => {
             winRate: 0.567,
             deservedToWinRate: 0.604,
           },
+          factors: {
+            awayTeam: {
+              offence: 0.482,
+              physical: 0.438,
+              goalies: 0.067,
+            },
+            homeTeam: {
+              offence: 0.518,
+              physical: 0.562,
+              goalies: 0.933,
+            },
+          },
         },
       ];
       (getFinalsLeaderboardData as jest.Mock).mockResolvedValue(payload);
