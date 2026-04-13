@@ -10,7 +10,7 @@ describe("meta services", () => {
 
   describe("getTeamsData", () => {
     test("returns configured teams from the shared helper", () => {
-      const teams = [{ id: "1", name: "colorado" }];
+      const teams = [{ id: "1", name: "colorado", teamAbbr: "COL" }];
       (getTeamsWithData as jest.Mock).mockReturnValue(teams);
 
       const result = getTeamsData();

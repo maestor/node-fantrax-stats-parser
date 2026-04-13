@@ -1,16 +1,15 @@
 import { getFinalsLeaderboardData } from "../features/finals/service.js";
-import {
-  getFinalsCategories,
-  getFinalsMatchups,
-} from "../db/queries.js";
+import { getFinalsCategories, getFinalsMatchups } from "../db/queries.js";
 
 jest.mock("../db/queries");
 
 describe("finals service", () => {
-  const mockGetFinalsMatchups =
-    getFinalsMatchups as jest.MockedFunction<typeof getFinalsMatchups>;
-  const mockGetFinalsCategories =
-    getFinalsCategories as jest.MockedFunction<typeof getFinalsCategories>;
+  const mockGetFinalsMatchups = getFinalsMatchups as jest.MockedFunction<
+    typeof getFinalsMatchups
+  >;
+  const mockGetFinalsCategories = getFinalsCategories as jest.MockedFunction<
+    typeof getFinalsCategories
+  >;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,9 +28,9 @@ describe("finals service", () => {
         season: 2024,
         wonOnHomeTiebreak: false,
         winnerTeamId: "1",
-      awayTeam: {
-        teamId: "1",
-        isWinner: true,
+        awayTeam: {
+          teamId: "1",
+          isWinner: true,
           score: {
             matchPoints: 8.5,
             categoriesWon: 8,
@@ -57,9 +56,9 @@ describe("finals service", () => {
             shutouts: 0,
           },
         },
-      homeTeam: {
-        teamId: "999",
-        isWinner: false,
+        homeTeam: {
+          teamId: "999",
+          isWinner: false,
           score: {
             matchPoints: 6.5,
             categoriesWon: 6,
@@ -128,6 +127,7 @@ describe("finals service", () => {
       awayTeam: {
         teamId: "1",
         teamName: "Colorado Avalanche",
+        teamAbbr: "COL",
         score: expect.any(Object),
         playedGames: expect.any(Object),
         totals: expect.any(Object),
@@ -135,6 +135,7 @@ describe("finals service", () => {
       homeTeam: {
         teamId: "999",
         teamName: "999",
+        teamAbbr: "999",
         score: expect.any(Object),
         playedGames: expect.any(Object),
         totals: expect.any(Object),
@@ -191,9 +192,9 @@ describe("finals service", () => {
         season: 2023,
         wonOnHomeTiebreak: false,
         winnerTeamId: "1",
-      awayTeam: {
-        teamId: "1",
-        isWinner: true,
+        awayTeam: {
+          teamId: "1",
+          isWinner: true,
           score: {
             matchPoints: 8.5,
             categoriesWon: 8,
@@ -219,9 +220,9 @@ describe("finals service", () => {
             shutouts: 0,
           },
         },
-      homeTeam: {
-        teamId: "2",
-        isWinner: false,
+        homeTeam: {
+          teamId: "2",
+          isWinner: false,
           score: {
             matchPoints: 6.5,
             categoriesWon: 6,

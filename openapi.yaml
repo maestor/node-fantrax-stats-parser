@@ -90,7 +90,7 @@ components:
   schemas:
     Team:
       type: object
-      required: [id, name, presentName]
+      required: [id, name, presentName, teamAbbr]
       properties:
         id:
           type: string
@@ -101,6 +101,9 @@ components:
         presentName:
           type: string
           example: Colorado Avalanche
+        teamAbbr:
+          type: string
+          example: COL
         nameAliases:
           type: array
           items:
@@ -1544,6 +1547,7 @@ components:
       required:
         - teamId
         - teamName
+        - teamAbbr
         - score
         - playedGames
         - totals
@@ -1551,6 +1555,8 @@ components:
         teamId:
           type: string
         teamName:
+          type: string
+        teamAbbr:
           type: string
         score:
           $ref: "#/components/schemas/FinalsLeaderboardScore"

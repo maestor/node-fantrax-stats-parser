@@ -1,8 +1,5 @@
 import { TEAMS } from "../../config/index.js";
-import {
-  getFinalsCategories,
-  getFinalsMatchups,
-} from "../../db/queries.js";
+import { getFinalsCategories, getFinalsMatchups } from "../../db/queries.js";
 import {
   calculateFinalsFactors,
   buildFinalsScoringContext,
@@ -19,13 +16,32 @@ import type {
   FinalsTeamData,
 } from "./types.js";
 
-const getTeamName = (teamId: string): string =>
-  TEAMS.find((team) => team.id === teamId)?.presentName ?? teamId;
+const getTeamMetadata = (
+  teamId: string,
+): {
+  teamName: string;
+  teamAbbr: string;
+} => {
+  const configuredTeam = TEAMS.find((team) => team.id === teamId);
 
-const mapTeam = ({ isWinner: _isWinner, ...team }: FinalsTeamData): FinalsTeam => ({
-  ...team,
-  teamName: getTeamName(team.teamId),
-});
+  return {
+    teamName: configuredTeam?.presentName ?? teamId,
+    teamAbbr: configuredTeam?.teamAbbr ?? teamId,
+  };
+};
+
+const mapTeam = ({
+  isWinner: _isWinner,
+  ...team
+}: FinalsTeamData): FinalsTeam => {
+  const { teamName, teamAbbr } = getTeamMetadata(team.teamId);
+
+  return {
+    ...team,
+    teamName,
+    teamAbbr,
+  };
+};
 
 const buildCategoriesBySeason = (
   rows: readonly FinalsCategoryDbEntry[],
@@ -77,7 +93,9 @@ export const getFinalsLeaderboardData = async (): Promise<
     const awayTeam = mapTeam(matchup.awayTeam);
     const homeTeam = mapTeam(matchup.homeTeam);
     const winnerTeamName =
-      matchup.winnerTeamId === awayTeam.teamId ? awayTeam.teamName : homeTeam.teamName;
+      matchup.winnerTeamId === awayTeam.teamId
+        ? awayTeam.teamName
+        : homeTeam.teamName;
 
     return {
       season: matchup.season,

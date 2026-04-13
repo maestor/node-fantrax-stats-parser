@@ -114,7 +114,9 @@ const readExistingFile = (): Map<number, RegularSeason> => {
       seasonByYear.set(season.year, season);
     }
   } catch {
-    console.info("⚠️  Could not parse existing fantrax-regular.json — starting fresh.");
+    console.info(
+      "⚠️  Could not parse existing fantrax-regular.json — starting fresh.",
+    );
   }
   return seasonByYear;
 };
@@ -165,7 +167,9 @@ async function main(): Promise<void> {
   const playoffYears = readPlayoffYears();
 
   if (seasons.length === 0) {
-    console.info(`⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`);
+    console.info(
+      `⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`,
+    );
     return;
   }
 
@@ -222,7 +226,10 @@ async function main(): Promise<void> {
             continue;
           }
           // Skip expansion teams that didn't exist yet
-          if (team.firstSeason !== undefined && team.firstSeason > league.year) {
+          if (
+            team.firstSeason !== undefined &&
+            team.firstSeason > league.year
+          ) {
             rowIndex++;
             continue;
           }
@@ -245,6 +252,7 @@ async function main(): Promise<void> {
             id: team.id,
             name: team.name,
             presentName: team.presentName,
+            teamAbbr: team.teamAbbr,
             wins,
             losses,
             ties,

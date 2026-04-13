@@ -100,6 +100,8 @@ curl -H "x-api-key: <your-key>" \
   "https://ffhl-stats-api.vercel.app/last-modified"
 ```
 
+`/teams` returns each configured team's current `teamAbbr`, and `/leaderboard/finals` includes `teamAbbr` on both `awayTeam` and `homeTeam`.
+
 OpenAPI is the source of truth for route parameters and response schemas.
 
 ## Common Commands
