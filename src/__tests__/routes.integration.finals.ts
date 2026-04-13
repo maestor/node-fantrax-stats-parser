@@ -94,9 +94,10 @@ const insertFinalsFixture = async (
     ["goals", 13, 8, "1"],
     ["points", 26, 26, null],
     ["wins", 0, 1, "5"],
-    ["saves", 17, 107, "5"],
     ["gaa", null, 3.23, "5"],
+    ["saves", 17, 107, "5"],
     ["savePercent", null, 0.907, "5"],
+    ["shutouts", 0, 1, "5"],
   ] as const;
 
   for (const [statKey, awayValue, homeValue, winnerTeamId] of categories) {
@@ -179,15 +180,15 @@ export const registerFinalsRouteIntegrationTests = (): void => {
             winnerTeamId: "5",
           },
           {
-            statKey: "saves",
-            awayValue: 17,
-            homeValue: 107,
-            winnerTeamId: "5",
-          },
-          {
             statKey: "gaa",
             awayValue: null,
             homeValue: 3.23,
+            winnerTeamId: "5",
+          },
+          {
+            statKey: "saves",
+            awayValue: 17,
+            homeValue: 107,
             winnerTeamId: "5",
           },
           {
@@ -196,7 +197,22 @@ export const registerFinalsRouteIntegrationTests = (): void => {
             homeValue: 0.907,
             winnerTeamId: "5",
           },
+          {
+            statKey: "shutouts",
+            awayValue: 0,
+            homeValue: 1,
+            winnerTeamId: "5",
+          },
         ]);
+        expect(
+          Object.keys(
+            (
+              body[0].awayTeam as {
+                totals: Record<string, unknown>;
+              }
+            ).totals,
+          ).slice(10),
+        ).toEqual(["wins", "gaa", "saves", "savePercent", "shutouts"]);
         expectArraySchema("FinalsLeaderboardEntry", body);
       } finally {
         await db.cleanup();

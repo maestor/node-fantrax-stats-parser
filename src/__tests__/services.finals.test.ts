@@ -51,10 +51,10 @@ describe("finals service", () => {
             hits: 30,
             blocks: 20,
             wins: 1,
-            saves: 50,
-            shutouts: 0,
             gaa: 2.5,
+            saves: 50,
             savePercent: 0.91,
+            shutouts: 0,
           },
         },
       homeTeam: {
@@ -79,10 +79,10 @@ describe("finals service", () => {
             hits: 28,
             blocks: 18,
             wins: 1,
-            saves: 48,
-            shutouts: 0,
             gaa: 2.7,
+            saves: 48,
             savePercent: 0.9,
+            shutouts: 0,
           },
         },
       },
@@ -166,6 +166,11 @@ describe("finals service", () => {
         winnerTeamId: "404",
       },
     ]);
+    expect(
+      Object.keys(result[0].awayTeam.totals).slice(
+        Object.keys(result[0].awayTeam.totals).indexOf("wins"),
+      ),
+    ).toEqual(["wins", "gaa", "saves", "savePercent", "shutouts"]);
   });
 
   test("returns empty category arrays when a season has no category rows", async () => {
@@ -196,10 +201,10 @@ describe("finals service", () => {
             hits: 30,
             blocks: 20,
             wins: 1,
-            saves: 50,
-            shutouts: 0,
             gaa: 2.5,
+            saves: 50,
             savePercent: 0.91,
+            shutouts: 0,
           },
         },
       homeTeam: {
@@ -224,10 +229,10 @@ describe("finals service", () => {
             hits: 28,
             blocks: 18,
             wins: 1,
-            saves: 48,
-            shutouts: 0,
             gaa: 2.7,
+            saves: 48,
             savePercent: 0.9,
+            shutouts: 0,
           },
         },
       },

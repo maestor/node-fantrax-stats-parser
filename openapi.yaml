@@ -1601,10 +1601,10 @@ components:
         - hits
         - blocks
         - wins
-        - saves
-        - shutouts
         - gaa
+        - saves
         - savePercent
+        - shutouts
       properties:
         goals:
           type: integer
@@ -1628,16 +1628,16 @@ components:
           type: integer
         wins:
           type: integer
-        saves:
-          type: integer
-        shutouts:
-          type: integer
         gaa:
           type: number
           nullable: true
+        saves:
+          type: integer
         savePercent:
           type: number
           nullable: true
+        shutouts:
+          type: integer
 
     FinalsStatKey:
       type: string
@@ -1653,10 +1653,10 @@ components:
         - hits
         - blocks
         - wins
-        - saves
-        - shutouts
         - gaa
+        - saves
         - savePercent
+        - shutouts
 
     FinalsLeaderboardCategory:
       type: object
