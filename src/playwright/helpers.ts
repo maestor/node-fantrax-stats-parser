@@ -336,18 +336,45 @@ export const scrapePlayoffsPeriodsFromStandingsTables = async (
 
 const CHAMPION_SELECTOR =
   ".league-playoff-tree__cell--champion .league-playoff-tree__cell__team";
+const CHAMPION_CELL_SELECTOR = ".league-playoff-tree__cell--champion";
+const CHAMPION_WAIT_TIMEOUT_MS = 15_000;
+
+const normalizeChampionText = (text: string): string =>
+  normalizeSpaces(text).replace(/^\d+(?:\.\d+)?\s+/, "");
 
 export const scrapeChampionFromBracket = async (
   page: Page,
 ): Promise<string | null> => {
-  // Wait for Angular to finish rendering the bracket before querying.
-  // Some seasons render the champion cell slowly; without waiting, count() returns 0.
-  await page.waitForSelector(CHAMPION_SELECTOR, { timeout: 5000 }).catch(() => null);
-  const cell = page.locator(CHAMPION_SELECTOR);
-  const count = await cell.count();
-  if (count === 0) return null;
-  const text = normalizeSpaces(await cell.first().innerText().catch(() => ""));
-  return text || null;
+  // Wait for Angular to finish hydrating the bracket and fill in a non-empty
+  // champion cell. The current season can render the final node before the team
+  // name text lands, which leaves a fast selector check returning an empty value.
+  await page
+    .waitForFunction(
+      ({ championSelector, championCellSelector }) => {
+        const selectors = [championSelector, championCellSelector];
+        return selectors.some((selector) =>
+          Array.from(document.querySelectorAll(selector)).some((node) =>
+            Boolean(node.textContent?.replace(/\s+/g, " ").trim()),
+          ),
+        );
+      },
+      {
+        championSelector: CHAMPION_SELECTOR,
+        championCellSelector: CHAMPION_CELL_SELECTOR,
+      },
+      { timeout: CHAMPION_WAIT_TIMEOUT_MS },
+    )
+    .catch(() => null);
+
+  for (const selector of [CHAMPION_SELECTOR, CHAMPION_CELL_SELECTOR]) {
+    const texts = await page.locator(selector).allInnerTexts().catch(() => []);
+    const champion = texts
+      .map(normalizeChampionText)
+      .find((text) => text.length > 0);
+    if (champion) return champion;
+  }
+
+  return null;
 };
 
 export const computePlayoffTeamRunsFromPlayoffsPeriods = (args: {

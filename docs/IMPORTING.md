@@ -57,6 +57,8 @@ The mapping includes, per season year:
 
 The sync supports an ongoing current-season bracket. If Fantrax currently shows only a partial round prefix such as `Playoffs 1`, `Playoffs 1-2`, or `Playoffs 1-3`, the script still records the 16 playoff teams with current `roundReached` values and keeps `isChampion` false until a champion is visible.
 
+For completed brackets, the sync now waits for a populated champion cell before leaving `isChampion` false for every team. Fantrax can render the finals node before the winner text hydrates, especially on the current season page.
+
 If the script cannot determine exactly 16 playoff teams for a season, or cannot parse the bracket periods, it skips that season and prints `Manual needed:`.
 
 Useful options:
