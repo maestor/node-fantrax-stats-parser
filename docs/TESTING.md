@@ -14,6 +14,7 @@ All new code **must maintain 100% test coverage:**
 **Excluded from coverage:**
 
 - **`src/__tests__/**`**: Test-only fixtures and harness helpers
+- **`src/playwright/**`**: Operational Fantrax scraping/import CLIs; keep Jest coverage focused on runtime API/domain modules
 - **db/client.ts only**: Thin wrapper around Turso/libSQL client — tested via integration
 
 ---
@@ -64,6 +65,8 @@ npm run verify  # Runs lint, typecheck, unused export check, build, and test:cov
 - In the service-unit suites, keep aggregation, merge, sorting, and error-path coverage; remove tests that only prove query fan-out, default parameter forwarding, or other wiring already exercised by route integration.
 - Treat omitted-season selection and combined default-window behavior as route-integration territory, not mocked service wiring.
 - Keep focused unit tests for pure scoring logic, CSV-import mapping, auth parsing, cache normalization, and snapshot cache behavior.
+- Do not add Jest suites that import from `src/playwright/**`. Those files are operational CLI entry points, not part of the Jest-covered application surface.
+- If Playwright-related logic needs unit coverage, extract the pure parsing/normalization code into a non-Playwright module first and test that extracted module instead.
 - Once season selection, season-label formatting, or row-normalization behavior is already asserted through a live route response, prefer the integration suite over duplicating the same expectation in a thin helper/query happy-path test.
 - For OpenAPI schema conformance, prefer validating real route responses, using the integration suite for DB-backed endpoints and only lightweight route tests for non-DB cases.
 - The integration harness lives in `src/__tests__/integration-db.ts` and uses `src/db/schema.ts` so tests and the migration script share the same schema source.
@@ -141,6 +144,7 @@ src/
     ├── db.schema.test.ts # Schema migration/backfill behavior for fantrax_entities and draft tables
     ├── drafts.import.test.ts # Draft JSON validation and DB import behavior
     ├── drafts.parser.test.ts # FFHL forum draft parsing for entry and opening draft topics
+    ├── finals-goalie-rules.test.ts # Finals goalie-rate qualification helpers
     ├── helpers.goalies.test.ts # Goalie scoring helpers
     ├── helpers.players.test.ts # Player scoring helpers
     ├── helpers.test.ts   # Shared helper utilities
