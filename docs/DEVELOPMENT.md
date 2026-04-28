@@ -35,6 +35,7 @@ This should:
 ## Documentation Map
 
 - [../README.md](../README.md) - project overview, quick start, API doc links, grouped endpoint examples
+- [AGENT_SKILLS.md](AGENT_SKILLS.md) - default Codex skill set and project-local install/usage rules
 - [TESTING.md](TESTING.md) - testing strategy and coverage rules
 - [IMPORTING.md](IMPORTING.md) - Fantrax and FFHL draft import runbooks, CSV handling
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Vercel, Turso, R2, auth, caching
@@ -43,6 +44,18 @@ This should:
 - [RATING.md](RATING.md) - finals leaderboard rate behavior
 
 Keep the README concise. Put deep operational detail in the topic docs above instead of growing the top-level readme again.
+
+---
+
+## Agent Skills Workflow
+
+The repository keeps its default Codex backend skills under `.agents/skills/`.
+
+- Use `intelligence-testing` whenever work changes tests or needs a decision about test coverage scope.
+- Use `api-contract-sync` whenever route shapes, OpenAPI, generated types, fixtures, or consumer expectations change.
+- Use `local-first-verification` whenever choosing local checks before review, handoff, or commit.
+
+Keep the detailed workflow in [AGENT_SKILLS.md](AGENT_SKILLS.md). This file stays focused on repository development rules instead of repeating the full skill playbook.
 
 ---
 

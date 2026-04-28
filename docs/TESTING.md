@@ -1,5 +1,17 @@
 # 🧪 Testing Requirements
 
+## Default Testing Skill
+
+`intelligence-testing` is the default skill for all testing work in this repository, including deciding test coverage scope.
+
+- Start from the real usage story before choosing a test.
+- Prefer the highest-signal failing test first at the right layer.
+- Prefer behavior and integration coverage over duplicated mock wiring when the changed behavior crosses boundaries.
+
+Use [AGENT_SKILLS.md](AGENT_SKILLS.md) for the shared skill workflow, and use this document for the repository-specific rules and coverage expectations that refine it.
+
+---
+
 ## Coverage Gates ✅
 
 All new code **must maintain 100% test coverage:**

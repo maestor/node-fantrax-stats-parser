@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intelligence Testing"
+  short_description: "Drive software work with behavior-first TDD"
+  default_prompt: "Use $intelligence-testing to drive this task with behavior-first TDD and realistic test scenarios."
