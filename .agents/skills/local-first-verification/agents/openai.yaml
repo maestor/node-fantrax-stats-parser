@@ -1,0 +1,4 @@
+interface:
+  display_name: "Local First Verification"
+  short_description: "Choose the cheapest honest local verification path"
+  default_prompt: "Use $local-first-verification to choose and run the right local verification depth for this task."

@@ -118,8 +118,13 @@ npm run test:integration
 npm run snapshot:generate
 ```
 
+## Agent Workflow
+
+Codex work in this repository defaults to the backend/basic skill set from `maestor/agent-skills`: `intelligence-testing`, `api-contract-sync`, and `local-first-verification`. Those skills live in this repo under `.agents/skills/`. `mutation-testing` is intentionally not part of this project. See [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) for the project-local install command and automatic usage rules.
+
 ## Documentation
 
+- [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) - default Codex skill set, project-local install flow, and when to apply each backend skill
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - development workflow, code standards, project structure, OpenAPI maintenance
 - [docs/TESTING.md](docs/TESTING.md) - test strategy, coverage expectations, integration testing rules
 - [docs/IMPORTING.md](docs/IMPORTING.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking/backfill, CSV normalization
