@@ -26,7 +26,7 @@
 - Default workflow is a user-created branch (not `main`).
 - If currently on `main`, ask user to create a branch before implementing task changes.
 - If considering `git worktree`, always ask explicitly first and explain why worktree would help.
-- Before any commit, `npm run verify` must pass. Targeted tests are not a substitute for the full verification gate.
+- Before any non-docs commit, `npm run verify` must pass. Docs-only changes do not require the full verification gate. Targeted tests are not a substitute for the full verification gate when runtime code changes.
 - Commit message prefixes should use capitalized conventional labels.
 - New features must use the prefix `Feature: `.
 - Non-feature commits should use a capitalized prefix such as `Fix:`, `Docs:`, `Chore:`, etc.

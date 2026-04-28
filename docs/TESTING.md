@@ -21,7 +21,7 @@ All new code **must maintain 100% test coverage:**
 - **100% function coverage**
 - **100% line coverage**
 
-**Enforcement:** `npm run verify` must pass before any commit.
+**Enforcement:** `npm run verify` must pass before non-docs commits. Docs-only commits can skip it.
 
 **Excluded from coverage:**
 
@@ -225,7 +225,7 @@ Keep this directory updated whenever a new module or integration boundary is add
 
 - [ ] All new code has test coverage
 - [ ] `npm run unused` passes or intentional test-only exports are marked `@internal`
-- [ ] `npm run verify` passes (lint + typecheck + build + coverage)
+- [ ] `npm run verify` passes for non-docs changes (lint + typecheck + build + coverage)
 - [ ] No coverage thresholds lowered
 - [ ] Test names clearly describe what's being tested
 - [ ] Edge cases and error conditions tested

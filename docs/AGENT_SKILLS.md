@@ -14,7 +14,7 @@ Use these skills by default during future development work:
 
 - `intelligence-testing`: every time work involves testing, test coverage scope, or deciding the right test layer. Start from a real usage story, write the highest-signal failing test first, and prefer behavior or integration coverage over duplicated mock wiring when the changed behavior crosses boundaries.
 - `api-contract-sync`: every time a task changes route shapes, request or response contracts, OpenAPI, generated types, shared DTOs, fixtures, or client expectations. Treat the contract source of truth as the first edit.
-- `local-first-verification`: every time a task needs verification planning before handoff, review, or commit. Start with the cheapest meaningful local check, escalate only when needed, and still finish with `npm run verify` before every commit because that is a repository rule.
+- `local-first-verification`: every time a task needs verification planning before handoff, review, or commit. Start with the cheapest meaningful local check, escalate only when needed, and finish with `npm run verify` for non-docs changes because that is the repository rule.
 
 When project-specific instructions conflict with a generic skill, follow this repository's docs first and use the skill as the decision-making lens behind them.
 

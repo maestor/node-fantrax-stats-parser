@@ -77,7 +77,7 @@ Keep the detailed workflow in [AGENT_SKILLS.md](AGENT_SKILLS.md). This file stay
 3. **Before committing**
 
    ```bash
-   npm run verify  # Must pass - runs all quality gates
+   npm run verify  # Required for non-docs changes; docs-only commits can skip it
    ```
 
 4. **Commit with descriptive message**
@@ -105,7 +105,7 @@ npm run verify
 4. `npm run build` - Production build (outputs to lib/)
 5. `npm run test:coverage` - Full test suite with coverage gates
 
-**Must pass before every commit.** No exceptions.
+**Must pass before every non-docs commit.** Docs-only commits can skip the full verification gate.
 
 ---
 
