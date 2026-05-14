@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Documentation"
+  short_description: "Keep repo docs concise, current, and project-specific"
+  default_prompt: "Use $project-documentation to create or update this repository's README and docs so they stay aligned with the real frontend, backend, or mobile workflow."

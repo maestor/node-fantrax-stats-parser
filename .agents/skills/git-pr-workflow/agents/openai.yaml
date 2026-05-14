@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git PR Workflow"
+  short_description: "Use a consistent branch, verify, commit, and PR handoff flow"
+  default_prompt: "Use $git-pr-workflow for this task so the work follows the standard branch, review, verify, commit, push, and PR-notes workflow."
