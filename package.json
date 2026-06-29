@@ -79,7 +79,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.2",
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.2.0",
     "rou3": "^0.8.1"
   },
   "devDependencies": {
