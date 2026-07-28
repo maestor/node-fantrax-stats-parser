@@ -30,7 +30,7 @@ npm run dev
 
 Open [http://localhost:3000/api-docs](http://localhost:3000/api-docs) for the local Swagger UI.
 
-If you need to scrape fresh Fantrax or FFHL forum data instead of using existing CSV/JSON inputs, use [docs/IMPORTING.md](docs/IMPORTING.md).
+If you need to scrape fresh Fantrax or FFHL forum data instead of using existing CSV/JSON inputs, use [docs/importing.md](docs/importing.md).
 
 ## API Docs
 
@@ -120,18 +120,18 @@ npm run snapshot:generate
 
 ## Agent Workflow
 
-Codex work in this repository defaults to the backend/basic skill set from `maestor/agent-skills`: `intelligence-testing`, `api-contract-sync`, and `local-first-verification`. Those skills live in this repo under `.agents/skills/`. `mutation-testing` is intentionally not part of this project. See [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) for the project-local install command and automatic usage rules.
+Codex work in this repository defaults to the backend/basic skill set from `maestor/agent-skills`: `intelligence-testing`, `api-contract-sync`, and `local-first-verification`. Those skills live in this repo under `.agents/skills/`. `mutation-testing` is intentionally not part of this project.
 
 ## Documentation
 
-- [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) - default Codex skill set, project-local install flow, and when to apply each backend skill
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - development workflow, code standards, project structure, OpenAPI maintenance
-- [docs/TESTING.md](docs/TESTING.md) - test strategy, coverage expectations, integration testing rules
-- [docs/IMPORTING.md](docs/IMPORTING.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking/backfill, CSV normalization
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) - Vercel, Turso, R2, API auth, caching, operational commands
-- [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md) - snapshot-backed endpoints, generation rules, R2 snapshot storage
-- [docs/SCORING.md](docs/SCORING.md) - player and goalie scoring model details
-- [docs/RATING.md](docs/RATING.md) - finals leaderboard rate model details
+- [docs/development.md](docs/development.md) - development workflow, code standards, project structure, OpenAPI maintenance
+- [docs/testing.md](docs/testing.md) - test strategy, coverage expectations, integration testing rules
+- [docs/importing.md](docs/importing.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking/backfill, CSV normalization
+- [docs/deployment.md](docs/deployment.md) - Vercel, Turso, R2, API auth, caching, operational commands
+- [docs/snapshots.md](docs/snapshots.md) - snapshot-backed endpoints, generation rules, R2 snapshot storage
+- [docs/season-change.md](docs/season-change.md) - ordered checklist for moving the repo to a new active FFHL season
+- [docs/scoring.md](docs/scoring.md) - player and goalie scoring model details
+- [docs/rating.md](docs/rating.md) - finals leaderboard rate model details
 
 ## Technology
 

@@ -3,26 +3,24 @@
 ## Startup Checklist
 1. Read [README.md](README.md) for project overview, quick start, and the documentation map.
 2. Read [package.json](package.json) for available npm scripts.
-3. Follow [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-4. Follow [docs/TESTING.md](docs/TESTING.md).
-5. Follow [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) for the project's default Codex skill workflow.
-6. Read the relevant topic doc when the task touches that area:
-   - [docs/IMPORTING.md](docs/IMPORTING.md)
-   - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-   - [docs/SNAPSHOTS.md](docs/SNAPSHOTS.md)
-   - [docs/SCORING.md](docs/SCORING.md)
-   - [docs/RATING.md](docs/RATING.md)
+3. Follow [docs/development.md](docs/development.md).
+4. Follow [docs/testing.md](docs/testing.md).
+5. Read the relevant topic doc when the task touches that area:
+   - [docs/importing.md](docs/importing.md)
+   - [docs/deployment.md](docs/deployment.md)
+   - [docs/snapshots.md](docs/snapshots.md)
+   - [docs/season-change.md](docs/season-change.md)
+   - [docs/scoring.md](docs/scoring.md)
+   - [docs/rating.md](docs/rating.md)
 
 ## Shared Skills
 - Use `$project-documentation` when updating `README.md`, `docs/**`, contributor guidance, or repository workflow docs.
 - Use `$git-pr-workflow` for the standard branch, review, final-verify, commit, push, and PR-notes flow.
-- Keep the detailed project skill workflow in [docs/AGENT_SKILLS.md](docs/AGENT_SKILLS.md) instead of re-explaining it here.
-
 ## Documentation Rules
 - Keep [README.md](README.md) and docs updated after every task when needed.
 - Keep [README.md](README.md) concise as the front door: overview, quick start, API doc entrypoints, and links to deeper docs.
 - Put deep operational detail into focused docs under `docs/` instead of rebuilding a large README.
-- Avoid duplicating the same long runbook across [README.md](README.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), and topic docs.
+- Avoid duplicating the same long runbook across [README.md](README.md), [docs/development.md](docs/development.md), and topic docs.
 - If current documentation has clearly weak decisions, challenge them and propose better alternatives. User decides whether documentation guidelines are changed.
 
 ## Repo-Specific Workflow Overrides

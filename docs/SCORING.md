@@ -86,7 +86,7 @@ Each weight is a decimal between `0` and `1`. Lowering a weight reduces that sta
 
 ## Related Rating Docs
 
-Finals leaderboard rates are documented separately in [RATING.md](RATING.md).
+Finals leaderboard rates are documented separately in [rating.md](rating.md).
 
 Use that document for:
 

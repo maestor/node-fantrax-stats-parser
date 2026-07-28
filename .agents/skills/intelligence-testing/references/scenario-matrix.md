@@ -112,5 +112,6 @@ Avoid:
 - If a branch cannot be tied to a realistic scenario, remove it.
 - If a test does not describe observable behavior, question whether it belongs.
 - If a unit test and an integration test prove the same thing, keep the one with better signal.
+- If behavior was intentionally removed, delete the tests and setup that only existed for that behavior unless absence itself is the requirement.
 - If coverage pressure encourages fake scenarios, simplify the code instead.
 - If the task changes behavior across UI and API, make sure both the user-visible result and the server contract are validated.

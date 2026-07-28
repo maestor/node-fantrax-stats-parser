@@ -34,7 +34,7 @@ Career and career-highlight snapshots are intentionally manual-only after stats 
 
 ## Environment Variables
 
-Base R2 credentials are described in [DEPLOYMENT.md](DEPLOYMENT.md). Snapshot-specific settings are:
+Base R2 credentials are described in [deployment.md](deployment.md). Snapshot-specific settings are:
 
 ```bash
 USE_R2_SNAPSHOTS=false

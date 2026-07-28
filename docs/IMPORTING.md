@@ -11,7 +11,7 @@ The source files stay local or in R2; the API serves data from the database and 
 
 - `npm install`
 - Playwright-based Fantrax scripts auto-run `playwright install chromium` before launch
-- For remote database imports, set `USE_REMOTE_DB=true` and Turso credentials as described in [DEPLOYMENT.md](DEPLOYMENT.md)
+- For remote database imports, set `USE_REMOTE_DB=true` and Turso credentials as described in [deployment.md](deployment.md)
 
 ## Fantrax Metadata Sync
 

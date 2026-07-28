@@ -8,7 +8,7 @@
 - Prefer the highest-signal failing test first at the right layer.
 - Prefer behavior and integration coverage over duplicated mock wiring when the changed behavior crosses boundaries.
 
-Use [AGENT_SKILLS.md](AGENT_SKILLS.md) for the shared skill workflow, and use this document for the repository-specific rules and coverage expectations that refine it.
+Use this document for the repository-specific testing rules and coverage expectations, while `intelligence-testing` remains the default decision-making skill for testing work.
 
 ---
 

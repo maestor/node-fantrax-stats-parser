@@ -35,13 +35,13 @@ This should:
 ## Documentation Map
 
 - [../README.md](../README.md) - project overview, quick start, API doc links, grouped endpoint examples
-- [AGENT_SKILLS.md](AGENT_SKILLS.md) - default Codex skill set and project-local install/usage rules
-- [TESTING.md](TESTING.md) - testing strategy and coverage rules
-- [IMPORTING.md](IMPORTING.md) - Fantrax and FFHL draft import runbooks, CSV handling
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Vercel, Turso, R2, auth, caching
-- [SNAPSHOTS.md](SNAPSHOTS.md) - snapshot-backed endpoints and generation rules
-- [SCORING.md](SCORING.md) - player and goalie scoring behavior
-- [RATING.md](RATING.md) - finals leaderboard rate behavior
+- [testing.md](testing.md) - testing strategy and coverage rules
+- [importing.md](importing.md) - Fantrax and FFHL draft import runbooks, CSV handling
+- [deployment.md](deployment.md) - Vercel, Turso, R2, auth, caching
+- [snapshots.md](snapshots.md) - snapshot-backed endpoints and generation rules
+- [season-change.md](season-change.md) - ordered rollover checklist for the next active season
+- [scoring.md](scoring.md) - player and goalie scoring behavior
+- [rating.md](rating.md) - finals leaderboard rate behavior
 
 Keep the README concise. Put deep operational detail in the topic docs above instead of growing the top-level readme again.
 
@@ -54,8 +54,6 @@ The repository keeps its default Codex backend skills under `.agents/skills/`.
 - Use `intelligence-testing` whenever work changes tests or needs a decision about test coverage scope.
 - Use `api-contract-sync` whenever route shapes, OpenAPI, generated types, fixtures, or consumer expectations change.
 - Use `local-first-verification` whenever choosing local checks before review, handoff, or commit.
-
-Keep the detailed workflow in [AGENT_SKILLS.md](AGENT_SKILLS.md). This file stays focused on repository development rules instead of repeating the full skill playbook.
 
 ---
 
@@ -136,9 +134,9 @@ npm run verify
 
 ### Operational Data Workflows
 
-- [IMPORTING.md](IMPORTING.md) covers Playwright sync/import flows, FFHL draft scraping, `csv/temp` normalization, and Fantrax ID handling
-- [DEPLOYMENT.md](DEPLOYMENT.md) covers Turso, R2, auth, caching, local-vs-remote import targets, and the `db:*` / `r2:*` operational commands
-- [SNAPSHOTS.md](SNAPSHOTS.md) covers `npm run snapshot:generate`, snapshot scopes, and `x-stats-data-source`
+- [importing.md](importing.md) covers Playwright sync/import flows, FFHL draft scraping, `csv/temp` normalization, and Fantrax ID handling
+- [deployment.md](deployment.md) covers Turso, R2, auth, caching, local-vs-remote import targets, and the `db:*` / `r2:*` operational commands
+- [snapshots.md](snapshots.md) covers `npm run snapshot:generate`, snapshot scopes, and `x-stats-data-source`
 
 Most data-operation scripts are documented in those topic docs instead of being duplicated here. Keep this file focused on development workflow and code standards.
 

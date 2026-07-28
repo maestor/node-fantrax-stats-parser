@@ -1,6 +1,6 @@
 # Rating Models
 
-This document covers rating-style models that are related to FFHL results analysis but are not part of the player/goalie `score` and `scoreAdjustedByGames` model described in [SCORING.md](SCORING.md).
+This document covers rating-style models that are related to FFHL results analysis but are not part of the player/goalie `score` and `scoreAdjustedByGames` model described in [scoring.md](scoring.md).
 
 ## Finals Rates
 

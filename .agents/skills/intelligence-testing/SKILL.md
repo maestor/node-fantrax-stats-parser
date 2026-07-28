@@ -34,6 +34,8 @@ If the repository already has project-specific testing rules, follow those rules
 - Do not add branches for imagined futures unless the product explicitly needs them now.
 - Do not keep fallback logic that no real scenario can trigger.
 - Do not add helper-only tests just to justify dead code.
+- When a feature or UI element is intentionally removed, delete tests and assertions that only existed for that behavior.
+- Keep a negative assertion only when the absence itself is a real product requirement, such as permission gating, security, or a replaced user flow.
 - Prefer one strong integration or behavior test over several thin mock-wiring tests.
 - Keep pure unit tests for deterministic logic that is reused or too awkward to reach through behavior tests.
 - Refactor only after the failing test has gone green.
@@ -119,6 +121,12 @@ Default checklist:
 
 Do not invent branches only because "something might happen someday." If a branch cannot be described as a realistic path, simplify or delete it.
 
+When behavior is removed, treat test cleanup as part of the change:
+
+- Delete assertions that only proved the removed behavior used to exist
+- Delete now-obsolete fixtures, helpers, and mock setup that only supported those assertions
+- Replace a positive assertion with a negative one only when the product truly needs absence to stay enforced
+
 ### 6. Refactor after protection exists
 
 Once the behavior is protected:
@@ -141,6 +149,7 @@ After implementation:
 - Testing component methods instead of user-visible behavior
 - Mocking most of the stack and then claiming integration confidence
 - Preserving unreachable branches and covering them with isolated tests
+- Converting removed-behavior tests into "it does not exist" assertions when no real requirement needs that proof
 - Adding "just in case" fallbacks without a concrete scenario
 - Duplicating the same happy path in unit, integration, and E2E suites
 - Using TDD as an excuse to start from internal helper tests when the behavior belongs at UI, route, or integration level

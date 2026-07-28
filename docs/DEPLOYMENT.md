@@ -99,7 +99,7 @@ npm run db:import:playoff-results
 npm run db:import:regular-results
 ```
 
-Successful imports regenerate only the snapshot scopes they directly affect. Manual snapshot generation is described in [SNAPSHOTS.md](SNAPSHOTS.md).
+Successful imports regenerate only the snapshot scopes they directly affect. Manual snapshot generation is described in [snapshots.md](snapshots.md).
 
 ## Cloud Storage (Cloudflare R2)
 
@@ -109,7 +109,7 @@ Cloudflare R2 can be used for:
 - raw `csv/temp` upload/download workflows
 - transaction CSV storage
 
-Snapshot storage is documented separately in [SNAPSHOTS.md](SNAPSHOTS.md).
+Snapshot storage is documented separately in [snapshots.md](snapshots.md).
 
 ### Configuration
 
