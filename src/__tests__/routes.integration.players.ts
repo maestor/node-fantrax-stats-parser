@@ -173,7 +173,7 @@ export const registerPlayerRouteIntegrationTests = (): void => {
           },
           {
             teamId: "1",
-            season: 2025,
+            season: 2026,
             reportType: "regular",
             playerId: "p-new",
             name: "Newest Skater",

@@ -25,7 +25,7 @@ export const registerSeasonRouteIntegrationTests = (): void => {
         expect(res.statusCode).toBe(HTTP_STATUS.OK);
         expect(res.getHeader("x-stats-data-source")).toBe("db");
         expect(body[0]).toEqual({ season: 2012, text: "2012-2013" });
-        expect(body.at(-1)).toEqual({ season: 2025, text: "2025-2026" });
+        expect(body.at(-1)).toEqual({ season: 2026, text: "2026-2027" });
         expectArraySchema("Season", body);
       } finally {
         await db.cleanup();
@@ -56,6 +56,7 @@ export const registerSeasonRouteIntegrationTests = (): void => {
           { season: 2023, text: "2023-2024" },
           { season: 2024, text: "2024-2025" },
           { season: 2025, text: "2025-2026" },
+          { season: 2026, text: "2026-2027" },
         ]);
         expectArraySchema("Season", body);
       } finally {

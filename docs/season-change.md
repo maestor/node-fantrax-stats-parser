@@ -54,6 +54,7 @@ npm run playwright:sync:finals -- --year=2026
 Notes:
 
 - `playwright:sync:leagues` is the important first step because regular imports, playoff imports, and transaction downloads depend on the season-to-league mapping.
+- keep `--year=2026` on the `sync:*` commands when you only want to refresh the new active season; without it, these scripts iterate every mapped season
 - `playwright:sync:playoffs` and `playwright:sync:finals` can be deferred until those parts of the season actually exist.
 - `playwright:sync:regular` writes the local standings mapping used by regular-results imports.
 
@@ -62,40 +63,69 @@ Notes:
 For the regular-season rollover, use one of these:
 
 ```bash
-./scripts/update-season.sh 2026
+./scripts/update-season.sh
 ```
 
 or the explicit flow:
 
 ```bash
-npm run playwright:import:regular -- --year=2026
-./scripts/import-temp-csv.sh --season=2026 --report-type=regular
+npm run playwright:import:regular
+./scripts/import-temp-csv.sh --report-type=regular
 ```
 
 Important:
 
+- `playwright:import:regular` defaults to the most recent mapped season when `--year` is omitted.
 - `scripts/update-season.sh` is only a regular-season bootstrap helper. It does not replace the full season-change checklist.
 - if you use the default `csv/temp/` output, the Playwright importer already triggers the temp CSV pipeline automatically
 
 Import transactions once the new season is available:
 
 ```bash
-npm run playwright:import:transactions -- --year=2026
+npm run playwright:import:transactions
 ```
 
 Later in the season, import the remaining season-specific data as needed:
 
 ```bash
-npm run playwright:import:playoffs -- --year=2026
-npm run db:import:transactions -- --season=2026
+npm run playwright:import:playoffs
+npm run db:import:transactions
 npm run db:import:regular-results
 npm run db:import:playoff-results
 npm run db:import:finals-results
 ```
 
 Choose the commands that match the current phase of the season. Early in the year you usually only need regular-season rosters and transactions.
+Use an explicit `--year` or `--season` only when you are backfilling an older season or you want to override the default current-season target.
 
-### 5. Refresh snapshots and storage expectations
+### 5. Add the new entry draft season when it exists
+
+The FFHL entry draft does not follow the same default-current-season flow as the Fantrax imports. If the new entry draft season is missing, add it explicitly once the forum thread exists.
+
+Sync the entry draft from the public FFHL forum thread:
+
+```bash
+npm run playwright:sync:draft -- --url=https://ffhl.kld.im/threads/entry-draft-2026-varatut-pelaajat.XXXX/
+```
+
+Then import the local draft JSON into the database:
+
+```bash
+npx tsx scripts/db-import-drafts.ts --season=2026
+```
+
+Notes:
+
+- this flow is local-only until you import it; there is no automatic Fantrax-style current-season default for entry draft data
+- the scraper parses the season from the forum topic title, so make sure the thread title really says `Entry draft 2026`
+- the output file should become `src/playwright/.fantrax/drafts/entry-draft-2026.json`
+- if the `drafts/` directory does not exist yet, the sync step creates the local draft artifact through the normal output flow
+- use `--season=2026` on the import step so only the new entry-draft season is imported or refreshed
+- if you maintain draft entity mapping files such as `entities-entry-draft.json`, rerun the import after updating them so `fantrax_entity_id` links and derived API flags stay current
+
+This step is separate from the opening-draft history import. `opening-draft.json` is league-history data, while `entry-draft-2026.json` is the new season-specific file you add during rollover.
+
+### 6. Refresh snapshots and storage expectations
 
 Most imports already refresh the relevant snapshots for you:
 
@@ -117,7 +147,7 @@ npm run r2:upload:current
 npm run r2:upload:transactions -- --current-only
 ```
 
-### 6. Verify the new season behaves like the active default
+### 7. Verify the new season behaves like the active default
 
 Recommended checks:
 
@@ -139,7 +169,7 @@ If you changed runtime code such as `CURRENT_SEASON`, finish with:
 npm run verify
 ```
 
-### 7. Update contributor docs if the process changed
+### 8. Update contributor docs if the process changed
 
 If this rollover exposed a new manual step, update these docs in the same task:
 

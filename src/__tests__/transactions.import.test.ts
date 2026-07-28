@@ -11,6 +11,7 @@ import {
   parseTransactionDateToIso,
   resolveTransactionTeamId,
 } from "../../scripts/transaction-import-lib.js";
+import { CURRENT_SEASON } from "../config/index.js";
 import { createIntegrationDb } from "./integration-db.js";
 
 const getCount = async (
@@ -652,6 +653,10 @@ describe("transaction import helpers", () => {
   test("incrementally reimports only current-season rows at or after the latest watermark", async () => {
     const context = await createIntegrationDb();
     const csvDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffhl-transactions-"));
+    const currentSeason = CURRENT_SEASON;
+    const currentSeasonEndYear = currentSeason + 1;
+    const currentClaimsFile = `claims-${currentSeason}-${currentSeasonEndYear}.csv`;
+    const currentTradesFile = `trades-${currentSeason}-${currentSeasonEndYear}.csv`;
 
     try {
       await context.insertPlayers([
@@ -665,7 +670,7 @@ describe("transaction import helpers", () => {
         },
         {
           teamId: "7",
-          season: 2025,
+          season: currentSeason,
           reportType: "regular",
           playerId: "p-2025-older",
           name: "Season 2025 Older Claim",
@@ -673,7 +678,7 @@ describe("transaction import helpers", () => {
         },
         {
           teamId: "7",
-          season: 2025,
+          season: currentSeason,
           reportType: "regular",
           playerId: "p-2025-latest",
           name: "Season 2025 Latest Claim",
@@ -681,7 +686,7 @@ describe("transaction import helpers", () => {
         },
         {
           teamId: "7",
-          season: 2025,
+          season: currentSeason,
           reportType: "regular",
           playerId: "p-2025-new",
           name: "Season 2025 New Claim",
@@ -689,7 +694,7 @@ describe("transaction import helpers", () => {
         },
         {
           teamId: "16",
-          season: 2025,
+          season: currentSeason,
           reportType: "regular",
           playerId: "p-2025-trade",
           name: "Trade Return",
@@ -699,7 +704,7 @@ describe("transaction import helpers", () => {
       await context.insertGoalies([
         {
           teamId: "16",
-          season: 2025,
+          season: currentSeason,
           reportType: "regular",
           goalieId: "g-2025-drop",
           name: "Trade Drop Goalie",
@@ -710,18 +715,18 @@ describe("transaction import helpers", () => {
         `"Player","Team","Position","Type","Team","Date (EDT)","Period"`,
         `"Season 2024 Claim","EDM","F","Claim","Edmonton Oilers","Mon Mar 3, 2025, 12:00PM","100"`,
       ]);
-      await writeCsv(csvDir, "claims-2025-2026.csv", [
+      await writeCsv(csvDir, currentClaimsFile, [
         `"Player","Team","Position","Type","Team","Date (EDT)","Period"`,
-        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, 2026, 12:38PM","149"`,
-        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, 2026, 12:38PM","150"`,
+        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 12:38PM","149"`,
+        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
       ]);
-      await writeCsv(csvDir, "trades-2025-2026.csv", [
+      await writeCsv(csvDir, currentTradesFile, [
         `"Player","Team","Position","From","To","Date (EDT)","Period"`,
-        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, 2026, 9:12AM","149"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, 2026, 9:12AM","150"`,
-        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, 2026, 12:38PM","150"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, 2026, 12:38PM","151"`,
-        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, 2026, 12:38PM","151"`,
+        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","149"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","150"`,
+        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
+        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
       ]);
 
       const firstSummary = await importTransactionsToDb({
@@ -731,37 +736,37 @@ describe("transaction import helpers", () => {
 
       expect(firstSummary).toMatchObject({
         processedFiles: 3,
-        importedSeasons: [2024, 2025],
+        importedSeasons: [2024, currentSeason],
         claimEvents: 4,
         claimItems: 4,
         tradeBlocks: 4,
         tradeItems: 4,
       });
 
-      await writeCsv(csvDir, "claims-2025-2026.csv", [
+      await writeCsv(csvDir, currentClaimsFile, [
         `"Player","Team","Position","Type","Team","Date (EDT)","Period"`,
-        `"Season 2025 New Claim","EDM","F","Claim","Edmonton Oilers","Fri Mar 6, 2026, 12:38PM","151"`,
-        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, 2026, 12:38PM","150"`,
-        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, 2026, 12:38PM","149"`,
+        `"Season 2025 New Claim","EDM","F","Claim","Edmonton Oilers","Fri Mar 6, ${currentSeasonEndYear}, 12:38PM","151"`,
+        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
+        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 12:38PM","149"`,
       ]);
-      await writeCsv(csvDir, "trades-2025-2026.csv", [
+      await writeCsv(csvDir, currentTradesFile, [
         `"Player","Team","Position","From","To","Date (EDT)","Period"`,
-        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, 2026, 9:12AM","149"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, 2026, 9:12AM","150"`,
-        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, 2026, 12:38PM","150"`,
-        `"2026 Draft Pick, Round 3 (Buffalo Sabres)","","","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, 2026, 12:38PM","150"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, 2026, 12:38PM","151"`,
-        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, 2026, 12:38PM","151"`,
+        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","149"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","150"`,
+        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
+        `"${currentSeasonEndYear} Draft Pick, Round 3 (Buffalo Sabres)","","","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
+        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
       ]);
 
       const secondSummary = await importTransactionsToDb({
         db: context.db,
         csvDir,
-        seasons: [2025],
+        seasons: [currentSeason],
         incremental: true,
       });
 
-      expect(secondSummary.importedSeasons).toEqual([2025]);
+      expect(secondSummary.importedSeasons).toEqual([currentSeason]);
       expect(
         await getCount(
           context.db,
@@ -771,73 +776,73 @@ describe("transaction import helpers", () => {
       expect(
         await getCount(
           context.db,
-          "SELECT COUNT(*) AS count FROM claim_events WHERE season = 2025",
+          `SELECT COUNT(*) AS count FROM claim_events WHERE season = ${currentSeason}`,
         ),
       ).toBe(4);
       expect(
         await getCount(
           context.db,
-          "SELECT COUNT(*) AS count FROM trade_source_blocks WHERE season = 2025",
+          `SELECT COUNT(*) AS count FROM trade_source_blocks WHERE season = ${currentSeason}`,
         ),
       ).toBe(4);
       expect(
         await getCount(
           context.db,
-          "SELECT COUNT(*) AS count FROM trade_block_items WHERE trade_source_block_id IN (SELECT id FROM trade_source_blocks WHERE season = 2025)",
+          `SELECT COUNT(*) AS count FROM trade_block_items WHERE trade_source_block_id IN (SELECT id FROM trade_source_blocks WHERE season = ${currentSeason})`,
         ),
       ).toBe(5);
 
       const currentClaimRows = await context.db.execute(
         `SELECT source_file, source_group_index, occurred_at
          FROM claim_events
-         WHERE season = 2025
+         WHERE season = ${currentSeason}
          ORDER BY source_file ASC, source_group_index ASC`,
       );
       expect(currentClaimRows.rows).toEqual([
         {
-          source_file: "claims-2025-2026.csv",
+          source_file: currentClaimsFile,
           source_group_index: 0,
-          occurred_at: "2026-03-04T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-04T16:38:00.000Z`,
         },
         {
-          source_file: "claims-2025-2026.csv",
+          source_file: currentClaimsFile,
           source_group_index: 1,
-          occurred_at: "2026-03-06T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-06T16:38:00.000Z`,
         },
         {
-          source_file: "claims-2025-2026.csv",
+          source_file: currentClaimsFile,
           source_group_index: 2,
-          occurred_at: "2026-03-05T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-05T16:38:00.000Z`,
         },
         {
-          source_file: "trades-2025-2026.csv",
+          source_file: currentTradesFile,
           source_group_index: 0,
-          occurred_at: "2026-03-05T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-05T16:38:00.000Z`,
         },
       ]);
 
       const tradeRows = await context.db.execute(
         `SELECT source_block_index, occurred_at
          FROM trade_source_blocks
-         WHERE season = 2025
+         WHERE season = ${currentSeason}
          ORDER BY source_block_index ASC`,
       );
       expect(tradeRows.rows).toEqual([
         {
           source_block_index: 0,
-          occurred_at: "2026-03-04T13:12:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-04T13:12:00.000Z`,
         },
         {
           source_block_index: 1,
-          occurred_at: "2026-03-04T13:12:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-04T13:12:00.000Z`,
         },
         {
           source_block_index: 2,
-          occurred_at: "2026-03-05T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-05T16:38:00.000Z`,
         },
         {
           source_block_index: 3,
-          occurred_at: "2026-03-05T16:38:00.000Z",
+          occurred_at: `${currentSeasonEndYear}-03-05T16:38:00.000Z`,
         },
       ]);
     } finally {
