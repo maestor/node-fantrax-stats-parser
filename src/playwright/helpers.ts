@@ -5,6 +5,7 @@ import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
 
 import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../config/index.js";
+export { buildRosterUrlForSeason } from "../features/fantrax/roster-url.js";
 import type { Team } from "../shared/types/index.js";
 
 export type RoundWindow = { startDate: string; endDate: string; label: string };
@@ -1008,20 +1009,6 @@ export const getRosterTeamIdFromStandingsByNames = async (
       lastClickError,
     )}`,
   );
-};
-
-export const buildRosterUrlForSeason = (args: {
-  leagueId: string;
-  rosterTeamId: string;
-  startDate: string;
-  endDate: string;
-}): string => {
-  const leagueId = encodeURIComponent(args.leagueId);
-  const rosterTeamId = encodeURIComponent(args.rosterTeamId);
-  const startDate = encodeURIComponent(args.startDate);
-  const endDate = encodeURIComponent(args.endDate);
-
-  return `${FANTRAX_URLS.league}/${leagueId}/team/roster;teamId=${rosterTeamId};timeframeTypeCode=BY_DATE;startDate=${startDate};endDate=${endDate};statsType=3`;
 };
 
 export type RosterCsvKind = "regular" | "playoffs";

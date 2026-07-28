@@ -2,7 +2,7 @@ import { chromium, type Browser } from "playwright";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 
-import { TEAMS } from "../config/index.js";
+import { CURRENT_SEASON, TEAMS } from "../config/index.js";
 import {
   AUTH_STATE_PATH,
   buildRosterCsvFileName,
@@ -175,6 +175,7 @@ const main = async (): Promise<void> => {
         rosterTeamId,
         startDate: options.startDate,
         endDate: options.endDate,
+        includeYearToDateSeason: options.year === CURRENT_SEASON,
       });
 
       console.info(`[${team.name}] goto ${rosterUrl}`);
