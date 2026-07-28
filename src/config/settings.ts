@@ -8,7 +8,7 @@ import type {
 import type { Report, Team } from "../shared/types/core.js";
 
 export const START_SEASON = 2012;
-export const CURRENT_SEASON = 2025;
+export const CURRENT_SEASON = 2026;
 
 export const REPORT_TYPES = [
   "playoffs",

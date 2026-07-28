@@ -368,6 +368,30 @@ Useful options:
 - `--opening-only`
 - `--dry-run`
 
+### Generate entry-draft entity mappings from existing Fantrax entities
+
+If you want `/draft/entry` to include `playedInLeague` and `playedForDraftingTeam`, generate `entities-entry-draft.json` from the current `fantrax_entities` table before running the `--entities-only` backfill.
+
+```bash
+npm run draft:generate-entities -- --season=2026 --dry-run
+npm run draft:generate-entities -- --season=2026
+```
+
+Notes:
+
+- this reads `entry-draft-2026.json` and tries to match each player name against `fantrax_entities`
+- it writes or updates `src/playwright/.fantrax/drafts/entities-entry-draft.json`
+- existing mappings for other seasons are preserved
+- unresolved or ambiguous picks are printed to the console
+- only players already present in `fantrax_entities` can be linked automatically
+
+After generating the file, apply it to the imported draft rows:
+
+```bash
+npx tsx scripts/db-import-drafts.ts --season=2026 --entities-only --dry-run
+npx tsx scripts/db-import-drafts.ts --season=2026 --entities-only
+```
+
 ## Fantrax CSV Handling
 
 Fantrax exports often include an `Age` column and may include an `ID` column as the first data column. Stats imports treat Fantrax roster exports as sectioned CSVs (`Skaters` / `Goalies`) and preserve that raw-data shape for the importer, while transaction CSVs still parse as ordinary header-based tables.

@@ -61,11 +61,13 @@ The repository keeps its default Codex backend skills under `.agents/skills/`.
 
 ### Daily Development Loop
 
-1. **Create feature branch**
+1. **Work on a non-main branch**
 
    ```bash
-   git checkout -b feature/your-feature-name
+   git switch -c feature/your-feature-name
    ```
+
+   If you are using the shared `git-pr-workflow` skill, it should create or switch to the working branch automatically before edits begin.
 
 2. **Make changes incrementally**
    - Write failing test first (TDD approach recommended)

@@ -237,7 +237,7 @@ export const registerGoalieRouteIntegrationTests = (): void => {
           },
           {
             teamId: "1",
-            season: 2025,
+            season: 2026,
             reportType: "regular",
             goalieId: "g-new",
             name: "Newest Goalie",
