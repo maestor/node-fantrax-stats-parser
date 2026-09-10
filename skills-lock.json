@@ -11,7 +11,7 @@
       "source": "maestor/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/git-pr-workflow/SKILL.md",
-      "computedHash": "ab95b4c8e6815e89adfeaea355d1f588d6760031e5c8b4cc8b5945c877f525fc"
+      "computedHash": "7673150b86d7723f0d9101b85bd80aa84c83b2b6a109e06b6d5ce8bc3cffff0d"
     },
     "intelligence-testing": {
       "source": "maestor/agent-skills",
