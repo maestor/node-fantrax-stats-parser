@@ -1,4 +1,4 @@
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import { existsSync, mkdirSync } from "fs";
 import path from "path";
 
@@ -20,6 +20,9 @@ import {
   tryGetRosterTeamIdFromStandingsLink,
   type ImportLeagueRegularOptions,
 } from "./helpers.js";
+
+const MAX_DOWNLOAD_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 2_000;
 
 const main = async (): Promise<void> => {
   const options: ImportLeagueRegularOptions = parseImportLeagueRegularOptions(
@@ -75,12 +78,12 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const browser: Browser = await chromium.launch({
-    headless: options.headless,
-    slowMo: options.slowMoMs,
-  });
-
-  try {
+  let browser: Browser | undefined;
+  const openPage = async (): Promise<Page> => {
+    browser = await chromium.launch({
+      headless: options.headless,
+      slowMo: options.slowMoMs,
+    });
     const context = await browser.newContext({
       storageState: AUTH_STATE_PATH,
       acceptDownloads: true,
@@ -90,6 +93,11 @@ const main = async (): Promise<void> => {
 
     const page = await context.newPage();
     page.setDefaultTimeout(30_000);
+    return page;
+  };
+
+  try {
+    let page = await openPage();
 
     // Resolve season-specific roster teamIds from standings once (these change per year).
     await gotoStandings(page, options.leagueId);
@@ -178,18 +186,39 @@ const main = async (): Promise<void> => {
         includeYearToDateSeason: options.year === CURRENT_SEASON,
       });
 
-      console.info(`[${team.name}] goto ${rosterUrl}`);
-      await page.goto(rosterUrl, { waitUntil: "domcontentloaded" });
+      for (let attempt = 1; ; attempt++) {
+        try {
+          console.info(`[${team.name}] goto ${rosterUrl}`);
+          await page.goto(rosterUrl, { waitUntil: "domcontentloaded" });
 
-      const savedTo = await downloadRosterCsv(
-        page,
-        team.name,
-        team.id,
-        options.outDir,
-        options.year,
-      );
-      console.info(`[${team.name}] saved ${savedTo}`);
-      downloaded++;
+          const savedTo = await downloadRosterCsv(
+            page,
+            team.name,
+            team.id,
+            options.outDir,
+            options.year,
+          );
+          console.info(`[${team.name}] saved ${savedTo}`);
+          downloaded++;
+          break;
+        } catch (err) {
+          if (attempt >= MAX_DOWNLOAD_ATTEMPTS) {
+            throw new Error(
+              `[${team.name}] CSV download failed after ${MAX_DOWNLOAD_ATTEMPTS} attempts. ` +
+                `Completed CSVs remain in ${options.outDir}; rerun the command to resume.`,
+              { cause: err },
+            );
+          }
+          const delayMs = RETRY_DELAY_MS * attempt;
+          console.info(
+            `[${team.name}] attempt ${attempt}/${MAX_DOWNLOAD_ATTEMPTS} failed: ${String(err)}\n` +
+              `Reopening browser in ${delayMs / 1_000}s for attempt ${attempt + 1}/${MAX_DOWNLOAD_ATTEMPTS}.`,
+          );
+          await browser?.close();
+          await sleep(delayMs);
+          page = await openPage();
+        }
+      }
 
       if (options.pauseBetweenMs > 0) {
         await sleep(options.pauseBetweenMs);
@@ -203,7 +232,7 @@ const main = async (): Promise<void> => {
       `Done. Downloaded ${downloaded} regular-season CSV file(s) (via standings flow).${extra}`,
     );
   } finally {
-    await browser.close();
+    await browser?.close();
   }
 
   runImportTempCsvScriptIfUsingDefaultOutDir(
@@ -213,4 +242,7 @@ const main = async (): Promise<void> => {
   );
 };
 
-void main();
+void main().catch((err: unknown) => {
+  console.error(err);
+  process.exitCode = 1;
+});

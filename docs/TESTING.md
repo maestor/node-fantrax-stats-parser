@@ -67,6 +67,14 @@ npm run test:integration
 npm run verify  # Runs lint, typecheck, unused export check, build, and test:coverage
 ```
 
+### Regular-season scraper recovery
+
+```bash
+npm run test:playwright:regular
+```
+
+This separate Node test suite runs the real regular-season CLI with Chromium and local fixture pages. It covers export-click timeouts, download-event timeouts, browser closure, retry exhaustion, and preservation of completed CSVs. It uses temporary auth/mapping/output files and makes no live Fantrax requests or database/R2 imports. Chromium must already be installed (`npm run playwright:install`). These operational checks stay outside Jest and the runtime coverage gate.
+
 ---
 
 ## Preferred Strategy

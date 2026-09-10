@@ -74,6 +74,7 @@
     "start": "npm run build && node lib/server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --watchman=false",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --watchman=false --runInBand --testPathPatterns=integration",
+    "test:playwright:regular": "node --import tsx --test scripts/__tests__/regular-import.test.ts",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --coverage --watchman=false",
     "verify": "npm run lint:check && npm run typecheck && npm run unused && npm run build && npm run test:coverage"

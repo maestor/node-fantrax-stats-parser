@@ -1,5 +1,12 @@
 import { spawnSync } from "child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { createInterface } from "readline";
 import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
@@ -1045,10 +1052,20 @@ export const downloadCsvFromPage = async (
 
   mkdirSync(path.dirname(filePath), { recursive: true });
 
-  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
-  await downloadButton.click();
-  const download = await downloadPromise;
-  await download.saveAs(filePath);
+  // Observe both failures immediately: a failed click must not leave a rejected
+  // download waiter unhandled when the caller closes the browser to recover.
+  const [download] = await Promise.all([
+    page.waitForEvent("download", { timeout: 60_000 }),
+    downloadButton.click(),
+  ]);
+  const partialPath = `${filePath}.part`;
+  try {
+    await download.saveAs(partialPath);
+    renameSync(partialPath, filePath);
+  } finally {
+    // Only complete exports may be picked up by the importer's resume check.
+    rmSync(partialPath, { force: true });
+  }
 
   return filePath;
 };
