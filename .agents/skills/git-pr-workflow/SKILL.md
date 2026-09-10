@@ -1,9 +1,11 @@
 ---
 name: git-pr-workflow
-description: "Use when a task should follow a consistent working-branch, review, verify, commit, push, PR-handoff, or post-merge workspace-cleanup flow across repositories. For cleanup, verifies the active branch's complete net diff is present in main, updates main, and removes only that local branch after any size of squash merge."
+description: "Use for a consistent working-branch, review, verify, commit, push, PR-handoff, or post-merge workspace-cleanup flow. After the user confirms a merge, cleanup refreshes main and removes only the active local branch, including after squash merges."
 ---
 
 # Git PR Workflow
+
+For `clean workspace` or equivalent post-merge requests, go directly to [references/workspace-cleanup.md](./references/workspace-cleanup.md). Skip the delivery workflow and checklist; cleanup does not need another review or verification gate.
 
 ## Overview
 
@@ -21,7 +23,7 @@ The goal is to keep delivery flow consistent across repositories:
 - finish with a clickable GitHub compare link plus copy-pasteable PR notes for the user to create the PR
 - after a PR merge, return the repository to an up-to-date `main` and remove that PR's local working branch
 
-Read [references/workflow-checklist.md](./references/workflow-checklist.md) when deciding branch naming, docs-only verification exceptions, the expected PR-notes shape, or post-merge cleanup details.
+Read [references/workflow-checklist.md](./references/workflow-checklist.md) only when needed for branch naming, docs-only verification exceptions, or the expected PR-notes shape.
 
 ## Core Rules
 
@@ -151,7 +153,7 @@ When the branch is accepted, verified, and committed:
 - push the branch
 - if more implementation is still planned on the same branch, say so clearly
 - if the branch is PR-ready, provide a separate clickable GitHub compare link and copy-pasteable PR notes for the user to create the PR
-- after PR notes, briefly say: “After this PR is merged, while still on `<branch-name>`, say `clean workspace` to verify its patches, update `main`, and remove the local branch.”
+- after PR notes, briefly say: “After this PR is merged, while still on `<branch-name>`, say `clean workspace` to update `main` and remove the local branch.”
 
 Push is always downstream of a successful commit. Do not start push work until commit output confirms the new commit exists locally.
 
@@ -169,16 +171,7 @@ Place the clickable GitHub compare link outside the fenced code block so the use
 
 ### 8. Clean the workspace after merged PRs
 
-When the user asks to clean the workspace after a PR has been merged:
-
-1. Check `git status --short` and record the active branch. Stop if the worktree has tracked or untracked changes, if the branch is `main` or detached, or if another worktree has the branch checked out. Do not enumerate or inspect other local branches.
-2. Run `git fetch origin`.
-3. Verify the branch's complete net diff, not its individual commits. Find `git merge-base origin/main <branch>`, create a temporary detached worktree at `origin/main`, then pipe `git diff --binary <merge-base> <branch>` into `git -C <temporary-worktree> apply --reverse --check`. Proceed only if the reverse check succeeds, then remove the temporary worktree. This verifies that all effects of the active branch are already present in `origin/main`, regardless of how many commits were combined in the remote squash merge.
-4. If the reverse check fails, remove the temporary worktree, stop, and explain that the active branch's complete change cannot be reversed cleanly from `origin/main`.
-5. After verification succeeds, run `git switch main`, `git pull --ff-only origin main`, then delete only the recorded target with `git branch -D <branch>`.
-6. Finish on a clean, up-to-date local `main` and report only that target branch was removed.
-
-This narrow use of `git branch -D` is for the active branch with verified branch-level patch containment only. Do not use reset, rebase, stash, or discard work as part of cleanup, and never infer permission to remove any other branch.
+Follow [references/workspace-cleanup.md](./references/workspace-cleanup.md). Trust the user's merge confirmation, refresh `main`, and delete only the active local branch. In the established PR-handoff flow, `clean workspace` is that confirmation. Do not independently re-prove the merge.
 
 ## Anti-Patterns
 
@@ -192,7 +185,7 @@ This narrow use of `git branch -D` is for the active branch with verified branch
 - creating or automating a PR instead of handing the compare link and notes to the user
 - mixing docs-only exceptions into runtime-code changes without calling out the difference
 - scanning, evaluating, or reporting unrelated local branches during targeted cleanup
-- force-deleting any branch other than the active branch with verified branch-level patch containment
+- deleting a branch outside the user-confirmed post-merge cleanup scope
 - stashing or discarding changes during routine workspace cleanup
 
 ## Expected Behavior When This Skill Is Used
@@ -206,4 +199,4 @@ When applying this skill to a task:
 5. After acceptance, run the real verification gate.
 6. Stage and commit in strict sequence with consistent prefixes.
 7. Push only after the commit succeeds, then provide a clickable compare link plus fenced PR notes for the user to create the PR.
-8. For post-merge cleanup, verify the active branch's complete net diff is present in `origin/main`, leave the repo on current `main`, and remove only that active branch, including after a multi-commit squash merge.
+8. For post-merge cleanup, trust the user's merge confirmation, refresh `main`, and remove only the active local branch, including after a multi-commit squash merge.
