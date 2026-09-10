@@ -170,6 +170,10 @@ Notes:
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` from the synced season period dates.
 
+Each team download gets up to three attempts. If navigation, the export click, or the download fails, the importer waits 2 seconds before the second attempt and 4 seconds before the third, reopening Chromium with the saved login state each time. The log includes the original failure and the next attempt number. This recovery applies to roster downloads after the initial standings lookup.
+
+Completed CSVs are skipped on reruns. Downloads are saved through a `.part` file and renamed only after saving succeeds, so an interrupted save is not mistaken for a completed CSV. If all three attempts fail, the command exits with an error and keeps completed files in the output directory for the next run; the post-import pipeline does not start. If the saved login has expired, run `npm run playwright:login` before retrying.
+
 Useful options:
 
 - `--year=2025`
