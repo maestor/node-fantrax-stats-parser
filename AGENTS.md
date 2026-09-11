@@ -1,36 +1,29 @@
-# Codex Session Instructions
+# Agent Instructions
 
-## Startup Checklist
-1. Read [README.md](README.md) for project overview, quick start, and the documentation map.
-2. Read [package.json](package.json) for available npm scripts.
-3. Follow [docs/development.md](docs/development.md).
-4. Follow [docs/testing.md](docs/testing.md).
-5. Read the relevant topic doc when the task touches that area:
-   - [docs/importing.md](docs/importing.md)
-   - [docs/deployment.md](docs/deployment.md)
-   - [docs/snapshots.md](docs/snapshots.md)
-   - [docs/season-change.md](docs/season-change.md)
-   - [docs/scoring.md](docs/scoring.md)
-   - [docs/rating.md](docs/rating.md)
+This is the sole agent initialization entrypoint. Load supporting docs and skills on demand; do not add tool-specific instruction mirrors.
 
-## Shared Skills
-- Use `$project-documentation` when updating `README.md`, `docs/**`, contributor guidance, or repository workflow docs.
-- Use `$git-pr-workflow` for the standard branch, review, final-verify, commit, push, and PR-notes flow.
-## Documentation Rules
-- Keep [README.md](README.md) and docs updated after every task when needed.
-- Keep [README.md](README.md) concise as the front door: overview, quick start, API doc entrypoints, and links to deeper docs.
-- Put deep operational detail into focused docs under `docs/` instead of rebuilding a large README.
-- Avoid duplicating the same long runbook across [README.md](README.md), [docs/development.md](docs/development.md), and topic docs.
-- If current documentation has clearly weak decisions, challenge them and propose better alternatives. User decides whether documentation guidelines are changed.
+Explicit user instructions override repository and skill defaults.
 
-## Repo-Specific Workflow Overrides
-- Before any non-docs commit, `npm run verify` must pass. Docs-only changes do not require the full verification gate.
-- Targeted tests are not a substitute for the full verification gate when runtime code changes.
-- After finishing implementation, ask the user to review.
-- After user acceptance, complete a commit phase on the current branch before offering PR notes.
-- User handles final PR flow.
+## Read on demand
 
-## Commit Message Style
-- New features must use the prefix `Feature: `.
-- Non-feature commits should use a capitalized prefix such as `Fix:`, `Docs:`, `Chore:`, and similar conventional labels.
-- Use sentence-style capitalization after the colon: capitalize the first word, but do not title-case the whole message unless normal capitalization requires it.
+- Start with [README.md](README.md) and the task map in [docs/README.md](docs/README.md); read only relevant guides/source, not the whole docs tree.
+- [package.json](package.json) owns scripts/dependencies; code/config owns exact APIs and thresholds.
+- Never read, search, or check `docs/researches/**` unless the user points to a specific document or another document explicitly instructs reading that specific research file. A folder/index link alone is not permission. Research is special-purpose analysis, not development requirements or architecture guidance.
+- `docs/plans/` contains gitignored working plans; load only the relevant approved plan for the active task.
+
+## Skills
+
+Use matching `.agents/skills/` only: `project-documentation` for docs, `git-pr-workflow` for delivery, `intelligence-testing` for behavior protection, `api-contract-sync` for contracts/types/fixtures, and `local-first-verification` for checks. Load their references on demand.
+
+## Delivery
+
+- Work on a non-main branch; follow `git-pr-workflow` for branch creation, push, and PR handoff. The user creates the PR.
+- Implement, run relevant iterative checks, then pause for user review. Do not run final verify or commit until the user accepts the current batch.
+- After acceptance, `npm run verify` must pass before non-docs commits; targeted tests are not a substitute. Docs/workflow-text-only changes can skip the full gate.
+- Complete the accepted commit phase before providing copy-pasteable PR notes. Use capitalized conventional prefixes (`Feature:`, `Fix:`, `Docs:`, `Chore:`) and sentence-style capitalization.
+
+## Documentation
+
+Update the canonical topic when behavior, operations, commands, or contributor rules change; link to it elsewhere. Keep README short and use [docs/README.md](docs/README.md) for task routing. Preserve operational exceptions and domain decisions; omit generic tutorials, duplicated runbooks, and mirrored source APIs. Challenge weak decisions for user review.
+
+Use lowercase kebab-case topic filenames; preserve conventional `README.md`, `AGENTS.md`, and `SKILL.md` entrypoints. The sibling UI follows its own repository rules.

@@ -1,7 +1,5 @@
 # Deployment and Operations
 
-This document covers runtime hosting, database usage, R2 storage, API auth, and cache behavior.
-
 ## Deployment (Vercel)
 
 This API is designed to run on Vercel Serverless Functions.
@@ -45,7 +43,7 @@ Team configuration lives in `src/config/settings.ts` via `TEAMS` and `DEFAULT_TE
 
 ## Database (Turso/SQLite)
 
-The API reads all runtime data from a Turso/libSQL database. CSV imports also maintain a canonical `fantrax_entities` registry keyed by Fantrax ID, and transaction imports normalize source rows into dedicated claim/drop and trade tables. FFHL forum draft history is stored in `entry_draft_picks` and `opening_draft_picks`, which back `/draft/entry` and `/draft/original`.
+CSV imports maintain a canonical `fantrax_entities` registry keyed by Fantrax ID, and transaction imports normalize source rows into dedicated claim/drop and trade tables. FFHL forum draft history is stored in `entry_draft_picks` and `opening_draft_picks`, which back `/draft/entry` and `/draft/original`.
 
 ### Local development
 
@@ -86,18 +84,7 @@ TURSO_AUTH_TOKEN=your-auth-token
 USE_REMOTE_DB=true
 ```
 
-Then run imports against the remote database:
-
-```bash
-npm run db:import:stats
-npm run db:import:stats:current
-npm run db:import:stats -- --season=2018
-npm run db:import:stats -- --season=2018 --report-type=regular
-npm run db:import:transactions
-npm run db:import:transactions -- --all
-npm run db:import:playoff-results
-npm run db:import:regular-results
-```
+The import commands above now target remote Turso. See [importing](importing.md) for per-workflow flags and prerequisites.
 
 Successful imports regenerate only the snapshot scopes they directly affect. Manual snapshot generation is described in [snapshots.md](snapshots.md).
 
@@ -232,26 +219,6 @@ Data endpoints are cached in two layers:
 
 Because the API uses header-based API keys, responses include `Vary: authorization, x-api-key` by default.
 
-### Using `/last-modified` for change detection
+### Change detection
 
-Consumer applications can poll `/last-modified` to detect when the underlying data changes.
-
-```ts
-let lastKnownTimestamp: string | null = null;
-
-async function checkForUpdates() {
-  const response = await fetch("https://your-api.com/last-modified", {
-    headers: { "X-API-Key": "your-api-key" },
-  });
-  const data = await response.json();
-
-  if (data.lastModified !== lastKnownTimestamp) {
-    lastKnownTimestamp = data.lastModified;
-    await refetchAllStats();
-  }
-}
-
-setInterval(checkForUpdates, 5 * 60 * 1000);
-```
-
-Repeated requests with unchanged data can return `304 Not Modified`.
+Consumers can poll `/last-modified` and refetch when its timestamp changes. Conditional requests with matching ETags can return `304 Not Modified`.

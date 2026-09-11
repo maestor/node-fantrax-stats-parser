@@ -70,7 +70,6 @@ or the explicit flow:
 
 ```bash
 npm run playwright:import:regular
-./scripts/import-temp-csv.sh --report-type=regular
 ```
 
 Important:
@@ -127,12 +126,7 @@ This step is separate from the opening-draft history import. `opening-draft.json
 
 ### 6. Refresh snapshots and storage expectations
 
-Most imports already refresh the relevant snapshots for you:
-
-- `db:import:stats` refreshes stats snapshots and `import_metadata.last_modified`
-- `db:import:transactions` refreshes the transactions snapshot and `import_metadata.last_modified`
-- `db:import:regular-results` refreshes the regular leaderboard snapshot
-- `db:import:playoff-results` refreshes the playoff leaderboard snapshot
+Imports refresh their affected scopes according to [snapshots](snapshots.md#generation-behavior).
 
 Career snapshots are still manual-only, so regenerate them if you want fresh cached career payloads for the new season:
 
@@ -163,7 +157,7 @@ Then verify:
 - `GET /last-modified` changed after imports
 - any combined route snapshots still load as expected for the default season window
 
-If you changed runtime code such as `CURRENT_SEASON`, finish with:
+If you changed runtime code such as `CURRENT_SEASON`, obtain user review acceptance under [AGENTS](../AGENTS.md) before the final gate:
 
 ```bash
 npm run verify

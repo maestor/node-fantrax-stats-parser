@@ -19,9 +19,6 @@ generated/
 # Git worktrees
 .worktrees/
 
-# Claude code files
-.claude
-
 # AI generated plans
 docs/plans/
 

@@ -1,138 +1,46 @@
 # FFHL Stats API
 
-FFHL Stats API serves FFHL fantasy-hockey data as JSON from a Turso/SQLite database. Fantrax CSV exports and FFHL forum draft history are import sources; runtime responses come from the database and, for some read-mostly routes, generated JSON snapshots.
+TypeScript/Node API serving FFHL fantasy-hockey data from Turso/SQLite and generated JSON snapshots. Fantrax CSVs and FFHL forum draft history are import sources.
 
-[Angular UI written for this API](https://github.com/maestor/fantrax-stats-parser-ui)
+[Angular UI](https://github.com/maestor/fantrax-stats-parser-ui) · [Live UI](https://ffhl-stats.vercel.app/) · [Development docs](docs/README.md) · [Agent workflow](AGENTS.md)
 
-[Hosted UI showcase](https://ffhl-stats.vercel.app/)
+## Quick start
 
-## Quick Start
+Use Node.js `>=24 <25` and npm `>=10`.
 
-- Node.js `>=24 <25`
-- npm `>=10`
-
-```bash
-git clone https://github.com/maestor/node-fantrax-stats-parser.git
-cd node-fantrax-stats-parser
+```sh
 npm install
 cp .env.example .env
 npm run db:migrate
-
-# Choose one data source:
-# 1) Download CSV backup from R2 (requires R2 credentials in .env)
+# If needed, download CSV backups (requires R2 credentials):
 npm run r2:download
-
-# 2) Or use existing files already present under csv/
-
+# Or use files already under csv/:
 npm run db:import:stats
 npm run dev
 ```
 
-Open [http://localhost:3000/api-docs](http://localhost:3000/api-docs) for the local Swagger UI.
+Local API: `http://localhost:3000`. See [importing](docs/importing.md) for fresh scraping, transactions, standings, finals, and draft history; [deployment](docs/deployment.md) for database targets/auth.
 
-If you need to scrape fresh Fantrax or FFHL forum data instead of using existing CSV/JSON inputs, use [docs/importing.md](docs/importing.md).
+## API contract
 
-## API Docs
+[Hosted Swagger UI](https://ffhl-stats-api.vercel.app/api-docs) · [Hosted OpenAPI JSON](https://ffhl-stats-api.vercel.app/openapi.json) · [Local Swagger UI](http://localhost:3000/api-docs)
 
-- Hosted Swagger UI: [https://ffhl-stats-api.vercel.app/api-docs](https://ffhl-stats-api.vercel.app/api-docs)
-- Hosted OpenAPI JSON: [https://ffhl-stats-api.vercel.app/openapi.json](https://ffhl-stats-api.vercel.app/openapi.json)
-- Local docs: start the dev server and open [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+[openapi.yaml](openapi.yaml) owns route parameters and response schemas. Families include players, goalies, career, leaderboard, draft, and metadata. Hosted routing supports root and `/api/*` paths. When auth is enabled, data requests use `x-api-key` or Bearer auth; health routes remain public.
 
-The hosted demo supports both root-style URLs and `/api/*` URLs. Health routes stay public, while most data routes require an API key via `x-api-key` or `Authorization: Bearer <key>`.
-
-### Players and Goalies
-
-```bash
+```sh
 curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/players/combined/regular?teamId=1"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/goalies/combined/playoffs?teamId=1"
+  'http://localhost:3000/players/combined/regular?teamId=1'
 ```
 
-### Career
+## Commands
 
-```bash
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/career/players"
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Development server with reload |
+| `npm start` | Build and start compiled server |
+| `npm test` | Jest suite |
+| `npm run test:integration` | Temporary SQLite route/service tests |
+| `npm run verify` | Lint, types, unused exports, build, coverage; after review acceptance |
+| `npm run snapshot:generate` | Regenerate snapshots; see [scope rules](docs/snapshots.md) |
 
- curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/career/highlights/most-teams-owned"
-```
-
-### Leaderboard
-
-```bash
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/leaderboard/regular"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/leaderboard/transactions"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/leaderboard/finals"
-```
-
-### Draft
-
-```bash
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/draft/original"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/draft/entry"
-```
-
-`/draft/entry` includes per-pick `playedInLeague` and `playedForDraftingTeam` flags plus matching team-summary counts and percentages.
-
-### Meta
-
-```bash
-curl https://ffhl-stats-api.vercel.app/health
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/teams"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/seasons?startFrom=2020"
-
-curl -H "x-api-key: <your-key>" \
-  "https://ffhl-stats-api.vercel.app/last-modified"
-```
-
-`/teams` returns each configured team's current `teamAbbr`, and `/leaderboard/finals` includes `teamAbbr` on both `awayTeam` and `homeTeam`.
-
-OpenAPI is the source of truth for route parameters and response schemas.
-
-## Common Commands
-
-```bash
-npm run dev
-npm run verify
-npm run db:migrate
-npm run db:import:stats
-npm run playwright:sync:playoffs
-npm run db:import:finals-results
-npm run playwright:sync:finals
-npm run test:integration
-npm run snapshot:generate
-```
-
-## Agent Workflow
-
-Codex work in this repository defaults to the backend/basic skill set from `maestor/agent-skills`: `intelligence-testing`, `api-contract-sync`, and `local-first-verification`. Those skills live in this repo under `.agents/skills/`. `mutation-testing` is intentionally not part of this project.
-
-## Documentation
-
-- [docs/development.md](docs/development.md) - development workflow, code standards, project structure, OpenAPI maintenance
-- [docs/testing.md](docs/testing.md) - test strategy, coverage expectations, integration testing rules
-- [docs/importing.md](docs/importing.md) - Fantrax sync/import workflows, FFHL draft sync, draft entity linking/backfill, CSV normalization
-- [docs/deployment.md](docs/deployment.md) - Vercel, Turso, R2, API auth, caching, operational commands
-- [docs/snapshots.md](docs/snapshots.md) - snapshot-backed endpoints, generation rules, R2 snapshot storage
-- [docs/season-change.md](docs/season-change.md) - ordered checklist for moving the repo to a new active FFHL season
-- [docs/scoring.md](docs/scoring.md) - player and goalie scoring model details
-- [docs/rating.md](docs/rating.md) - finals leaderboard rate model details
-
-## Technology
-
-Written in TypeScript on Node.js. The API uses lightweight local HTTP helpers, [rou3](https://github.com/h3js/rou3) for route matching, Turso/libSQL for the database layer, and local import tooling around Playwright plus `csv-parse`.
+[package.json](package.json) owns all commands and versions. Runtime uses local HTTP helpers, rou3 routing, and libSQL; imports use Playwright and csv-parse.

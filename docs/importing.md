@@ -13,6 +13,8 @@ The source files stay local or in R2; the API serves data from the database and 
 - Playwright-based Fantrax scripts auto-run `playwright install chromium` before launch
 - For remote database imports, set `USE_REMOTE_DB=true` and Turso credentials as described in [deployment.md](deployment.md)
 
+Options listed below are passed after `--` with npm scripts, e.g. `npm run playwright:sync:regular -- --year=2025`. Use direct flags with shell scripts or `npx tsx`.
+
 ## Fantrax Metadata Sync
 
 ### 1) Login (saves auth state)
@@ -31,11 +33,7 @@ npm run playwright:sync:leagues
 
 This scrapes the Fantrax league archive plus each season's Rules page and writes `src/playwright/.fantrax/fantrax-leagues.json` (gitignored).
 
-The mapping includes:
-
-- `leagueId` per season
-- `regularStartDate` / `regularEndDate`
-- `playoffsStartDate` / `playoffsEndDate`
+Fields: `leagueId`, `regularStartDate`/`regularEndDate`, `playoffsStartDate`/`playoffsEndDate` per season.
 
 Optional:
 
@@ -120,9 +118,7 @@ For goalie-rate categories, finals sync preserves explicit category rows when a 
 - `gaa` is written as `null`
 - `savePercent` is written as `null`
 
-This only applies to the two relative goalie categories. Amount-based goalie categories such as `wins`, `saves`, and `shutouts` still keep their numeric totals even if the finalist only recorded one goalie game.
-
-This keeps the losing goalie-rate categories visible in the local finals mapping instead of dropping them entirely, while still distinguishing "did not qualify" from a real numeric zero.
+Count-based goalie categories keep numeric totals regardless of rate qualification.
 
 If you already created local finals tables before nullable goalie-rate values were added, drop the local `finals_matchups`, `finals_matchup_teams`, and `finals_matchup_categories` tables, then rerun `npm run db:migrate` and `npm run db:import:finals-results`.
 
@@ -212,7 +208,7 @@ Useful options:
 
 ### 4) Normalize and move downloaded files into `csv/<teamId>/`
 
-The Playwright importer downloads raw Fantrax CSVs. To convert them into the format this API expects and move them into the main dataset layout, run:
+The default roster import already runs this pipeline. To process existing temp files manually:
 
 ```bash
 ./scripts/import-temp-csv.sh --dry-run
@@ -412,28 +408,6 @@ What it does:
 - removes the `Age` column
 - converts section headers into the format the parser expects (`Skaters`, `Goalies`)
 - forces known malformed goalie row `*06mqq*` to normalized goalie position `G` when it appears inside the `Goalies` section
-
-### Import files from `csv/temp`
-
-- Script: `scripts/import-temp-csv.sh`
-- Assumes input files in `csv/temp/` are named `{teamName}-{teamId}-{regular|playoffs}-YYYY-YYYY.csv`
-
-Preview without writing:
-
-```bash
-./scripts/import-temp-csv.sh --dry-run
-```
-
-Import:
-
-```bash
-./scripts/import-temp-csv.sh
-./scripts/import-temp-csv.sh --keep-temp
-./scripts/import-temp-csv.sh --season=2018
-./scripts/import-temp-csv.sh --report-type=regular
-./scripts/import-temp-csv.sh --report-type=playoffs
-./scripts/import-temp-csv.sh --report-type=both
-```
 
 ### Fantrax IDs in imports
 
