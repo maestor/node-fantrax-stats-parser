@@ -75,9 +75,7 @@ For `/players/combined` and `/goalies/combined`:
 
 ## Weights
 
-Every scoring field defaults to weight `1.0`.
-
-Weights live in `src/config/settings.ts`:
+Current weights are defined in [src/config/settings.ts](../src/config/settings.ts); do not assume all categories have equal weight:
 
 - `PLAYER_SCORE_WEIGHTS`
 - `GOALIE_SCORE_WEIGHTS`
@@ -86,10 +84,4 @@ Each weight is a decimal between `0` and `1`. Lowering a weight reduces that sta
 
 ## Related Rating Docs
 
-Finals leaderboard rates are documented separately in [rating.md](rating.md).
-
-Use that document for:
-
-- `/leaderboard/finals` `winRate`
-- `/leaderboard/finals` `deservedToWinRate`
-- finals weighting and goalie-rate qualification rules
+See [rating.md](rating.md) for finals win rates, weighting, qualification, and matchup factors.
