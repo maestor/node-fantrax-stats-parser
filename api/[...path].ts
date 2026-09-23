@@ -1,24 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
 import app from "../src/app.js";
-
-const stripApiPrefix = (url: string): string => {
-  if (url === "/api") return "/";
-  if (url.startsWith("/api/")) return url.slice("/api".length);
-  if (url.startsWith("/api?")) return url.slice("/api".length);
-  return url;
-};
-
-const normalizeUrl = (url: string): string => {
-  const [pathname, query = ""] = url.split("?", 2);
-
-  let normalizedPath = pathname;
-  if (normalizedPath.length > 1 && normalizedPath.endsWith("/")) {
-    normalizedPath = normalizedPath.slice(0, -1);
-  }
-
-  return query ? `${normalizedPath}?${query}` : normalizedPath;
-};
+import { normalizeVercelUrl } from "../src/shared/vercel-url.js";
 
 const getHeaderValue = (value: string | string[] | undefined): string | undefined => {
   if (typeof value === "string") return value;
@@ -44,7 +27,7 @@ const getEffectiveUrl = (req: IncomingMessage): string => {
 };
 
 export default async function vercelHandler(req: IncomingMessage, res: ServerResponse) {
-  const effectiveUrl = normalizeUrl(stripApiPrefix(getEffectiveUrl(req)));
+  const effectiveUrl = normalizeVercelUrl(getEffectiveUrl(req));
   req.url = effectiveUrl;
 
   return app(req, res);
