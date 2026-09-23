@@ -208,7 +208,7 @@ export const getCategoryDashboardData = async (
   rawSeason: string | undefined,
 ): Promise<CategoryDashboardResponse> => {
   const availableSeasons = await getCategoryDashboardSeasons();
-  let season = CURRENT_SEASON;
+  let season = CURRENT_SEASON - 1;
   if (rawSeason !== undefined) {
     if (!/^\d{4}$/.test(rawSeason) || !availableSeasons.includes(Number(rawSeason))) {
       throw { statusCode: 400, body: "Invalid or unavailable regular season" };
