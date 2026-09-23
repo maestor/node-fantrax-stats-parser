@@ -526,6 +526,109 @@ export const getLastModifiedFromDb = async (): Promise<string | null> => {
   return castRows<{ value: string }>(result.rows)[0].value;
 };
 
+export type CategoryPlayerRow = {
+  team_id: string;
+  player_id: string;
+  name: string;
+  position: string | null;
+  games: number;
+  goals: number;
+  assists: number;
+  points: number;
+  plus_minus: number;
+  penalties: number;
+  shots: number;
+  ppp: number;
+  shp: number;
+  hits: number;
+  blocks: number;
+};
+
+export type CategoryGoalieRow = {
+  team_id: string;
+  goalie_id: string;
+  name: string;
+  games: number;
+  wins: number;
+  saves: number;
+  shutouts: number;
+};
+
+export const getCategoryPlayerRows = async (
+  season: number,
+): Promise<CategoryPlayerRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute({
+    sql: `SELECT p.team_id,
+                 p.player_id,
+                 COALESCE(fe.name, p.name) AS name,
+                 COALESCE(fe.position, p.position) AS position,
+                 SUM(p.games) AS games,
+                 SUM(p.goals) AS goals,
+                 SUM(p.assists) AS assists,
+                 SUM(p.points) AS points,
+                 SUM(p.plus_minus) AS plus_minus,
+                 SUM(p.penalties) AS penalties,
+                 SUM(p.shots) AS shots,
+                 SUM(p.ppp) AS ppp,
+                 SUM(p.shp) AS shp,
+                 SUM(p.hits) AS hits,
+                 SUM(p.blocks) AS blocks
+          FROM players p
+          LEFT JOIN fantrax_entities fe ON fe.fantrax_id = p.player_id
+          WHERE p.season = ? AND p.report_type = 'regular'
+          GROUP BY p.team_id, p.player_id,
+                   COALESCE(fe.name, p.name), COALESCE(fe.position, p.position)
+          ORDER BY p.team_id, name, p.player_id`,
+    args: [season],
+  });
+  return castRows<CategoryPlayerRow>(result.rows);
+};
+
+export const getCategoryGoalieRows = async (
+  season: number,
+): Promise<CategoryGoalieRow[]> => {
+  const db = getDbClient();
+  const result = await db.execute({
+    sql: `SELECT g.team_id,
+                 g.goalie_id,
+                 COALESCE(fe.name, g.name) AS name,
+                 SUM(g.games) AS games,
+                 SUM(g.wins) AS wins,
+                 SUM(g.saves) AS saves,
+                 SUM(g.shutouts) AS shutouts
+          FROM goalies g
+          LEFT JOIN fantrax_entities fe ON fe.fantrax_id = g.goalie_id
+          WHERE g.season = ? AND g.report_type = 'regular'
+          GROUP BY g.team_id, g.goalie_id, COALESCE(fe.name, g.name)
+          ORDER BY g.team_id, name, g.goalie_id`,
+    args: [season],
+  });
+  return castRows<CategoryGoalieRow>(result.rows);
+};
+
+export const getCategoryDashboardSeasons = async (): Promise<number[]> => {
+  const db = getDbClient();
+  const result = await db.execute(
+    `SELECT season FROM players WHERE report_type = 'regular'
+     UNION
+     SELECT season FROM goalies WHERE report_type = 'regular'
+     ORDER BY season`,
+  );
+  return castRows<{ season: number }>(result.rows).map((row) => row.season);
+};
+
+export const getRegularResultTeamIds = async (
+  season: number,
+): Promise<string[]> => {
+  const db = getDbClient();
+  const result = await db.execute({
+    sql: "SELECT team_id FROM regular_results WHERE season = ? ORDER BY team_id",
+    args: [season],
+  });
+  return castRows<{ team_id: string }>(result.rows).map((row) => row.team_id);
+};
+
 interface DraftPickRowBase {
   pick_number: number;
   round: number;

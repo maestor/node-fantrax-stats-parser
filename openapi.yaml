@@ -1508,6 +1508,227 @@ components:
           type: integer
           description: Count of distinct goalie Fantrax entity IDs the team rostered that season.
 
+    CategoryDashboardResponse:
+      type: object
+      required: [season, scope, availableSeasons, lastModified, seasonHasCreditedGames, coverage, categories, teams]
+      properties:
+        season:
+          type: integer
+          description: Resolved starting year of the regular season.
+        scope:
+          type: string
+          enum: [regular]
+        availableSeasons:
+          type: array
+          items:
+            type: integer
+          description: Seasons with imported regular rows, including seasons with zero credited games.
+        lastModified:
+          type: string
+          format: date-time
+          nullable: true
+        seasonHasCreditedGames:
+          type: boolean
+        coverage:
+          $ref: "#/components/schemas/CategoryDashboardCoverage"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryDashboardDefinition"
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryDashboardTeam"
+
+    CategoryDashboardCoverage:
+      type: object
+      required: [status, expectedTeamCount, participatingTeamCount, reportedTeamCount, missingReportTeamIds, unknownTeamIds]
+      properties:
+        status:
+          type: string
+          enum: [complete, partial, unknown]
+        expectedTeamCount:
+          type: integer
+        participatingTeamCount:
+          type: integer
+        reportedTeamCount:
+          type: integer
+        missingReportTeamIds:
+          type: array
+          items:
+            type: string
+        unknownTeamIds:
+          type: array
+          items:
+            type: string
+
+    CategoryDashboardDefinition:
+      type: object
+      required: [key, group, higherIsBetter]
+      properties:
+        key:
+          type: string
+          enum: [goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts]
+        group:
+          type: string
+          enum: [skater, goalie]
+        higherIsBetter:
+          type: boolean
+
+    CategoryDashboardTeam:
+      type: object
+      required: [teamId, teamName, teamAbbr, participation, skaterGames, goalieGames, categories, players, goalies]
+      properties:
+        teamId:
+          type: string
+        teamName:
+          type: string
+        teamAbbr:
+          type: string
+        participation:
+          type: string
+          enum: [not-yet-joined, reported, missing-report, unknown]
+        skaterGames:
+          type: integer
+        goalieGames:
+          type: integer
+        categories:
+          type: object
+          required: [goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks, wins, saves, shutouts]
+          additionalProperties:
+            $ref: "#/components/schemas/CategoryDashboardValue"
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryPlayerContribution"
+        goalies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryGoalieContribution"
+
+    CategoryDashboardValue:
+      type: object
+      required: [total, games, rate, totalRank, rateRank, totalEligibleTeamCount, rateEligibleTeamCount, totalMedian, rateMedian, totalGapToNext, rateGapToNext, previous]
+      properties:
+        total:
+          type: number
+        games:
+          type: integer
+        rate:
+          type: number
+          nullable: true
+        totalRank:
+          type: integer
+          nullable: true
+        rateRank:
+          type: integer
+          nullable: true
+        totalEligibleTeamCount:
+          type: integer
+        rateEligibleTeamCount:
+          type: integer
+        totalMedian:
+          type: number
+          nullable: true
+        rateMedian:
+          type: number
+          nullable: true
+        totalGapToNext:
+          type: number
+          nullable: true
+        rateGapToNext:
+          type: number
+          nullable: true
+        previous:
+          allOf:
+            - $ref: "#/components/schemas/CategoryDashboardPrevious"
+          nullable: true
+
+    CategoryDashboardPrevious:
+      type: object
+      required: [total, games, rate, totalRank, rateRank, totalEligibleTeamCount, rateEligibleTeamCount, totalChange, rateChange, totalRankChange, rateRankChange]
+      properties:
+        total:
+          type: number
+        games:
+          type: integer
+        rate:
+          type: number
+          nullable: true
+        totalRank:
+          type: integer
+          nullable: true
+        rateRank:
+          type: integer
+          nullable: true
+        totalEligibleTeamCount:
+          type: integer
+        rateEligibleTeamCount:
+          type: integer
+        totalChange:
+          type: number
+          nullable: true
+        rateChange:
+          type: number
+          nullable: true
+        totalRankChange:
+          type: integer
+          nullable: true
+        rateRankChange:
+          type: integer
+          nullable: true
+
+    CategoryPlayerContribution:
+      type: object
+      required: [id, name, position, games, goals, assists, points, plusMinus, penalties, shots, ppp, shp, hits, blocks]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: string
+          nullable: true
+        games:
+          type: integer
+        goals:
+          type: integer
+        assists:
+          type: integer
+        points:
+          type: integer
+        plusMinus:
+          type: integer
+        penalties:
+          type: integer
+        shots:
+          type: integer
+        ppp:
+          type: integer
+        shp:
+          type: integer
+        hits:
+          type: integer
+        blocks:
+          type: integer
+
+    CategoryGoalieContribution:
+      type: object
+      required: [id, name, games, wins, saves, shutouts]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        games:
+          type: integer
+        wins:
+          type: integer
+        saves:
+          type: integer
+        shutouts:
+          type: integer
+
     FinalsLeaderboardEntry:
       type: object
       required:
@@ -2253,6 +2474,37 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TransactionLeaderboardEntry"
+        "401":
+          description: Missing or invalid API key.
+
+  /leaderboard/categories:
+    get:
+      summary: Regular-season team category dashboard
+      description: |
+        Returns regular-season category totals and credited-game rates, ranks among teams with
+        reported production, eligible-team medians, next-better gaps, immediate prior-season
+        comparisons, and credited player contributions. This endpoint never includes playoff
+        rows. Missing team reports are reported through coverage metadata and are not treated
+        as zero totals. Goalie GAA and save percentage are omitted because stored player ratios
+        cannot be combined into exact team rates.
+      parameters:
+        - name: season
+          in: query
+          required: false
+          description: Starting year for an imported regular season. Omission selects the latest season with credited games.
+          schema:
+            type: string
+            pattern: '^\d{4}$'
+          example: "2025"
+      responses:
+        "200":
+          description: Regular-season team category dashboard.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryDashboardResponse"
+        "400":
+          description: Malformed or unavailable season.
         "401":
           description: Missing or invalid API key.
 
