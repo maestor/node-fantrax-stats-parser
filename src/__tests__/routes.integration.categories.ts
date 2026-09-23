@@ -1,6 +1,6 @@
 import { createRequest, createResponse } from "node-mocks-http";
 import { TEAMS } from "../config/index.js";
-import { getCategoryDashboard } from "../features/leaderboard/routes.js";
+import { getCategoryDashboard } from "../features/team-categories/routes.js";
 import { HTTP_STATUS } from "../shared/http.js";
 import { createIntegrationDb } from "./integration-db.js";
 import { expectObjectSchema } from "./openapi-schema.js";

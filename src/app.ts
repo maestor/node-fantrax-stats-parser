@@ -21,8 +21,8 @@ import {
   getPlayoffsLeaderboard,
   getRegularLeaderboard,
   getTransactionsLeaderboard,
-  getCategoryDashboard,
 } from "./features/leaderboard/routes.js";
+import { getCategoryDashboard } from "./features/team-categories/routes.js";
 import { getFinalsLeaderboard } from "./features/finals/routes.js";
 import {
   getLastModified,

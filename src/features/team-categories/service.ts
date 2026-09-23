@@ -8,27 +8,22 @@ import {
   type CategoryGoalieRow,
   type CategoryPlayerRow,
 } from "../../db/queries.js";
-import type {
-  CategoryDashboardResponse,
-  CategoryDashboardTeam,
-  CategoryGoalieContribution,
-  CategoryKey,
-  CategoryPlayerContribution,
-  CategoryValue,
+import {
+  CATEGORY_KEYS,
+  type CategoryGroup,
+  type CategoryKey,
+  type CategoryDashboardResponse,
+  type CategoryDashboardTeam,
+  type CategoryGoalieContribution,
+  type CategoryPlayerContribution,
+  type CategoryValue,
 } from "./types.js";
 
-const CATEGORIES = [
-  { key: "goals", group: "skater" }, { key: "assists", group: "skater" },
-  { key: "points", group: "skater" }, { key: "plusMinus", group: "skater" },
-  { key: "penalties", group: "skater" }, { key: "shots", group: "skater" },
-  { key: "ppp", group: "skater" }, { key: "shp", group: "skater" },
-  { key: "hits", group: "skater" }, { key: "blocks", group: "skater" },
-  { key: "wins", group: "goalie" }, { key: "saves", group: "goalie" },
-  { key: "shutouts", group: "goalie" },
-] as const satisfies ReadonlyArray<{
-  key: CategoryKey;
-  group: "skater" | "goalie";
-}>;
+const GOALIE_CATEGORIES = new Set<CategoryKey>(["wins", "saves", "shutouts"]);
+const CATEGORIES = CATEGORY_KEYS.map((key) => ({
+  key,
+  group: (GOALIE_CATEGORIES.has(key) ? "goalie" : "skater") as CategoryGroup,
+}));
 
 type SeasonData = {
   season: number;
