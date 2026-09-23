@@ -123,6 +123,26 @@ describe("category dashboard route", () => {
     }
   });
 
+  test("defaults an omitted season to the current season", async () => {
+    const db = await createIntegrationDb();
+    try {
+      await db.insertPlayers([
+        { teamId: "1", season: 2024, reportType: "regular", playerId: "prior", name: "Prior season", games: 1 },
+      ]);
+
+      const req = createRequest({ method: "GET", url: "/leaderboard/categories" });
+      const res = createResponse();
+      await getCategoryDashboard(asRouteReq<RouteReq>(req), res);
+
+      const body = getJsonBody<TestDashboard>(res);
+      expect(res.statusCode).toBe(HTTP_STATUS.OK);
+      expect(body.season).toBe(2026);
+      expectObjectSchema("CategoryDashboardResponse", body);
+    } finally {
+      await db.cleanup();
+    }
+  });
+
   test("keeps zero-game imports selectable but outside category ranks", async () => {
     const db = await createIntegrationDb();
     try {
@@ -145,11 +165,11 @@ describe("category dashboard route", () => {
     }
   });
 
-  test("uses the default season when the request URL is absent and ranks a single eligible team", async () => {
+  test("uses the current season when the request URL is absent and ranks a single eligible team", async () => {
     const db = await createIntegrationDb();
     try {
       await db.insertPlayers([
-        { teamId: "1", season: 2024, reportType: "regular", playerId: "p", name: "Player", games: 1, goals: 9 },
+        { teamId: "1", season: 2026, reportType: "regular", playerId: "p", name: "Player", games: 1, goals: 9 },
       ]);
       const req = createRequest({ method: "GET" });
       Object.defineProperty(req, "url", { value: undefined, configurable: true });
@@ -158,7 +178,7 @@ describe("category dashboard route", () => {
 
       const body = getJsonBody<TestDashboard>(res);
       expect(res.statusCode).toBe(HTTP_STATUS.OK);
-      expect(body.season).toBe(2024);
+      expect(body.season).toBe(2026);
       expect(body.teams.find((team) => team.teamId === "1")?.categories.goals.totalMedian).toBe(9);
     } finally {
       await db.cleanup();
