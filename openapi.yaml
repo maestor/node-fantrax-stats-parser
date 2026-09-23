@@ -2491,7 +2491,7 @@ paths:
         - name: season
           in: query
           required: false
-          description: Starting year for an imported regular season. Omission selects the current season.
+          description: Starting year for an imported regular season. Omission selects the previous season.
           schema:
             type: string
             pattern: '^\d{4}$'

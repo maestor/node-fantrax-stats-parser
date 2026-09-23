@@ -1,5 +1,5 @@
 import { createRequest, createResponse } from "node-mocks-http";
-import { TEAMS } from "../config/index.js";
+import { CURRENT_SEASON, TEAMS } from "../config/index.js";
 import { getCategoryDashboard } from "../features/team-categories/routes.js";
 import { HTTP_STATUS } from "../shared/http.js";
 import { createIntegrationDb } from "./integration-db.js";
@@ -123,7 +123,7 @@ describe("category dashboard route", () => {
     }
   });
 
-  test("defaults an omitted season to the current season", async () => {
+  test("defaults an omitted season to the previous season", async () => {
     const db = await createIntegrationDb();
     try {
       await db.insertPlayers([
@@ -136,7 +136,7 @@ describe("category dashboard route", () => {
 
       const body = getJsonBody<TestDashboard>(res);
       expect(res.statusCode).toBe(HTTP_STATUS.OK);
-      expect(body.season).toBe(2026);
+      expect(body.season).toBe(CURRENT_SEASON - 1);
       expectObjectSchema("CategoryDashboardResponse", body);
     } finally {
       await db.cleanup();
@@ -165,11 +165,11 @@ describe("category dashboard route", () => {
     }
   });
 
-  test("uses the current season when the request URL is absent and ranks a single eligible team", async () => {
+  test("uses the previous season when the request URL is absent and ranks a single eligible team", async () => {
     const db = await createIntegrationDb();
     try {
       await db.insertPlayers([
-        { teamId: "1", season: 2026, reportType: "regular", playerId: "p", name: "Player", games: 1, goals: 9 },
+        { teamId: "1", season: CURRENT_SEASON - 1, reportType: "regular", playerId: "p", name: "Player", games: 1, goals: 9 },
       ]);
       const req = createRequest({ method: "GET" });
       Object.defineProperty(req, "url", { value: undefined, configurable: true });
@@ -178,7 +178,7 @@ describe("category dashboard route", () => {
 
       const body = getJsonBody<TestDashboard>(res);
       expect(res.statusCode).toBe(HTTP_STATUS.OK);
-      expect(body.season).toBe(2026);
+      expect(body.season).toBe(CURRENT_SEASON - 1);
       expect(body.teams.find((team) => team.teamId === "1")?.categories.goals.totalMedian).toBe(9);
     } finally {
       await db.cleanup();
