@@ -22,6 +22,7 @@ import {
   getRegularLeaderboard,
   getTransactionsLeaderboard,
 } from "./features/leaderboard/routes.js";
+import { getCategoryDashboard } from "./features/team-categories/routes.js";
 import { getFinalsLeaderboard } from "./features/finals/routes.js";
 import {
   getLastModified,
@@ -75,6 +76,7 @@ const routes = [
   get("/leaderboard/regular", protectedRoute(getRegularLeaderboard)),
   get("/leaderboard/transactions", protectedRoute(getTransactionsLeaderboard)),
   get("/leaderboard/finals", protectedRoute(getFinalsLeaderboard)),
+  get("/leaderboard/categories", protectedRoute(getCategoryDashboard)),
   get("/openapi.json", getOpenApiSpec),
   get("/api-docs", getSwaggerUi),
   get("/*", notFound),
