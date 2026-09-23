@@ -208,16 +208,7 @@ export const getCategoryDashboardData = async (
   rawSeason: string | undefined,
 ): Promise<CategoryDashboardResponse> => {
   const availableSeasons = await getCategoryDashboardSeasons();
-  // Resolve the default with one season at a time, descending, so zero-game preseason imports do not win.
-  let defaultSeason: number | undefined;
-  for (const season of [...availableSeasons].sort((a, b) => b - a)) {
-    const data = await buildSeasonData(season);
-    if ([...data.skaterGames.values(), ...data.goalieGames.values()].some((games) => games > 0)) {
-      defaultSeason = season;
-      break;
-    }
-  }
-  let season = defaultSeason ?? CURRENT_SEASON;
+  let season = CURRENT_SEASON;
   if (rawSeason !== undefined) {
     if (!/^\d{4}$/.test(rawSeason) || !availableSeasons.includes(Number(rawSeason))) {
       throw { statusCode: 400, body: "Invalid or unavailable regular season" };
