@@ -110,17 +110,29 @@ describe("helpers goalie scoring", () => {
       );
     });
 
-    test("uses a zero baseline for goalie positive stats", () => {
-      const [top, zero, lowest] = applyGoalieScores([
-        createGoalie({ name: "Top Goalie", wins: 40 }),
-        createGoalie({ name: "Zero Wins" }),
-        createGoalie({ name: "Lowest With Wins", wins: 3 }),
-      ]);
+    test.each(["wins", "saves", "shutouts"] as const)(
+      "uses a zero baseline for goalie %s",
+      (field) => {
+        const [top, zero, lowest] = applyGoalieScores([
+          createGoalie({ name: "Top Goalie", games: 2, [field]: 40 }),
+          createGoalie({ name: "Zero", games: 2 }),
+          createGoalie({
+            name: "Lowest With Production",
+            games: 2,
+            [field]: 3,
+          }),
+        ]);
 
-      expect(zero.score).toBe(0);
-      expect(lowest.score).toBeGreaterThan(0);
-      expect(top.score).toBeGreaterThan(lowest.score as number);
-    });
+        expect(zero.score).toBe(0);
+        expect(lowest.score).toBeGreaterThan(0);
+        expect(top.score).toBeGreaterThan(lowest.score as number);
+        expect(zero.scoreAdjustedByGames).toBe(0);
+        expect(lowest.scoreAdjustedByGames).toBeGreaterThan(0);
+        expect(top.scoreAdjustedByGames).toBeGreaterThan(
+          lowest.scoreAdjustedByGames as number,
+        );
+      },
+    );
 
     test("keeps equal positive values equal and non-zero", () => {
       const [one, two] = applyGoalieScores([

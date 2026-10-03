@@ -48,6 +48,8 @@ After per-item scores are computed:
 - it uses per-game values instead of totals
 - items below `MIN_GAMES_FOR_ADJUSTED_SCORE` still get `0`
 - per-game stats are stabilized toward pool-average rates before scoring
+- zero `plusMinus` is stabilized too, preserving its ordering between negative and positive values at equal games
+- zero counts in the other player and goalie categories remain zero, so smoothing does not award unrecorded production
 - stabilization strength is controlled by `PLAYER_ADJUSTED_SCORE_PRIOR_GAMES` and `GOALIE_ADJUSTED_SCORE_PRIOR_GAMES`
 - rare categories use stronger priors than common categories
 - goalie adjusted scoring uses stabilized per-game `wins`, `saves`, and `shutouts`; `gaa` and `savePercent` do not contribute

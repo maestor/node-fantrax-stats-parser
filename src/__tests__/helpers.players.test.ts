@@ -12,6 +12,39 @@ const expectScoreInRange = (value: number | undefined): void => {
 };
 
 describe("helpers player scoring", () => {
+  describe.each([
+    ["overall", applyPlayerScores, "scoreAdjustedByGames"],
+    [
+      "position-relative",
+      applyPlayerScoresByPosition,
+      "scoreByPositionAdjustedByGames",
+    ],
+  ] as const)("%s adjusted plus/minus", (_label, applyScores, scoreField) => {
+    test.each([
+      ["negative", [-8, -2, 0, 3]],
+      ["positive", [-3, 0, 2, 8]],
+      ["neutral", [-3, -2, 0, 2, 3]],
+    ] as const)(
+      "preserves ordering across zero with a %s pool average",
+      (_average, values) => {
+        const players = applyScores(
+          values.map((plusMinus) =>
+            createPlayer({ games: 2, position: "F", plusMinus }),
+          ),
+        );
+
+        players.forEach((player, index) => {
+          expectScoreInRange(player[scoreField]);
+          if (index > 0) {
+            expect(player[scoreField]).toBeGreaterThan(
+              players[index - 1][scoreField] as number,
+            );
+          }
+        });
+      },
+    );
+  });
+
   describe("applyPlayerScores", () => {
     test("scores players between 0 and 100 and populates per-stat scores", () => {
       const [high, half] = applyPlayerScores([
@@ -91,16 +124,31 @@ describe("helpers player scoring", () => {
       );
     });
 
-    test("uses a zero baseline for always-positive stats", () => {
+    test.each([
+      "goals",
+      "assists",
+      "points",
+      "penalties",
+      "shots",
+      "ppp",
+      "shp",
+      "hits",
+      "blocks",
+    ] as const)("uses a zero baseline for %s", (field) => {
       const [top, zero, lowest] = applyPlayerScores([
-        createPlayer({ name: "Top", goals: 40 }),
-        createPlayer({ name: "Zero Goals" }),
-        createPlayer({ name: "Lowest With Goals", goals: 3 }),
+        createPlayer({ name: "Top", games: 2, [field]: 40 }),
+        createPlayer({ name: "Zero", games: 2 }),
+        createPlayer({ name: "Lowest With Production", games: 2, [field]: 3 }),
       ]);
 
       expect(zero.score).toBe(0);
       expect(lowest.score).toBeGreaterThan(0);
       expect(top.score).toBeGreaterThan(lowest.score as number);
+      expect(zero.scoreAdjustedByGames).toBe(0);
+      expect(lowest.scoreAdjustedByGames).toBeGreaterThan(0);
+      expect(top.scoreAdjustedByGames).toBeGreaterThan(
+        lowest.scoreAdjustedByGames as number,
+      );
     });
 
     test("keeps equal positive values equal and non-zero", () => {

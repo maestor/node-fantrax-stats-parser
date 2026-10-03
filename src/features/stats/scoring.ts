@@ -162,8 +162,11 @@ const getAdjustedObservedRate = (
   games: number,
   priorRate: number,
   priorGames: number,
+  preserveZero: boolean,
 ): number => {
-  if (value === 0) return 0;
+  // Count categories keep absent production at zero; signed plus/minus must
+  // smooth zero too, so it stays between negative and positive observations.
+  if (value === 0 && preserveZero) return 0;
   return getStabilizedRate(value, games, priorRate, priorGames);
 };
 
@@ -243,6 +246,7 @@ const getStabilizedRateBounds = <
         games,
         priorRates[field],
         priorGamesByField[field],
+        field !== negativeField,
       );
 
       if (field === negativeField) {
@@ -315,6 +319,7 @@ const applyStabilizedAdjustedScores = <
         games,
         priorRates[field],
         priorGamesByField[field],
+        field !== negativeField,
       );
 
       let relative = 0;
