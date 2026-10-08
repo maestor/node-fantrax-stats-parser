@@ -43,4 +43,4 @@ curl -H "x-api-key: <your-key>" \
 | `npm run verify` | Lint, types, unused exports, build, coverage; after review acceptance |
 | `npm run snapshot:generate` | Regenerate snapshots; see [scope rules](docs/snapshots.md) |
 
-[package.json](package.json) owns all commands and versions. Runtime uses local HTTP helpers, rou3 routing, and libSQL; imports use Playwright and csv-parse.
+[package.json](package.json) owns all commands and versions. Runtime uses local HTTP helpers, rou3 routing, and libSQL. Roster imports download CSVs over HTTP; other operational tools use Playwright. See [importing](docs/importing.md).

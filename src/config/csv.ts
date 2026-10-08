@@ -31,5 +31,5 @@ export const CSV = {
   GOALIE_SHP: "field18" as const,
 } as const satisfies Record<string, string>;
 
-// Default CSV directory for Playwright imports
+// Default CSV directory for Fantrax imports
 export const DEFAULT_CSV_OUT_DIR = "./csv/temp/";

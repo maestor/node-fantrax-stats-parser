@@ -12,7 +12,6 @@ import path from "path";
 import type { BrowserContext, Locator, Page } from "playwright";
 
 import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../config/index.js";
-export { buildRosterUrlForSeason } from "../features/fantrax/roster-url.js";
 import type { Team } from "../shared/types/index.js";
 
 export type RoundWindow = { startDate: string; endDate: string; label: string };
@@ -92,8 +91,6 @@ export const saveAuthStateInteractive = async (
 };
 
 export type ImportLeagueRegularOptions = {
-  headless: boolean;
-  slowMoMs: number;
   pauseBetweenMs: number;
   outDir: string;
   year: number;
@@ -738,8 +735,6 @@ const resolveSeasonInfoForYear = (
 export const parseImportLeagueRegularOptions = (
   argv: string[],
 ): ImportLeagueRegularOptions => {
-  const headless = !argv.includes("--headed");
-  const slowMoMs = parseNumberArg(argv, "--slowmo") ?? 0;
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
   const outDir =
     parseStringArg(argv, "--out") ??
@@ -766,8 +761,6 @@ export const parseImportLeagueRegularOptions = (
   const season = resolveSeasonInfoForYear(file, year);
 
   return {
-    headless,
-    slowMoMs,
     pauseBetweenMs,
     outDir,
     year,
@@ -1068,29 +1061,4 @@ export const downloadCsvFromPage = async (
   }
 
   return filePath;
-};
-
-export const downloadRosterCsv = async (
-  page: Page,
-  teamSlug: string,
-  teamId: string,
-  outDir: string,
-  year: number,
-  kind?: RosterCsvKind,
-): Promise<string> => {
-  // With statsType=3 in the URL this should already be set, but keep this as a best-effort
-  // compatibility step in case Fantrax ignores the param for some leagues.
-  const fullFantasyButton = page
-    .getByRole("button", { name: /full fantasy team/i })
-    .first();
-  try {
-    if (await fullFantasyButton.isVisible()) {
-      await fullFantasyButton.click({ timeout: 5_000 });
-    }
-  } catch {
-    // ignore
-  }
-
-  const filePath = buildRosterCsvPath({ outDir, teamSlug, teamId, year, kind });
-  return downloadCsvFromPage(page, filePath);
 };

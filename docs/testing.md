@@ -10,7 +10,7 @@ Use `intelligence-testing` for real usage stories and the highest-signal failing
 | `npm run test:watch` | Watch mode |
 | `npm run test:coverage` | Runtime coverage gate |
 | `npm run test:integration` | DB-backed tests in-band with temporary SQLite files |
-| `npm run test:playwright:regular` | Separate Node/Chromium regular-import recovery tests |
+| `npm run test:imports` | Browser-free regular/playoff import behavior tests |
 | `npm run verify` | Lint, types, Knip, build, coverage after acceptance |
 
 [jest.config.cjs](../jest.config.cjs) owns the 100% statement/branch/function/line gates and exact exclusions. Do not lower thresholds or add coverage exclusions without discussion. Coverage includes runtime/domain modules; operational `src/playwright/**`, test infrastructure, entrypoint wrappers, and the thin DB client are excluded according to that config.
@@ -27,11 +27,11 @@ Jest uses ts-jest, `NODE_OPTIONS=--experimental-vm-modules`, and `tsconfig.test.
 - Cover changed behavior, realistic edge cases, promise failures, and new routes. Reuse existing integration helpers rather than duplicating fixtures. Do not invent mock-heavy tests solely to satisfy coverage.
 - Do not import operational `src/playwright/**` entrypoints into Jest. Extract pure parsing/normalization into a non-CLI module when it needs runtime unit coverage.
 
-## Scraper recovery
+## Roster import recovery
 
-`npm run test:playwright:regular` runs the real regular-season CLI against local fixture pages with Chromium. Install Chromium with `npm run playwright:install` first. It uses temporary auth/mapping/output files and makes no live Fantrax requests or DB/R2 imports.
+`npm run test:imports` runs the real regular and playoff CLIs with fixture HTTP responses and a stubbed post-import process boundary. It uses temporary auth/mapping/output files and makes no live Fantrax requests or DB/R2 imports. No browser installation or launch is needed; `test:playwright:regular` remains a compatibility alias.
 
-Coverage includes export-click/download timeouts, browser closure, retry exhaustion, and completed-CSV preservation. These operational checks stay outside Jest and the runtime coverage gate.
+The scenarios protect historical/current date parameters, team-specific playoff windows, bounded concurrency, cookie scoping, retries, invalid/truncated exports, authentication rejection, completed-CSV preservation, and downstream season/report filtering. These operational checks stay outside Jest and the runtime coverage gate.
 
 ## Coverage gaps and exports
 
