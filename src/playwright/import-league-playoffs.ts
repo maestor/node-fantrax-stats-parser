@@ -1,25 +1,25 @@
-import { chromium, type Browser } from "playwright";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import path from "path";
 
 import { DEFAULT_CSV_OUT_DIR } from "../config/index.js";
 
 import {
-  AUTH_STATE_PATH,
-  buildRosterCsvFileName,
   buildRosterCsvPath,
-  buildRosterUrlForSeason,
-  downloadRosterCsv,
   FANTRAX_ARTIFACT_DIR,
   hasFlag,
-  installRequestBlocking,
   parseNumberArg,
   parseStringArg,
   requireAuthStateFile,
   runImportTempCsvScriptIfUsingDefaultOutDir,
-  sleep,
   type TeamRun,
 } from "./helpers.js";
+
+import {
+  downloadRosterReports,
+  FantraxRosterHttpClient,
+  parseRosterConcurrency,
+  type RosterDownload,
+} from "./roster-http.js";
 
 type PlayoffsTeamRunV2 = TeamRun & {
   rosterTeamId: string;
@@ -39,8 +39,6 @@ type PlayoffsFileV2 = {
 };
 
 type ImportLeaguePlayoffsOptions = {
-  headless: boolean;
-  slowMoMs: number;
   pauseBetweenMs: number;
   outDir: string;
   year: number;
@@ -94,8 +92,6 @@ const readPlayoffsFileV2 = (): PlayoffsFileV2 => {
 const parseImportLeaguePlayoffsOptions = (
   argv: string[],
 ): ImportLeaguePlayoffsOptions => {
-  const headless = !hasFlag(argv, "--headed");
-  const slowMoMs = parseNumberArg(argv, "--slowmo") ?? 0;
   const pauseBetweenMs = parseNumberArg(argv, "--pause") ?? 250;
   const outDir =
     parseStringArg(argv, "--out") ??
@@ -166,8 +162,6 @@ const parseImportLeaguePlayoffsOptions = (
   }
 
   return {
-    headless,
-    slowMoMs,
     pauseBetweenMs,
     outDir,
     year,
@@ -178,88 +172,42 @@ const parseImportLeaguePlayoffsOptions = (
 
 const main = async (): Promise<void> => {
   const options = parseImportLeaguePlayoffsOptions(process.argv.slice(2));
+  const concurrency = parseRosterConcurrency(process.argv.slice(2));
   requireAuthStateFile();
   mkdirSync(path.resolve(options.outDir), { recursive: true });
-
-  if (!options.teams.length) {
-    console.info(`Done. No playoffs CSV files to download for ${options.year}.`);
-    runImportTempCsvScriptIfUsingDefaultOutDir(
-      options.outDir,
-      options.year,
-      "playoffs",
-    );
-    return;
-  }
-
-  const browser: Browser = await chromium.launch({
-    headless: options.headless,
-    slowMo: options.slowMoMs,
-  });
-
-  try {
-    const context = await browser.newContext({
-      storageState: AUTH_STATE_PATH,
-      acceptDownloads: true,
-    });
-
-    await installRequestBlocking(context);
-
-    const page = await context.newPage();
-    page.setDefaultTimeout(30_000);
-
-    let downloaded = 0;
-    for (const team of options.teams) {
-      const fileName = buildRosterCsvFileName({
+  const jobs: RosterDownload[] = options.teams
+    .map((team) => ({
+      leagueId: options.leagueId,
+      rosterTeamId: team.rosterTeamId,
+      startDate: team.startDate,
+      endDate: team.endDate,
+      filePath: buildRosterCsvPath({
         teamSlug: team.name,
         teamId: team.id,
         year: options.year,
-        kind: "playoffs",
-      });
-      const outPath = buildRosterCsvPath({
         outDir: options.outDir,
-        teamSlug: team.name,
-        teamId: team.id,
-        year: options.year,
         kind: "playoffs",
-      });
-      if (existsSync(outPath)) {
-        console.info(
-          `[${team.name}] already exists (${path.join(options.outDir, fileName)}); skipping.`,
-        );
-        continue;
-      }
-
-      const rosterUrl = buildRosterUrlForSeason({
-        leagueId: options.leagueId,
-        rosterTeamId: team.rosterTeamId,
-        startDate: team.startDate,
-        endDate: team.endDate,
-      });
-
-      console.info(`[${team.name}] goto ${rosterUrl}`);
-      await page.goto(rosterUrl, { waitUntil: "domcontentloaded" });
-
-      const savedTo = await downloadRosterCsv(
-        page,
-        team.name,
-        team.id,
-        options.outDir,
-        options.year,
-        "playoffs",
+      }),
+      teamName: team.name,
+    }))
+    .filter((job) => {
+      if (!existsSync(job.filePath)) return true;
+      console.info(
+        `[${job.teamName}] already exists (${job.filePath}); skipping.`,
       );
-      console.info(`[${team.name}] saved ${savedTo}`);
-      downloaded++;
-
-      if (options.pauseBetweenMs > 0) {
-        await sleep(options.pauseBetweenMs);
-      }
-    }
-
-    console.info(`Done. Downloaded ${downloaded} playoffs CSV file(s).`);
-  } finally {
-    await browser.close();
-  }
-
+      return false;
+    });
+  const downloaded = jobs.length
+    ? await downloadRosterReports(
+        new FantraxRosterHttpClient(),
+        jobs,
+        concurrency,
+        options.pauseBetweenMs,
+      )
+    : 0;
+  console.info(
+    `Done. Downloaded ${downloaded} playoffs CSV file(s) over HTTP.`,
+  );
   runImportTempCsvScriptIfUsingDefaultOutDir(
     options.outDir,
     options.year,
@@ -267,4 +215,7 @@ const main = async (): Promise<void> => {
   );
 };
 
-void main();
+await main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

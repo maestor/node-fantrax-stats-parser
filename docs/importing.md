@@ -10,7 +10,8 @@ The source files stay local or in R2; the API serves data from the database and 
 ## Prerequisites
 
 - `npm install`
-- Playwright-based Fantrax scripts auto-run `playwright install chromium` before launch
+- Roster CSV downloads use HTTP and the saved Fantrax session; they do not install or launch a browser
+- Browser-based Fantrax metadata/transaction scripts still require Playwright
 - For remote database imports, set `USE_REMOTE_DB=true` and Turso credentials as described in [deployment.md](deployment.md)
 
 Options listed below are passed after `--` with npm scripts, e.g. `npm run playwright:sync:regular -- --year=2025`. Use direct flags with shell scripts or `npx tsx`.
@@ -150,7 +151,7 @@ This populates `finals_matchups`, `finals_matchup_teams`, and `finals_matchup_ca
 ### 3) Download regular-season roster CSVs
 
 ```bash
-npm run playwright:import:regular
+npm run import:regular
 ```
 
 Notes:
@@ -166,22 +167,25 @@ Notes:
 
 The importer uses roster-by-date mode and includes both `startDate` and `endDate` from the synced season period dates.
 
-Each team download gets up to three attempts. If navigation, the export click, or the download fails, the importer waits 2 seconds before the second attempt and 4 seconds before the third, reopening Chromium with the saved login state each time. The log includes the original failure and the next attempt number. This recovery applies to roster downloads after the initial standings lookup.
+It resolves season-specific team IDs through Fantrax's league-info feed and calls the same CSV endpoint used by the roster page's export button. Both current and historical seasons use Full Fantasy Team stats. The saved cookies are sent only to matching Fantrax hosts and paths; login renewal remains a separate operation.
 
-Completed CSVs are skipped on reruns. Downloads are saved through a `.part` file and renamed only after saving succeeds, so an interrupted save is not mistaken for a completed CSV. If all three attempts fail, the command exits with an error and keeps completed files in the output directory for the next run; the post-import pipeline does not start. If the saved login has expired, run `npm run playwright:login` before retrying.
+Downloads run with four workers by default. Each team download gets up to three attempts, waiting 2 seconds before the second attempt and 4 seconds before the third. Authentication rejection stops the run with a login-renewal message. `--pause` applies between downloads in each worker.
+
+Completed CSVs are skipped on reruns. Responses must contain both roster sections and their required stats headers before saving. Downloads are saved through a `.part` file and renamed only after saving succeeds. On failure, queued downloads stop, in-flight work finishes, and the command exits with an error while keeping completed files for the next run; the post-import pipeline does not start. If the saved login has expired, renew it with the login script before retrying.
+
+`npm run playwright:import:regular` remains a compatibility alias and no longer installs or launches Chromium. Browser flags (`--headed`, `--slowmo`) no longer apply.
 
 Useful options:
 
 - `--year=2025`
-- `--headed`
-- `--slowmo=250`
+- `--concurrency=4` (1–8)
 - `--pause=500`
 - `--out=./csv/temp/`
 
 ### 3b) Download playoffs roster CSVs
 
 ```bash
-npm run playwright:import:playoffs
+npm run import:playoffs
 ```
 
 Notes:
@@ -197,12 +201,13 @@ Notes:
 - when the default `csv/temp` pipeline runs, any chained R2 upload, DB import, and stats snapshot regeneration are limited to the imported playoff team files
 - filenames follow `{teamSlug}-{teamId}-playoffs-YYYY-YYYY.csv`
 
+Playoff downloads use the same HTTP/retry/validation mechanism as regular imports, with each team's saved `rosterTeamId`, `startDate`, and `endDate`. `npm run playwright:import:playoffs` remains a compatibility alias without a browser-install prehook. Browser flags no longer apply.
+
 Useful options:
 
 - `--year=2025`
 - `--remaining-teams`
-- `--headed`
-- `--slowmo=250`
+- `--concurrency=4` (1–8)
 - `--pause=500`
 - `--out=./csv/temp/`
 
