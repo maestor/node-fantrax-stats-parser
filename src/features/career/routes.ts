@@ -11,7 +11,6 @@ import {
   CAREER_HIGHLIGHT_TYPES,
   DEFAULT_CAREER_HIGHLIGHT_SKIP,
   DEFAULT_CAREER_HIGHLIGHT_TAKE,
-  MAX_CAREER_HIGHLIGHT_TAKE,
 } from "../../config/index.js";
 import { ERROR_MESSAGES, HTTP_STATUS } from "../../shared/http.js";
 import {
@@ -87,13 +86,9 @@ export const getCareerHighlights: RouteHandler<{ type: string }> = async (
   }
 
   const skip = parsePagingParam(getQueryParam(req, "skip"));
-  const take = parsePagingParam(getQueryParam(req, "take"));
-  if (
-    skip === null ||
-    take === null ||
-    (skip !== undefined && skip < 0) ||
-    (take !== undefined && (take < 0 || take > MAX_CAREER_HIGHLIGHT_TAKE))
-  ) {
+  const rawTake = getQueryParam(req, "take");
+  const take = rawTake === "all" ? "all" : parsePagingParam(rawTake);
+  if (skip === null || take === null) {
     sendNoStore(
       res,
       HTTP_STATUS.BAD_REQUEST,
@@ -103,13 +98,15 @@ export const getCareerHighlights: RouteHandler<{ type: string }> = async (
   }
 
   const resolvedSkip = skip ?? DEFAULT_CAREER_HIGHLIGHT_SKIP;
-  const resolvedTake = take ?? DEFAULT_CAREER_HIGHLIGHT_TAKE;
 
   await withErrorHandlingCached(req, res, async () => {
     const result = await loadSnapshotOrFallback(
       getCareerHighlightsSnapshotKey(rawType),
       () => getCareerHighlightsData(rawType),
     );
+    const resolvedTake = take === "all"
+      ? Math.max(0, result.data.length - resolvedSkip)
+      : take ?? DEFAULT_CAREER_HIGHLIGHT_TAKE;
     const items = result.data.slice(resolvedSkip, resolvedSkip + resolvedTake);
 
     return {

@@ -109,6 +109,7 @@ const main = async () => {
   let totalFantraxEntitiesSynced = 0;
   const missingIdMessages: string[] = [];
   const snapshotTeamIds = new Set<string>();
+  let importedCurrentSeason = false;
 
   const allowedTeamIds = teamIdsFilter ? new Set(teamIdsFilter) : null;
 
@@ -278,6 +279,9 @@ const main = async () => {
         totalFantraxEntitiesSynced += fantraxEntities.length;
         totalFiles++;
         snapshotTeamIds.add(team.id);
+        if (season === CURRENT_SEASON) {
+          importedCurrentSeason = true;
+        }
       } catch (error) {
         console.error(`  ❌ Error importing ${file}:`, error);
         errors++;
@@ -296,13 +300,19 @@ const main = async () => {
     });
 
     console.log("");
-    console.log("📸 Regenerating combined stats snapshots...");
+    console.log("📸 Regenerating affected stats and highlight snapshots...");
     const snapshotArgs = [
       "run",
       "snapshot:generate",
       "--",
       "--scope=stats",
     ];
+    if (importedCurrentSeason) {
+      snapshotArgs.push(
+        "--scope=career-highlights",
+        "--highlight-type=regular-grinder-without-playoffs",
+      );
+    }
     if (reportTypeFilter !== null) {
       snapshotArgs.push(`--report-type=${reportTypeFilter}`);
     }

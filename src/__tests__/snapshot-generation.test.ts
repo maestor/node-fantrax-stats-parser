@@ -1,3 +1,4 @@
+import { CAREER_HIGHLIGHT_TYPES } from "../config/index.js";
 import {
   SNAPSHOT_GENERATION_SCOPES,
   SNAPSHOT_STATS_REPORT_TYPES,
@@ -35,6 +36,7 @@ describe("snapshot generation helpers", () => {
         "transactions",
       ],
       statsReportTypes: ["regular", "playoffs", "both"],
+      careerHighlightTypes: [...CAREER_HIGHLIGHT_TYPES],
       statsTeamIds: null,
       isFullGeneration: true,
     });
@@ -50,6 +52,7 @@ describe("snapshot generation helpers", () => {
     ).toEqual({
       scopes: ["stats", "transactions"],
       statsReportTypes: ["regular", "both"],
+      careerHighlightTypes: [...CAREER_HIGHLIGHT_TYPES],
       statsTeamIds: null,
       isFullGeneration: false,
     });
@@ -64,6 +67,7 @@ describe("snapshot generation helpers", () => {
     ).toEqual({
       scopes: ["career-highlights", "leaderboard-regular"],
       statsReportTypes: ["both"],
+      careerHighlightTypes: [...CAREER_HIGHLIGHT_TYPES],
       statsTeamIds: null,
       isFullGeneration: false,
     });
@@ -80,6 +84,7 @@ describe("snapshot generation helpers", () => {
         "transactions",
       ],
       statsReportTypes: ["regular", "playoffs", "both"],
+      careerHighlightTypes: [...CAREER_HIGHLIGHT_TYPES],
       statsTeamIds: null,
       isFullGeneration: true,
     });
@@ -96,9 +101,40 @@ describe("snapshot generation helpers", () => {
     ).toEqual({
       scopes: ["stats"],
       statsReportTypes: ["playoffs", "both"],
+      careerHighlightTypes: [...CAREER_HIGHLIGHT_TYPES],
       statsTeamIds: ["1", "12"],
       isFullGeneration: false,
     });
+  });
+
+  test("restricts career highlights without treating a partial refresh as full generation", () => {
+    const config = resolveSnapshotGenerationConfig([
+      "--scope=all",
+      "--highlight-type=most-drops,most-claims",
+      "--highlight-type=most-claims,reunion-king,most-trades",
+    ]);
+    expect(config.careerHighlightTypes).toEqual([
+      "reunion-king",
+      "most-trades",
+      "most-claims",
+      "most-drops",
+    ]);
+    expect(config.isFullGeneration).toBe(false);
+  });
+
+  test("rejects unknown highlight types and filters without the highlights scope", () => {
+    expect(() =>
+      resolveSnapshotGenerationConfig([
+        "--scope=career-highlights",
+        "--highlight-type=unknown",
+      ]),
+    ).toThrow("Invalid --highlight-type value: unknown");
+    expect(() =>
+      resolveSnapshotGenerationConfig([
+        "--scope=stats",
+        "--highlight-type=most-trades",
+      ]),
+    ).toThrow("--highlight-type requires the career-highlights scope");
   });
 
   test("maps stats report filters for manual callers", () => {
@@ -125,10 +161,9 @@ describe("snapshot generation helpers", () => {
 
   test("maps stats team filters for manual callers", () => {
     expect(resolveSnapshotStatsTeamIds([])).toBeNull();
-    expect(resolveSnapshotStatsTeamIds(["--team-id=12,1", "--team-id=12"])).toEqual([
-      "1",
-      "12",
-    ]);
+    expect(
+      resolveSnapshotStatsTeamIds(["--team-id=12,1", "--team-id=12"]),
+    ).toEqual(["1", "12"]);
   });
 
   test("rejects invalid scope combinations and values", () => {
@@ -136,9 +171,7 @@ describe("snapshot generation helpers", () => {
       resolveSnapshotGenerationConfig(["--scope=all", "--scope=stats"]),
     ).toThrow("Use --scope=all by itself, not together with other scopes.");
 
-    expect(() =>
-      resolveSnapshotGenerationConfig(["--scope=unknown"]),
-    ).toThrow(
+    expect(() => resolveSnapshotGenerationConfig(["--scope=unknown"])).toThrow(
       "Invalid --scope value: unknown. Valid values: all, career, career-highlights, leaderboard-playoffs, leaderboard-regular, stats, transactions.",
     );
   });
