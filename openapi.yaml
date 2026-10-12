@@ -71,12 +71,15 @@ components:
     take:
       name: take
       in: query
-      description: Number of rows to return from the sorted highlight list. Defaults to `10`. Maximum `100`.
+      description: Number of rows to return from the sorted highlight list. Defaults to `10`. Use `all` to return every remaining row; the response reports the resolved numeric take.
       schema:
-        type: integer
-        minimum: 0
-        maximum: 100
-        example: 10
+        oneOf:
+          - type: integer
+            minimum: 0
+            maximum: 9007199254740991
+            example: 10
+          - type: string
+            enum: [all]
 
     careerId:
       name: id

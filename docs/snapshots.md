@@ -22,15 +22,16 @@ Current snapshot families are:
 - `db:import:stats` refreshes `import_metadata.last_modified` and then runs `npm run snapshot:generate -- --scope=stats`
 - `db:import:stats -- --report-type=regular` regenerates `regular` and `both` combined player/goalie snapshots
 - `db:import:stats -- --report-type=playoffs` regenerates `playoffs` and `both` combined player/goalie snapshots only for teams whose playoff CSVs were imported
+- `db:import:stats` also refreshes `regular-grinder-without-playoffs` when at least one current-season regular or playoff CSV was successfully imported; historical-only imports and dry runs leave that highlight unchanged
 - `db:import:playoff-results` refreshes only `/leaderboard/playoffs`
 - `db:import:regular-results` refreshes only `/leaderboard/regular`
-- `db:import:transactions` refreshes `import_metadata.last_modified` and then refreshes only `/leaderboard/transactions`
+- `db:import:transactions` refreshes `import_metadata.last_modified` and then refreshes `/leaderboard/transactions` plus `most-trades`, `most-claims`, `most-drops`, and `reunion-king`; dry runs skip snapshot generation
 - snapshots are written locally to `generated/snapshots/`
 - when `USE_R2_SNAPSHOTS=true`, generated snapshot JSON is uploaded to the configured R2 bucket and `manifest.json` is uploaded last
 - snapshot uploads add `Content-Type: application/json` and `generated-at` metadata
 - transient R2/TLS failures retry automatically with exponential backoff
 
-Career and career-highlight snapshots are intentionally manual-only after stats imports. Existing snapshots continue serving until you regenerate them.
+Career lists and other career highlights remain manual-only after stats imports. Existing snapshots continue serving until you regenerate them.
 
 ## Environment Variables
 
@@ -55,8 +56,11 @@ npm run snapshot:generate
 npm run snapshot:generate -- --scope=stats --report-type=regular
 npm run snapshot:generate -- --scope=stats --report-type=playoffs --team-id=1 --team-id=12
 npm run snapshot:generate -- --scope=career --scope=career-highlights
+npm run snapshot:generate -- --scope=career-highlights --highlight-type=most-trades,most-claims,most-drops,reunion-king
 npm run snapshot:generate -- --scope=transactions
 ```
+
+`--highlight-type` accepts comma-separated values or repeated flags and requires the `career-highlights` scope (or full generation). Omit it to generate every highlight. Partial generation preserves other snapshots and their manifest entries. Highlight snapshots always aggregate the full league history, including when combined-stats generation is restricted by report type or team.
 
 ## Runtime Behavior
 

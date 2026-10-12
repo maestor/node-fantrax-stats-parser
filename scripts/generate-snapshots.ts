@@ -11,7 +11,7 @@ if (process.env.USE_REMOTE_DB !== "true") {
 import fs from "fs";
 import path from "path";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/config/index.js";
+import { TEAMS } from "../src/config/index.js";
 import {
   resolveSnapshotGenerationConfig,
   type SnapshotGenerationConfig,
@@ -167,7 +167,7 @@ const buildSnapshotEntries = async (
   }
 
   if (config.scopes.includes("career-highlights")) {
-    for (const type of CAREER_HIGHLIGHT_TYPES) {
+    for (const type of config.careerHighlightTypes) {
       entries.push({
         key: getCareerHighlightsSnapshotKey(type),
         data: await getCareerHighlightsData(type),
@@ -286,6 +286,9 @@ const main = async () => {
   console.info(`   Target DB: ${process.env.TURSO_DATABASE_URL}`);
   console.info(`   Upload to R2: ${shouldUploadToR2()}`);
   console.info(`   Scopes: ${config.scopes.join(", ")}`);
+  if (config.scopes.includes("career-highlights")) {
+    console.info(`   Highlight types: ${config.careerHighlightTypes.join(", ")}`);
+  }
   if (config.scopes.includes("stats")) {
     console.info(`   Stats reports: ${config.statsReportTypes.join(", ")}`);
     if (config.statsTeamIds !== null) {

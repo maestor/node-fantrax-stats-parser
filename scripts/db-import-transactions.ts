@@ -113,10 +113,17 @@ const main = async (): Promise<void> => {
   console.info(`   Dry run: ${dryRun}`);
 
   if (!dryRun) {
-    console.info("📸 Regenerating transactions snapshot...");
+    console.info("📸 Regenerating transactions and career-highlights snapshots...");
     const snapshotRun = spawnSync(
       "npm",
-      ["run", "snapshot:generate", "--", "--scope=transactions"],
+      [
+        "run",
+        "snapshot:generate",
+        "--",
+        "--scope=transactions",
+        "--scope=career-highlights",
+        "--highlight-type=most-trades,most-claims,most-drops,reunion-king",
+      ],
       {
         stdio: "inherit",
         env: process.env,

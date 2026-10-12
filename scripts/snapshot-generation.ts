@@ -1,4 +1,5 @@
-import { TEAMS } from "../src/config/index.js";
+import { CAREER_HIGHLIGHT_TYPES, TEAMS } from "../src/config/index.js";
+import type { CareerHighlightType } from "../src/features/career/types.js";
 
 export const SNAPSHOT_GENERATION_SCOPES = [
   "all",
@@ -33,6 +34,7 @@ export type SnapshotGenerationConfig = {
   scopes: ExplicitSnapshotGenerationScope[];
   statsReportTypes: SnapshotStatsReportType[];
   statsTeamIds: string[] | null;
+  careerHighlightTypes: CareerHighlightType[];
   isFullGeneration: boolean;
 };
 
@@ -120,6 +122,22 @@ export const resolveSnapshotGenerationConfig = (
     arg.startsWith("--report-type="),
   );
   const statsTeamIds = resolveSnapshotStatsTeamIds(args);
+  const highlightTokens = args
+    .filter((arg) => arg.startsWith("--highlight-type="))
+    .flatMap((arg) => arg.slice("--highlight-type=".length).split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const invalidHighlight = highlightTokens.find(
+    (type) => !CAREER_HIGHLIGHT_TYPES.includes(type as CareerHighlightType),
+  );
+  if (invalidHighlight) {
+    throw new Error(
+      `Invalid --highlight-type value: ${invalidHighlight}. Valid values: ${CAREER_HIGHLIGHT_TYPES.join(", ")}.`,
+    );
+  }
+  const careerHighlightTypes = CAREER_HIGHLIGHT_TYPES.filter(
+    (type) => highlightTokens.length === 0 || highlightTokens.includes(type),
+  );
 
   if (reportTypeArgs.length > 1) {
     throw new Error("Use at most one --report-type value.");
@@ -134,8 +152,10 @@ export const resolveSnapshotGenerationConfig = (
       scopes: [...EXPLICIT_SNAPSHOT_GENERATION_SCOPES],
       statsReportTypes,
       statsTeamIds,
+      careerHighlightTypes,
       isFullGeneration:
         statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length &&
+        careerHighlightTypes.length === CAREER_HIGHLIGHT_TYPES.length &&
         statsTeamIds === null,
     };
   }
@@ -163,12 +183,18 @@ export const resolveSnapshotGenerationConfig = (
         [...uniqueScopes] as ExplicitSnapshotGenerationScope[],
       );
 
+  if (highlightTokens.length > 0 && !scopes.includes("career-highlights")) {
+    throw new Error("--highlight-type requires the career-highlights scope");
+  }
+
   return {
     scopes,
     statsReportTypes,
     statsTeamIds,
+    careerHighlightTypes,
     isFullGeneration:
       scopes.length === EXPLICIT_SNAPSHOT_GENERATION_SCOPES.length &&
+      careerHighlightTypes.length === CAREER_HIGHLIGHT_TYPES.length &&
       statsReportTypes.length === SNAPSHOT_STATS_REPORT_TYPES.length &&
       statsTeamIds === null,
   };

@@ -1811,7 +1811,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
 
         const req = createRequest({
           method: "GET",
-          url: "/career/highlights/most-claims",
+          url: "/career/highlights/most-claims?take=all",
           params: { type: "most-claims" },
         });
         const res = createResponse();
@@ -1824,7 +1824,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
           type: "most-claims",
           minAllowed: 3,
           skip: 0,
-          take: 10,
+          take: 2,
           total: 2,
           items: [
             {
@@ -1954,7 +1954,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
 
         const req = createRequest({
           method: "GET",
-          url: "/career/highlights/most-trades",
+          url: "/career/highlights/most-trades?take=101",
           params: { type: "most-trades" },
         });
         const res = createResponse();
@@ -1967,7 +1967,7 @@ export const registerCareerRouteIntegrationTests = (): void => {
           type: "most-trades",
           minAllowed: 4,
           skip: 0,
-          take: 10,
+          take: 101,
           total: 2,
           items: [
             {
@@ -2053,54 +2053,58 @@ export const registerCareerRouteIntegrationTests = (): void => {
       }
     });
 
-    test("returns 400 for invalid career highlight paging params", async () => {
+    test.each(["most-claims", "most-trades", "most-drops"] as const)(
+      "serves %s prefixes and later pages beyond 100 rows",
+      async (type) => {
+        const db = await createIntegrationDb();
+        try {
+          const snapshotPayload = Array.from({ length: 130 }, (_, index) => ({
+            id: `player-${index}`,
+            name: `Player ${index}`,
+            position: "F",
+            transactionCount: 200 - index,
+            teams: [{ id: "7", name: "Edmonton Oilers", count: 200 - index }],
+          }));
+          await writeSnapshot(db.snapshotDir, `career/highlights/${type}`, snapshotPayload);
+          for (const [skip, take] of [[0, 101], [0, 131], [100, 101], [130, 201], [0, "all"], [100, "all"], [130, "all"]] as const) {
+            const req = createRequest({
+              method: "GET",
+              url: `/career/highlights/${type}?skip=${skip}&take=${take}`,
+              params: { type },
+            });
+            const res = createResponse();
+            await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+            expect(res.statusCode).toBe(HTTP_STATUS.OK);
+            expect(res.getHeader("x-stats-data-source")).toBe("snapshot");
+            const body = getJsonBody(res);
+            expect(body).toEqual({
+              type, minAllowed: type === "most-trades" ? 4 : 3,
+              skip, take: take === "all" ? Math.max(0, snapshotPayload.length - skip) : take, total: snapshotPayload.length,
+              items: take === "all" ? snapshotPayload.slice(skip) : snapshotPayload.slice(skip, skip + take),
+            });
+            expectObjectSchema("CareerTransactionHighlightPage", body);
+          }
+        } finally {
+          await db.cleanup();
+        }
+      },
+    );
+
+    test.each([
+      "take=1.5", "take=-1", "take=abc", "take=9007199254740992",
+      "skip=-1", "skip=1.5", "skip=9007199254740992",
+    ])("returns 400 for invalid career highlight paging: %s", async (query) => {
       const db = await createIntegrationDb();
-
       try {
-        const badTakeReq = createRequest({
+        const req = createRequest({
           method: "GET",
-          url: "/career/highlights/most-teams-played?take=101",
+          url: `/career/highlights/most-teams-played?${query}`,
           params: { type: "most-teams-played" },
         });
-        const badTakeRes = createResponse();
-
-        await getCareerHighlights(
-          asRouteReq<CareerHighlightsReq>(badTakeReq),
-          badTakeRes,
-        );
-
-        expect(badTakeRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
-        expect(badTakeRes._getData()).toBe("Invalid paging params");
-
-        const badSkipReq = createRequest({
-          method: "GET",
-          url: "/career/highlights/most-teams-played?skip=-1",
-          params: { type: "most-teams-played" },
-        });
-        const badSkipRes = createResponse();
-
-        await getCareerHighlights(
-          asRouteReq<CareerHighlightsReq>(badSkipReq),
-          badSkipRes,
-        );
-
-        expect(badSkipRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
-        expect(badSkipRes._getData()).toBe("Invalid paging params");
-
-        const hugeSkipReq = createRequest({
-          method: "GET",
-          url: "/career/highlights/most-teams-played?skip=9007199254740992",
-          params: { type: "most-teams-played" },
-        });
-        const hugeSkipRes = createResponse();
-
-        await getCareerHighlights(
-          asRouteReq<CareerHighlightsReq>(hugeSkipReq),
-          hugeSkipRes,
-        );
-
-        expect(hugeSkipRes.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
-        expect(hugeSkipRes._getData()).toBe("Invalid paging params");
+        const res = createResponse();
+        await getCareerHighlights(asRouteReq<CareerHighlightsReq>(req), res);
+        expect(res.statusCode).toBe(HTTP_STATUS.BAD_REQUEST);
+        expect(res._getData()).toBe("Invalid paging params");
       } finally {
         await db.cleanup();
       }

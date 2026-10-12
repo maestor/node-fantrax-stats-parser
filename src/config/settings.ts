@@ -31,7 +31,6 @@ export const CAREER_HIGHLIGHT_TYPES = [
 
 export const DEFAULT_CAREER_HIGHLIGHT_SKIP = 0;
 export const DEFAULT_CAREER_HIGHLIGHT_TAKE = 10;
-export const MAX_CAREER_HIGHLIGHT_TAKE = 100;
 export const CAREER_HIGHLIGHT_CONFIG = {
   "most-teams-played": {
     kind: "team-count",
