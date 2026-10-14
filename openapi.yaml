@@ -541,6 +541,147 @@ components:
               type: string
               description: Save percentage formatted with three decimals. Played zero values are returned as `0.000`; omitted only when source data only contains a non-played zero placeholder.
 
+    HistoryTeam:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+
+    HistoryCoverage:
+      type: object
+      description: Seasons containing stored records, not a completed-import manifest. Empty imports and missing imports cannot be distinguished; completeness is unknown.
+      required: [entryDraftSeasons, openingDraftPresent, claimSeasons, tradeSeasons, completeness]
+      properties:
+        entryDraftSeasons:
+          type: array
+          items: { type: integer }
+        openingDraftPresent: { type: boolean }
+        claimSeasons:
+          type: array
+          items: { type: integer }
+        tradeSeasons:
+          type: array
+          items: { type: integer }
+        completeness: { type: string, enum: [unknown] }
+
+    DraftHistoryEvent:
+      type: object
+      required: [id, type, season, date, draftType, round, pickNumber, team, originalOwner]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [draft] }
+        season:
+          type: integer
+          nullable: true
+          description: Opening draft records have no stored season.
+        date:
+          type: string
+          nullable: true
+          description: No exact draft date is stored; always null.
+        draftType: { type: string, enum: [entry, opening] }
+        round: { type: integer }
+        pickNumber: { type: integer }
+        team: { $ref: '#/components/schemas/HistoryTeam' }
+        originalOwner: { $ref: '#/components/schemas/HistoryTeam' }
+
+    ClaimHistoryEvent:
+      type: object
+      required: [id, type, season, date, team]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [claim, drop] }
+        season: { type: integer }
+        date: { type: string }
+        team: { $ref: '#/components/schemas/HistoryTeam' }
+
+    HistoryMovement:
+      type: object
+      required: [fromTeam, toTeam]
+      properties:
+        fromTeam: { $ref: '#/components/schemas/HistoryTeam' }
+        toTeam: { $ref: '#/components/schemas/HistoryTeam' }
+
+    TradeHistoryEvent:
+      type: object
+      required: [id, type, season, date, tradeId, status, movements]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [trade] }
+        season: { type: integer }
+        date: { type: string }
+        tradeId: { type: string }
+        status: { $ref: '#/components/schemas/TradeAssemblyStatus' }
+        movements:
+          type: array
+          items: { $ref: '#/components/schemas/HistoryMovement' }
+
+    CareerHistory:
+      type: object
+      required: [id, coverage, events]
+      properties:
+        id: { type: string }
+        coverage: { $ref: '#/components/schemas/HistoryCoverage' }
+        events:
+          type: array
+          description: Newest season first, then newest dated event; undated drafts follow dated events within a season. Opening draft records appear last. Equal timestamps use deterministic source identity order, not a claimed temporal order.
+          items:
+            oneOf:
+              - { $ref: '#/components/schemas/DraftHistoryEvent' }
+              - { $ref: '#/components/schemas/ClaimHistoryEvent' }
+              - { $ref: '#/components/schemas/TradeHistoryEvent' }
+
+    TradeAssemblyStatus:
+      type: string
+      enum: [reconstructed, ambiguous, incomplete]
+      description: Reconstructed means exactly two opposing source blocks with matching period within one source-file/season/timestamp/participant group. This is an inference, not a provider-confirmed deal ID. Extra blocks or different periods are ambiguous; missing opposing directions are incomplete.
+
+    TradeAsset:
+      type: object
+      required: [type, name, rawName, entityId, careerType, position, fromTeam, toTeam, draftSeason, draftRound, draftOriginalOwner]
+      properties:
+        type: { type: string, enum: [player, draft_pick, other] }
+        name: { type: string }
+        rawName: { type: string }
+        entityId: { type: string, nullable: true }
+        careerType:
+          type: string
+          nullable: true
+          enum: [player, goalie]
+          description: Present only when linked career statistics exist, including zero-game records.
+        position: { type: string, nullable: true }
+        fromTeam: { $ref: '#/components/schemas/HistoryTeam' }
+        toTeam: { $ref: '#/components/schemas/HistoryTeam' }
+        draftSeason: { type: integer, nullable: true }
+        draftRound: { type: integer, nullable: true }
+        draftOriginalOwner:
+          allOf:
+            - { $ref: '#/components/schemas/HistoryTeam' }
+          nullable: true
+
+    TradeSourceBlock:
+      type: object
+      required: [sourceBlockIndex, sourcePeriod, assets]
+      properties:
+        sourceBlockIndex: { type: integer }
+        sourcePeriod: { type: integer }
+        assets:
+          type: array
+          items: { $ref: '#/components/schemas/TradeAsset' }
+
+    TradeDetail:
+      type: object
+      required: [id, season, date, status, blocks]
+      properties:
+        id: { type: string }
+        season: { type: integer }
+        date: { type: string }
+        status: { $ref: '#/components/schemas/TradeAssemblyStatus' }
+        blocks:
+          type: array
+          description: Original directional blocks preserved even when assembly is ambiguous or incomplete.
+          items: { $ref: '#/components/schemas/TradeSourceBlock' }
+
     CareerPlayer:
       type: object
       required: [id, name, position, summary, totals, seasons]
@@ -2292,6 +2433,46 @@ paths:
           description: Invalid report type.
         "401":
           description: Missing or invalid API key.
+
+  /career/history/{id}:
+    get:
+      summary: Recorded draft and transaction history for a career identity
+      description: |
+        Reads linked records only, across all teams. Supports players and goalies with career
+        statistics, including zero-game rows. Coverage describes stored-record seasons with
+        unknown completeness. Does not infer current ownership or exact roster tenures.
+      parameters:
+        - $ref: '#/components/parameters/careerId'
+      responses:
+        "200":
+          description: Career history and source coverage.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareerHistory' }
+        "401": { description: Missing or invalid API key. }
+        "404": { description: No career statistics for this identity. }
+
+  /transactions/trades/{id}:
+    get:
+      summary: Inspect a reconstructed trade or ambiguous source group
+      description: |
+        Returns all directed assets in the source group, including unresolved names and picks.
+        Use status before describing the group as one package. IDs are opaque source-derived
+        identifiers returned by career history; their encoding is not a client contract.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          description: Opaque trade identifier returned by career history.
+      responses:
+        "200":
+          description: Trade source blocks and assembly status.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TradeDetail' }
+        "401": { description: Missing or invalid API key. }
+        "404": { description: Invalid or unknown trade identifier. }
 
   /career/player/{id}:
     get:

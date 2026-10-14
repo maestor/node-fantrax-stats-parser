@@ -30,6 +30,7 @@ import {
   getTeams,
 } from "./features/meta/routes.js";
 import { getEntryDraft, getOriginalDraft } from "./features/drafts/routes.js";
+import { getCareerHistory, getTradeDetail } from "./features/transactions/routes.js";
 import { getOpenApiSpec, getSwaggerUi } from "./openapi.js";
 import { HTTP_STATUS } from "./shared/http.js";
 import { sendNoStore } from "./shared/route-utils.js";
@@ -70,6 +71,8 @@ const routes = [
   get("/career/players", protectedRoute(getCareerPlayers)),
   get("/career/goalies", protectedRoute(getCareerGoalies)),
   get("/career/highlights/:type", protectedRoute(getCareerHighlights)),
+  get("/career/history/:id", protectedRoute(getCareerHistory)),
+  get("/transactions/trades/:id", protectedRoute(getTradeDetail)),
   get("/career/player/:id", protectedRoute(getCareerPlayer)),
   get("/career/goalie/:id", protectedRoute(getCareerGoalie)),
   get("/leaderboard/playoffs", protectedRoute(getPlayoffsLeaderboard)),
