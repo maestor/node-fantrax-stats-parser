@@ -189,6 +189,17 @@ export const getCareerHistoryData = async (
       tradeSeasons: seasonsFor("trade"),
       completeness: "unknown",
     },
-    events,
+    events: events.filter((event, index) => {
+      const older = events[index + 1];
+      const newer = events[index - 1];
+      // Drafts precede dated events in their season. Inspect the original list
+      // so hiding one setup claim cannot make a later claim look adjacent.
+      return !(
+        event.type === "claim" &&
+        older?.type === "draft" &&
+        event.team.id === older.team.id &&
+        !(newer?.season === event.season && newer.date === event.date)
+      );
+    }),
   };
 };

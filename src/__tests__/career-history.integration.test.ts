@@ -3,6 +3,7 @@ import app from "../app.js";
 import { createIntegrationDb } from "./integration-db.js";
 import { expectObjectSchema } from "./openapi-schema.js";
 import { getJsonBody } from "./routes.integration.helpers.js";
+import type { CareerHistory } from "../features/transactions/types.js";
 
 type Db = Awaited<ReturnType<typeof createIntegrationDb>>["db"];
 type AssetSeed = {
@@ -74,7 +75,7 @@ const insertBlock = async (
   }
 };
 
-test("a career reader follows a draft and claim into a reconstructed trade with all assets", async () => {
+test("a career reader follows a draft into a reconstructed trade without the drafting team's setup claim", async () => {
   const context = await createIntegrationDb();
   try {
     await context.insertPlayers([
@@ -130,11 +131,7 @@ test("a career reader follows a draft and claim into a reconstructed trade with 
     const body = getJsonBody<{
       events: Array<{ type: string; tradeId: string }>;
     }>(history);
-    expect(body.events.map((event) => event.type)).toEqual([
-      "trade",
-      "claim",
-      "draft",
-    ]);
+    expect(body.events.map((event) => event.type)).toEqual(["trade", "draft"]);
     expectObjectSchema("CareerHistory", body);
     const detail = await request(
       `/transactions/trades/${body.events[0].tradeId}`,
@@ -173,6 +170,185 @@ test("a career reader follows a draft and claim into a reconstructed trade with 
       }),
     );
     expectObjectSchema("TradeDetail", getJsonBody(detail));
+    const storedClaims = await context.db.execute(
+      "SELECT COUNT(*) AS count FROM claim_event_items WHERE fantrax_entity_id = 'p1'",
+    );
+    expect(storedClaims.rows[0].count).toBe(1);
+  } finally {
+    await context.cleanup();
+  }
+});
+
+type SetupClaimScenario = {
+  name: string;
+  drafts: Array<number | null>;
+  goalie?: boolean;
+  transactions: Array<{
+    type: "claim" | "drop" | "trade";
+    team?: string;
+    season?: number;
+    date?: string;
+  }>;
+  expected: string[];
+};
+
+test.each<SetupClaimScenario>([
+  {
+    name: "same-season roster setup",
+    drafts: [2024],
+    transactions: [{ type: "claim" }],
+    expected: ["draft"],
+  },
+  {
+    name: "opening-draft goalie roster setup",
+    drafts: [null],
+    goalie: true,
+    transactions: [{ type: "claim" }],
+    expected: ["draft"],
+  },
+  {
+    name: "claim by the original pick owner instead of the drafting team",
+    drafts: [2024],
+    transactions: [{ type: "claim", team: "4" }],
+    expected: ["claim", "draft"],
+  },
+  {
+    name: "claim without a linked draft",
+    drafts: [],
+    transactions: [{ type: "claim" }],
+    expected: ["claim"],
+  },
+  {
+    name: "a later same-team claim after the setup claim",
+    drafts: [2024],
+    transactions: [{ type: "claim" }, { type: "claim" }],
+    expected: ["claim", "draft"],
+  },
+  {
+    name: "an intervening drop",
+    drafts: [2024],
+    transactions: [{ type: "drop" }, { type: "claim" }],
+    expected: ["claim", "drop", "draft"],
+  },
+  {
+    name: "an intervening claim by another team",
+    drafts: [2024],
+    transactions: [{ type: "claim", team: "4" }, { type: "claim" }],
+    expected: ["claim", "claim", "draft"],
+  },
+  {
+    name: "an intervening trade",
+    drafts: [2024],
+    transactions: [{ type: "trade" }, { type: "claim" }],
+    expected: ["claim", "trade", "draft"],
+  },
+  {
+    name: "a drop tied with the first claim",
+    drafts: [2024],
+    transactions: [
+      { type: "claim", date: "2024-10-01T12:00:00.000Z" },
+      { type: "drop", date: "2024-10-01T12:00:00.000Z" },
+    ],
+    expected: ["claim", "drop", "draft"],
+  },
+  {
+    name: "a trade tied with the first claim",
+    drafts: [2024],
+    transactions: [
+      { type: "claim", date: "2024-10-01T12:00:00.000Z" },
+      { type: "trade", date: "2024-10-01T12:00:00.000Z" },
+    ],
+    expected: ["claim", "trade", "draft"],
+  },
+  {
+    name: "roster setup after separate drafts of the same player",
+    drafts: [2023, 2024],
+    transactions: [{ type: "claim", season: 2023 }, { type: "claim" }],
+    expected: ["draft", "draft"],
+  },
+  {
+    name: "a claim before a later draft",
+    drafts: [2024],
+    transactions: [{ type: "claim", season: 2023 }, { type: "claim" }],
+    expected: ["draft", "claim"],
+  },
+])("career history handles $name", async (scenario) => {
+  const context = await createIntegrationDb();
+  try {
+    const identity = {
+      name: "Drafted Player",
+      teamId: "2",
+      season: 2024,
+      reportType: "regular" as const,
+    };
+    if (scenario.goalie) {
+      await context.insertGoalies([{ ...identity, goalieId: "p1" }]);
+    } else {
+      await context.insertPlayers([
+        { ...identity, playerId: "p1", position: "F" },
+      ]);
+    }
+    for (const season of scenario.drafts) {
+      await context.db.execute({
+        sql:
+          season === null
+            ? `INSERT INTO opening_draft_picks
+              (pick_number,round,drafted_team_id,owner_team_id,player_name,fantrax_entity_id)
+              VALUES (15,1,'2','4','Drafted Player','p1')`
+            : `INSERT INTO entry_draft_picks
+              (season,pick_number,round,drafted_team_id,owner_team_id,player_name,fantrax_entity_id)
+              VALUES (?,15,1,'2','4','Drafted Player','p1')`,
+        args: season === null ? [] : [season],
+      });
+    }
+    for (const [index, transaction] of scenario.transactions.entries()) {
+      const season = transaction.season ?? 2024;
+      const date =
+        transaction.date ?? `${season}-10-0${index + 1}T12:00:00.000Z`;
+      if (transaction.type === "trade") {
+        await insertBlock(
+          context.db,
+          index,
+          [{ from: "2", to: "4", name: "Drafted Player", entity: "p1" }],
+          { date },
+        );
+        continue;
+      }
+      const teamId = transaction.team ?? "2";
+      const event = await context.db.execute({
+        sql: `INSERT INTO claim_events
+          (season,team_id,occurred_at,source_file,source_group_index)
+          VALUES (?, ?, ?, 'claims.csv', ?)`,
+        args: [season, teamId, date, index],
+      });
+      await context.db.execute({
+        sql: `INSERT INTO claim_event_items
+          (claim_event_id,season,team_id,occurred_at,sequence,action_type,
+           fantrax_entity_id,raw_name,match_status,match_strategy)
+          VALUES (?, ?, ?, ?, 0, ?, 'p1', 'Drafted Player', 'matched', 'exact_name_position')`,
+        args: [
+          Number(event.lastInsertRowid),
+          season,
+          teamId,
+          date,
+          transaction.type,
+        ],
+      });
+    }
+    const response = await request("/career/history/p1");
+    expect(response.statusCode).toBe(200);
+    const body = getJsonBody<CareerHistory>(response);
+    expect(body.events.map((event) => event.type)).toEqual(scenario.expected);
+    expectObjectSchema("CareerHistory", body);
+    expect(body.coverage.claimSeasons).toEqual(
+      [
+        ...new Set(
+          scenario.transactions
+            .filter((transaction) => transaction.type !== "trade")
+            .map((transaction) => transaction.season ?? 2024),
+        ),
+      ].sort(),
+    );
   } finally {
     await context.cleanup();
   }
