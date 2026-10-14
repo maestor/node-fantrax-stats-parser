@@ -293,6 +293,12 @@ Notes:
 - resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` and `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs
 - keeps unresolved rows with null `fantrax_entity_id` plus explicit match metadata
 
+## Career History Consumers
+
+Career history links imported drafts, claims/drops, and trades by resolved Fantrax identity; unresolved names are not matched to a profile by similarity. Trade inspection retains unresolved assets and original directional blocks. Exactly two opposing blocks with a matching period in one source-file/season/timestamp/participant group form a reconstructed package. Extra blocks or differing periods remain ambiguous; missing opposing directions remain incomplete. These are source-based inferences because exports contain no official deal identifier. [OpenAPI](../openapi.yaml) owns the response contract.
+
+History coverage reports seasons containing stored records, not completed imports. There is no manifest distinguishing a missing file from an imported empty file, so completeness remains unknown. Draft seasons without exact dates and opening-draft records without a stored season remain undated. Career statistics do not establish continuous roster tenure, current ownership, or production during a transaction interval.
+
 ## Draft History Imports
 
 ### Sync FFHL forum entry draft picks
