@@ -291,7 +291,10 @@ Notes:
 - treats `(Drop)` rows inside trade CSVs as normal drop events
 - ignores commissioner-fix one-way trade blocks
 - resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` and `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs
+- normalizes player names identically on both sides of matching: Unicode decomposition removes accent marks (including `ä`, `ö`, and `å`), straight/curly apostrophes are ignored, and whitespace is collapsed; canonical names and raw CSV text are preserved
 - keeps unresolved rows with null `fantrax_entity_id` plus explicit match metadata
+
+To relink existing unresolved rows, use `--season=YYYY` to reprocess each affected season; check with `--dry-run` first. Default incremental imports revisit only the latest stored timestamp and newer rows.
 
 ## Career History Consumers
 

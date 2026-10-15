@@ -61,7 +61,7 @@ type DbExecutor = Pick<Client, "execute">;
 
 type EntityCandidate = {
   fantraxId: string;
-  position: string | null;
+  position: string;
   lastSeenSeason: number;
 };
 
@@ -189,6 +189,8 @@ const normalizeSpacesLower = (value: string): string =>
 
 const normalizeTransactionEntityName = (value: string): string =>
   value
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
     .replace(/['’]/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -553,12 +555,6 @@ const offsetTradeBlockIndexes = (
     sourceBlockIndex: startIndex + index,
   }));
 
-const buildClaimEntityKey = (
-  name: string,
-  positions: readonly string[],
-): string =>
-  `${normalizeTransactionEntityName(name)}|${positions.join(",")}`;
-
 const buildTeamLookupKey = (
   fantraxId: string,
   season: number,
@@ -578,48 +574,52 @@ export type TransactionEntityResolver = {
 export const createTransactionEntityResolver = (
   db: DbExecutor,
 ): TransactionEntityResolver => {
-  const candidatesByKey = new Map<string, Promise<EntityCandidate[]>>();
+  const candidateLookupsByPositions = new Map<
+    string,
+    Promise<ReadonlyMap<string, EntityCandidate[]>>
+  >();
   const teamHitByKey = new Map<string, Promise<boolean>>();
 
   const getCandidates = async (
     name: string,
     positions: readonly string[],
   ): Promise<EntityCandidate[]> => {
-    const normalizedName = normalizeTransactionEntityName(name);
-    const key = buildClaimEntityKey(normalizedName, positions);
-    const cached = candidatesByKey.get(key);
-    if (cached) {
-      return cached;
+    const positionKey = positions.join(",");
+    let lookup = candidateLookupsByPositions.get(positionKey);
+    if (!lookup) {
+      lookup = db
+        .execute({
+          sql: `SELECT fantrax_id, name, position, last_seen_season
+                FROM fantrax_entities
+                WHERE position IN (${buildDynamicInList(positions.length)})`,
+          args: [...positions],
+        })
+        .then((result) => {
+          const byName = new Map<string, EntityCandidate[]>();
+          for (const row of result.rows) {
+            const candidateRow = row as unknown as {
+              fantrax_id: string;
+              name: string;
+              position: string;
+              last_seen_season: number | string | bigint;
+            };
+            const candidate: EntityCandidate = {
+              fantraxId: String(candidateRow.fantrax_id),
+              position: candidateRow.position,
+              lastSeenSeason: toNumber(candidateRow.last_seen_season),
+            };
+            const normalizedName = normalizeTransactionEntityName(
+              candidateRow.name,
+            );
+            const candidates = byName.get(normalizedName);
+            if (candidates) candidates.push(candidate);
+            else byName.set(normalizedName, [candidate]);
+          }
+          return byName;
+        });
+      candidateLookupsByPositions.set(positionKey, lookup);
     }
-
-    const promise = db
-      .execute({
-        sql: `SELECT fantrax_id, position, last_seen_season
-              FROM fantrax_entities
-              WHERE name = ? AND position IN (${buildDynamicInList(positions.length)})`,
-        args: [normalizedName, ...positions],
-      })
-      .then((result) =>
-        result.rows.map((row) => {
-          const candidateRow = row as unknown as {
-            fantrax_id: string;
-            position?: string | null;
-            last_seen_season: number | string | bigint;
-          };
-
-          return {
-            fantraxId: String(candidateRow.fantrax_id),
-            position:
-              candidateRow.position == null
-              ? null
-              : String(candidateRow.position),
-            lastSeenSeason: toNumber(candidateRow.last_seen_season),
-          };
-        }),
-      );
-
-    candidatesByKey.set(key, promise);
-    return promise;
+    return (await lookup).get(normalizeTransactionEntityName(name)) ?? [];
   };
 
   const candidateHasTeamHit = async (args: {
