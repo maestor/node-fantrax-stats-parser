@@ -1,3 +1,4 @@
+import { careerProfileTypeSql } from "./career-identity.js";
 import type { Row } from "@libsql/client";
 import { getDbClient } from "./client.js";
 
@@ -75,11 +76,7 @@ export const getTradeHistoryRowsFromDb = async (
         b.source_block_index, b.source_period, i.sequence, i.from_team_id, i.to_team_id,
         i.asset_type, i.fantrax_entity_id, COALESCE(fe.name, i.raw_name) AS name,
         i.raw_name, COALESCE(fe.position, i.raw_position) AS position,
-        CASE
-          WHEN EXISTS (SELECT 1 FROM players p WHERE p.player_id = i.fantrax_entity_id) THEN 'player'
-          WHEN EXISTS (SELECT 1 FROM goalies g WHERE g.goalie_id = i.fantrax_entity_id) THEN 'goalie'
-          ELSE NULL
-        END AS career_type,
+        ${careerProfileTypeSql("i.fantrax_entity_id")} AS career_type,
         i.draft_season, i.draft_round, i.draft_original_team_id
       FROM trade_source_blocks b
       JOIN relevant_groups r
@@ -98,8 +95,9 @@ export const getCareerHistoryRowsFromDb = async (id: string) => {
   const [identity, drafts, claims, coverage, trades, expansions] = await Promise.all([
     db.execute({
       sql: `SELECT 1 FROM players WHERE player_id = ?
-            UNION ALL SELECT 1 FROM goalies WHERE goalie_id = ? LIMIT 1`,
-      args: [id, id],
+            UNION ALL SELECT 1 FROM goalies WHERE goalie_id = ?
+            UNION ALL SELECT 1 FROM fantrax_entities WHERE fantrax_id = ? LIMIT 1`,
+      args: [id, id, id],
     }),
     db.execute({
       sql: `SELECT 'entry' AS draft_type, season, round, pick_number, drafted_team_id, owner_team_id

@@ -154,8 +154,8 @@ export type CareerPlayerListItem = {
   id: string;
   name: string;
   position: string;
-  firstSeason: number;
-  lastSeason: number;
+  firstSeason: number | null;
+  lastSeason: number | null;
   seasonsOwned: number;
   seasonsPlayedRegular: number;
   seasonsPlayedPlayoffs: number;
@@ -169,8 +169,8 @@ export type CareerPlayerListItem = {
 export type CareerGoalieListItem = {
   id: string;
   name: string;
-  firstSeason: number;
-  lastSeason: number;
+  firstSeason: number | null;
+  lastSeason: number | null;
   seasonsOwned: number;
   seasonsPlayedRegular: number;
   seasonsPlayedPlayoffs: number;
@@ -343,3 +343,11 @@ export type CareerHighlightsPage =
   | CareerStashHighlightPage
   | CareerRegularGrinderHighlightPage
   | CareerTransactionHighlightPage;
+
+export type CareerHistoryProfile = {
+  id: string;
+  name: string;
+  position: "F" | "D" | "G";
+};
+export type CareerPlayerProfile = CareerPlayerResponse | CareerHistoryProfile;
+export type CareerGoalieProfile = CareerGoalieResponse | CareerHistoryProfile;

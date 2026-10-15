@@ -4,6 +4,7 @@ import {
   getCareerPlayersData,
 } from "../features/career/service.js";
 import {
+  getCareerIdentitiesWithoutStatsFromDb,
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
   getClaimTransactionHighlightRowsFromDb,
@@ -22,6 +23,7 @@ jest.mock("../db/queries");
 describe("services", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(getCareerIdentitiesWithoutStatsFromDb).mockResolvedValue([]);
   });
 
   describe("career list services", () => {
