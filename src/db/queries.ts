@@ -1403,3 +1403,31 @@ export const getFinalsCategories = async (): Promise<FinalsCategoryDbEntry[]> =>
     winnerTeamId: row.winner_team_id,
   }));
 };
+
+export type ExpansionDraftPickDbRow = {
+  season: number;
+  selectionNumber: number;
+  expansionTeamId: string;
+  sourceTeamId: string;
+  draftedPlayer: string;
+  position: "F" | "D" | "G";
+  careerProfile: OpeningDraftPickDbRow["careerProfile"];
+};
+
+export const getExpansionDraftPicksFromDb = async (): Promise<
+  ExpansionDraftPickDbRow[]
+> => {
+  const result = await getDbClient().execute(`SELECT season, selection_number,
+      expansion_team_id, source_team_id, player_name, position, fantrax_entity_id,
+      ${draftCareerProfileTypeSql("edp")}
+    FROM expansion_draft_picks edp ORDER BY season DESC, selection_number ASC`);
+  return result.rows.map((row) => ({
+    season: Number(row.season),
+    selectionNumber: Number(row.selection_number),
+    expansionTeamId: String(row.expansion_team_id),
+    sourceTeamId: String(row.source_team_id),
+    draftedPlayer: String(row.player_name),
+    position: row.position as ExpansionDraftPickDbRow["position"],
+    careerProfile: mapDraftCareerProfile(row as unknown as DraftPickRowBase),
+  }));
+};

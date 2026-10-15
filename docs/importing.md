@@ -3,7 +3,7 @@
 This project imports runtime data from two source families:
 
 - Fantrax CSV exports for player, goalie, standings, and transaction history
-- FFHL forum draft history for entry and opening drafts
+- FFHL forum draft history for entry, opening, and expansion drafts
 
 The source files stay local or in R2; the API serves data from the database and optional snapshots, not directly from CSV or scraped HTML.
 
@@ -319,13 +319,28 @@ Persisted runs refresh the existing transaction leaderboard and transaction-rela
 
 ## Career History Consumers
 
-Career history links imported drafts, claims/drops, and trades by resolved Fantrax identity; unresolved names are not matched to a profile by similarity. Trade inspection retains unresolved assets and original directional blocks. Exactly two opposing blocks with a matching period in one source-file/season/timestamp/participant group form a reconstructed package. Extra blocks or differing periods remain ambiguous; missing opposing directions remain incomplete. These are source-based inferences because exports contain no official deal identifier. [OpenAPI](../openapi.yaml) owns the response contract.
+Career history links imported drafts, expansion selections, claims/drops, and trades by resolved Fantrax identity; unresolved names are not matched to a profile by similarity. Trade inspection retains unresolved assets and original directional blocks. Exactly two opposing blocks with a matching period in one source-file/season/timestamp/participant group form a reconstructed package. Extra blocks or differing periods remain ambiguous; missing opposing directions remain incomplete. These are source-based inferences because exports contain no official deal identifier. [OpenAPI](../openapi.yaml) owns the response contract.
 
-The history response omits a claim when it is the first transaction after a draft and goes to the drafting team, including claims in later seasons and after the opening draft. An intervening claim, drop, or trade prevents suppression; transactions tied at the same timestamp remain visible because their order is unknown. This hides commissioner roster setup from the timeline without modifying stored transactions, claim highlights, or team transaction counts.
+Undated expansion selections appear at the bottom of their starting-season block and identify the source and expansion teams. Players with an identity but no stats rows remain unlinked on draft pages; the import does not create statistics or enable new career profiles.
+
+The history response omits a claim when it is the first transaction after a draft or expansion selection and goes to the drafting team, including claims in later seasons and after the opening draft. An intervening claim, drop, or trade prevents suppression; transactions tied at the same timestamp remain visible because their order is unknown. This hides commissioner roster setup from the timeline without modifying stored transactions, claim highlights, or team transaction counts.
 
 History coverage reports seasons containing stored records, not completed imports. There is no manifest distinguishing a missing file from an imported empty file, so completeness remains unknown. Draft seasons without exact dates and opening-draft records without a stored season remain undated. Career statistics do not establish continuous roster tenure, current ownership, or production during a transaction interval.
 
 ## Draft History Imports
+
+### Import FFHL expansion drafts
+
+```bash
+npm run db:import:expansion-drafts -- --dry-run
+npm run db:import:expansion-drafts
+# Refresh just one expansion:
+npm run db:import:expansion-drafts -- --season=2021
+```
+
+The command fetches the public Vegas and Seattle selection threads over HTTP; no browser or login is needed. Team `firstSeason` configuration supplies each season. It parses only the first post, including both Seattle baskets, validates all source teams and selections, and reports missing or ambiguous player identities. Exact normalized names and explicit historical name aliases link existing `fantrax_entities`; canonical entity positions take priority over forum positions.
+
+Selections live in `expansion_draft_picks`, separately from ordinary draft picks and claim transactions, with source team, source URL, and raw player name retained. A rerun atomically replaces only the selected expansion(s); other drafts, statistics, and transaction counts stay intact. A dry run does not migrate or write the database. The target defaults to `local.db`; `USE_REMOTE_DB=true` selects the configured remote database as described in [deployment](deployment.md).
 
 ### Sync FFHL forum entry draft picks
 

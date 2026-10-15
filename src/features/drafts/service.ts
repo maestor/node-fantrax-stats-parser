@@ -1,6 +1,8 @@
 import { TEAMS } from "../../config/index.js";
 import {
   getEntryDraftPicksFromDb,
+  getExpansionDraftPicksFromDb,
+  type ExpansionDraftPickDbRow,
   getOpeningDraftPicksFromDb,
   type EntryDraftPickDbRow,
   type OpeningDraftPickDbRow,
@@ -306,4 +308,52 @@ export const getEntryDraftData = async (): Promise<EntryDraftTeamGroup[]> => {
       };
     })
     .sort(compareDraftTeamGroups);
+};
+
+export type ExpansionDraftGroup = {
+  season: number;
+  team: DraftTeamRef;
+  picks: Array<
+    Pick<
+      ExpansionDraftPickDbRow,
+      "selectionNumber" | "draftedPlayer" | "position" | "careerProfile"
+    > & {
+      sourceTeam: DraftTeamRef;
+    }
+  >;
+};
+
+export const getExpansionDraftData = async (): Promise<
+  ExpansionDraftGroup[]
+> => {
+  const rows = await getExpansionDraftPicksFromDb();
+  const groups = new Map<string, ExpansionDraftGroup>();
+  const positionOrder = { F: 0, D: 1, G: 2 };
+  for (const row of rows) {
+    const key = `${row.season}-${row.expansionTeamId}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        season: row.season,
+        team: toDraftTeamRef(row.expansionTeamId),
+        picks: [],
+      };
+      groups.set(key, group);
+    }
+    group.picks.push({
+      selectionNumber: row.selectionNumber,
+      draftedPlayer: row.draftedPlayer,
+      position: row.position,
+      careerProfile: row.careerProfile,
+      sourceTeam: toDraftTeamRef(row.sourceTeamId),
+    });
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    picks: group.picks.sort(
+      (a, b) =>
+        positionOrder[a.position] - positionOrder[b.position] ||
+        a.selectionNumber - b.selectionNumber,
+    ),
+  }));
 };

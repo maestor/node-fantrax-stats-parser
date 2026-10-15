@@ -44,8 +44,13 @@ type ClaimHistoryRow = {
   team_id: string;
   action_type: "claim" | "drop";
 };
+type ExpansionHistoryRow = {
+  season: number;
+  expansion_team_id: string;
+  source_team_id: string;
+};
 type CoverageRow = {
-  source: "entry" | "opening" | "claim" | "trade";
+  source: "entry" | "opening" | "expansion" | "claim" | "trade";
   season: number | null;
 };
 
@@ -90,7 +95,7 @@ export const getTradeHistoryRowsFromDb = async (
 
 export const getCareerHistoryRowsFromDb = async (id: string) => {
   const db = getDbClient();
-  const [identity, drafts, claims, coverage, trades] = await Promise.all([
+  const [identity, drafts, claims, coverage, trades, expansions] = await Promise.all([
     db.execute({
       sql: `SELECT 1 FROM players WHERE player_id = ?
             UNION ALL SELECT 1 FROM goalies WHERE goalie_id = ? LIMIT 1`,
@@ -113,13 +118,20 @@ export const getCareerHistoryRowsFromDb = async (id: string) => {
     }),
     db.execute(`SELECT 'entry' AS source, season FROM entry_draft_picks GROUP BY season
       UNION ALL SELECT 'opening', NULL WHERE EXISTS (SELECT 1 FROM opening_draft_picks)
+      UNION ALL SELECT 'expansion', season FROM expansion_draft_picks GROUP BY season
       UNION ALL SELECT 'claim', season FROM claim_events GROUP BY season
       UNION ALL SELECT 'trade', season FROM trade_source_blocks GROUP BY season`),
     getTradeHistoryRowsFromDb({ entityId: id }),
+    db.execute({
+      sql: `SELECT season, expansion_team_id, source_team_id FROM expansion_draft_picks
+        WHERE fantrax_entity_id = ?`,
+      args: [id],
+    }),
   ]);
   return {
     exists: identity.rows.length > 0,
     drafts: castRows<DraftHistoryRow>(drafts.rows),
+    expansions: castRows<ExpansionHistoryRow>(expansions.rows),
     claims: castRows<ClaimHistoryRow>(claims.rows),
     coverage: castRows<CoverageRow>(coverage.rows),
     trades,
