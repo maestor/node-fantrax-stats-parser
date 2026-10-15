@@ -11,6 +11,7 @@ import {
   parseTransactionDateToIso,
   resolveTransactionTeamId,
 } from "../../scripts/transaction-import-lib.js";
+import { getCareerHistoryData, getTradeDetailData } from "../features/transactions/service.js";
 import { CURRENT_SEASON } from "../config/index.js";
 import { createIntegrationDb } from "./integration-db.js";
 
@@ -259,6 +260,87 @@ describe("transaction import helpers", () => {
     }
   });
 
+  test.each([
+    {
+      normalization: "apostrophe",
+      canonicalNames: ["Drew OConnor", "Drew O’Connor"],
+      rawNames: ["Drew O'Connor", "Drew OConnor", "Drew O’Connor"],
+    },
+    {
+      normalization: "accent",
+      canonicalNames: ["Sami Paivarinta", "Sami Päivärinta"],
+      rawNames: [
+        "Sami Päivärinta",
+        "Sami Paivarinta",
+        "Sami Pa\u0308iva\u0308rinta",
+      ],
+    },
+  ])(
+    "keeps team-context and ambiguity checks when $normalization normalization merges name candidates",
+    async ({ canonicalNames, rawNames }) => {
+      const context = await createIntegrationDb();
+      try {
+        await context.insertPlayers([
+          {
+            teamId: "1",
+            season: 2026,
+            reportType: "regular",
+            playerId: "legacy-id",
+            name: canonicalNames[0],
+            position: "F",
+          },
+          {
+            teamId: "17",
+            season: 2026,
+            reportType: "regular",
+            playerId: "current-id",
+            name: canonicalNames[1],
+            position: "F",
+          },
+        ]);
+        const resolver = createTransactionEntityResolver(context.db);
+        await expect(
+          resolver.resolveEntity({
+            name: rawNames[0],
+            rawPosition: "F",
+            season: 2026,
+            teamIds: ["17"],
+          }),
+        ).resolves.toEqual({
+          fantraxEntityId: "current-id",
+          matchStatus: "matched",
+          matchStrategy: "season_team_context",
+        });
+        await expect(
+          resolver.resolveEntity({
+            name: rawNames[1],
+            rawPosition: "F",
+            season: 2026,
+            teamIds: ["1"],
+          }),
+        ).resolves.toEqual({
+          fantraxEntityId: "legacy-id",
+          matchStatus: "matched",
+          matchStrategy: "season_team_context",
+        });
+        await expect(
+          resolver.resolveEntity({
+            name: rawNames[2],
+            rawPosition: "F",
+            season: 2026,
+            teamIds: ["1", "17"],
+          }),
+        ).resolves.toEqual({
+          fantraxEntityId: null,
+          matchStatus: "unresolved_ambiguous_entity",
+          matchStrategy: "season_team_context",
+        });
+      } finally {
+        await context.cleanup();
+      }
+    },
+  );
+
   test("builds claim events, preserves source group indexes, and ignores lineup-only groups", async () => {
     const context = await createIntegrationDb();
 
@@ -500,6 +582,146 @@ describe("transaction import helpers", () => {
       await context.cleanup();
     }
   });
+
+  test.each([
+    ...["Drew O'Connor", "Drew O’Connor", "Drew OConnor"].map(
+      (canonicalName) => ({
+        canonicalName,
+        entityId: "05grx",
+        rawNames: ["Drew O'Connor", "Drew O’Connor", "Drew OConnor"],
+      }),
+    ),
+    ...[
+      "Sami Paivarinta",
+      "Sami Päivärinta",
+      "Sami Pa\u0308iva\u0308rinta",
+    ].map((canonicalName) => ({
+      canonicalName,
+      entityId: "075s6",
+      rawNames: [
+        "Sami Päivärinta",
+        "Sami Pa\u0308iva\u0308rinta",
+        "Sami Paivarinta",
+      ],
+    })),
+    {
+      canonicalName: "Joakim Nygård",
+      entityId: "nygard",
+      rawNames: ["Joakim Nygard", "Joakim Nyga\u030ard", "Joakim Nygård"],
+    },
+    {
+      canonicalName: "Linus Öberg",
+      entityId: "oberg",
+      rawNames: ["Linus Oberg", "Linus O\u0308berg", "Linus Öberg"],
+    },
+  ])(
+    "imports name variants into the same career history while preserving canonical name $canonicalName",
+    async ({ canonicalName, entityId, rawNames }) => {
+      const context = await createIntegrationDb();
+      const csvDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), "ffhl-normalized-transactions-"),
+      );
+
+      try {
+        await context.insertPlayers([
+          {
+            teamId: "17",
+            season: 2026,
+            reportType: "regular",
+            playerId: entityId,
+            name: canonicalName,
+            position: "F",
+          },
+          {
+            teamId: "17",
+            season: 2026,
+            reportType: "regular",
+            playerId: "0644d",
+            name: "Gavin Brindley",
+            position: "F",
+          },
+          {
+            teamId: "1",
+            season: 2026,
+            reportType: "regular",
+            playerId: "03klu",
+            name: "Garnet Hathaway",
+            position: "F",
+          },
+        ]);
+        await writeCsv(csvDir, "claims-2026-2027.csv", [
+          `"Player","Team","Position","Type","Team","Date (EDT)","Period"`,
+          `"${rawNames[0]}","VAN","F","Claim","Florida Panthers","Mon Jun 1, 2026, 12:37PM","1"`,
+          `"${rawNames[1]}","VAN","F","Drop","Florida Panthers","Tue Jun 2, 2026, 12:37PM","1"`,
+          `"${rawNames[2]}","VAN","F","Claim","Florida Panthers","Wed Jun 3, 2026, 12:37PM","1"`,
+        ]);
+        await writeCsv(csvDir, "trades-2026-2027.csv", [
+          `"Player","Team","Position","From","To","Date (EDT)","Period"`,
+          `"Garnet Hathaway","PHI","F","Colorado Avalanche","Florida Panthers","Mon Jun 29, 2026, 12:37PM","1"`,
+          `"${canonicalName}","VAN","F","Florida Panthers","Colorado Avalanche","Mon Jun 29, 2026, 12:37PM","1"`,
+          `"Gavin Brindley","CBJ","F","Florida Panthers","Colorado Avalanche","Mon Jun 29, 2026, 12:37PM","1"`,
+        ]);
+
+        const summary = await importTransactionsToDb({
+          db: context.db,
+          csvDir,
+          seasons: [2026],
+        });
+        expect(summary).toMatchObject({
+          claimItems: 3,
+          tradeItems: 3,
+          unresolvedClaimItems: 0,
+          unresolvedTradeItems: 0,
+        });
+        const claims = await context.db.execute(
+          "SELECT raw_name, fantrax_entity_id FROM claim_event_items ORDER BY occurred_at",
+        );
+        expect(claims.rows).toEqual(
+          rawNames.map((raw_name) => ({
+            raw_name,
+            fantrax_entity_id: entityId,
+          })),
+        );
+        const identity = await context.db.execute({
+          sql: "SELECT name FROM fantrax_entities WHERE fantrax_id = ?",
+          args: [entityId],
+        });
+        expect(identity.rows).toEqual([{ name: canonicalName }]);
+
+        const playerHistory = await getCareerHistoryData(entityId);
+        expect(playerHistory.events.map((event) => event.type)).toEqual([
+          "trade",
+          "claim",
+          "drop",
+          "claim",
+        ]);
+        const trade = playerHistory.events[0];
+        if (trade.type !== "trade")
+          throw new Error("Expected imported trade in career history");
+        expect(trade.movements).toEqual([
+          {
+            fromTeam: { id: "17", name: "Florida Panthers" },
+            toTeam: { id: "1", name: "Colorado Avalanche" },
+          },
+        ]);
+        const gavinHistory = await getCareerHistoryData("0644d");
+        expect(gavinHistory.events[0].id).toBe(trade.id);
+        const detail = await getTradeDetailData(trade.tradeId);
+        expect(
+          detail.blocks
+            .flatMap((block) => block.assets)
+            .find((asset) => asset.entityId === entityId),
+        ).toMatchObject({
+          name: canonicalName,
+          rawName: canonicalName,
+          careerType: "player",
+        });
+      } finally {
+        await context.cleanup();
+        await fs.rm(csvDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   test("imports transactions into the database and replaces one season without touching others", async () => {
     const context = await createIntegrationDb();
