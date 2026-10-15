@@ -9,6 +9,7 @@ import {
   type TransactionType,
 } from "../src/features/transactions/files.js";
 import { parseCsvFile } from "./csv.js";
+import type { FantraxEntity } from "../src/features/fantrax/entities.js";
 
 const DROP_MARKER = "(Drop)";
 
@@ -173,6 +174,7 @@ export type TransactionImportSummary = {
   unresolvedTradeItems: number;
   ignoredLineupChanges: number;
   ignoredCommissionerBlocks: number;
+  recoveredEntities: number;
 };
 
 export type ImportTransactionsToDbArgs = {
@@ -182,12 +184,13 @@ export type ImportTransactionsToDbArgs = {
   currentOnly?: boolean;
   dryRun?: boolean;
   incremental?: boolean;
+  findMissingEntity?: MissingTransactionEntityLookup;
 };
 
 const normalizeSpacesLower = (value: string): string =>
   value.replace(/\s+/g, " ").trim().toLowerCase();
 
-const normalizeTransactionEntityName = (value: string): string =>
+export const normalizeTransactionEntityName = (value: string): string =>
   value
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
@@ -570,10 +573,20 @@ export type TransactionEntityResolver = {
   }) => Promise<ResolvedEntityMatch>;
 };
 
+export type MissingTransactionEntityLookup = (
+  args: Parameters<TransactionEntityResolver["resolveEntity"]>[0],
+) => Promise<FantraxEntity | { ambiguous: true } | null>;
+
 /** @internal Test-only export for transaction entity matching. */
 export const createTransactionEntityResolver = (
   db: DbExecutor,
+  options: {
+    findMissingEntity?: MissingTransactionEntityLookup;
+    recoveredEntities?: Map<string, FantraxEntity>;
+  } = {},
 ): TransactionEntityResolver => {
+  const recoveredEntities =
+    options.recoveredEntities ?? new Map<string, FantraxEntity>();
   const candidateLookupsByPositions = new Map<
     string,
     Promise<ReadonlyMap<string, EntityCandidate[]>>
@@ -697,6 +710,44 @@ export const createTransactionEntityResolver = (
       const candidates = await getCandidates(args.name, positions);
 
       if (candidates.length === 0) {
+        const evidence = await options.findMissingEntity?.(args);
+        if (evidence && "ambiguous" in evidence) {
+          return {
+            fantraxEntityId: null,
+            matchStatus: "unresolved_ambiguous_entity",
+            matchStrategy: "exact_name_position",
+          };
+        }
+        const known = [...recoveredEntities.values()].filter(
+          (entity) =>
+            normalizeTransactionEntityName(entity.name) ===
+              normalizeTransactionEntityName(args.name) &&
+            positions.includes(entity.position ?? ""),
+        );
+        // Prefer this season's provider evidence; otherwise use the same unique
+        // registry matching available on a rerun after these identities are saved.
+        const recovered = evidence ?? (known.length === 1 ? known[0] : null);
+        if (recovered) {
+          const previous = recoveredEntities.get(recovered.fantraxId);
+          recoveredEntities.set(recovered.fantraxId, {
+            ...recovered,
+            firstSeenSeason: Math.min(
+              previous?.firstSeenSeason ?? recovered.firstSeenSeason,
+              recovered.firstSeenSeason,
+              args.season,
+            ),
+            lastSeenSeason: Math.max(
+              previous?.lastSeenSeason ?? recovered.lastSeenSeason,
+              recovered.lastSeenSeason,
+              args.season,
+            ),
+          });
+          return {
+            fantraxEntityId: recovered.fantraxId,
+            matchStatus: "matched",
+            matchStrategy: "exact_name_position",
+          };
+        }
         return {
           fantraxEntityId: null,
           matchStatus: "unresolved_missing_entity",
@@ -1315,6 +1366,25 @@ const insertTradeBlock = async (
   }
 };
 
+const persistRecoveredEntities = async (
+  db: DbExecutor,
+  entities: ReadonlyMap<string, FantraxEntity>,
+): Promise<void> => {
+  for (const entity of entities.values()) {
+    await db.execute({
+      sql: `INSERT INTO fantrax_entities (fantrax_id, name, position, first_seen_season, last_seen_season)
+            VALUES (?, ?, ?, ?, ?) ON CONFLICT(fantrax_id) DO NOTHING`,
+      args: [
+        entity.fantraxId,
+        entity.name,
+        entity.position,
+        entity.firstSeenSeason,
+        entity.lastSeenSeason,
+      ],
+    });
+  }
+};
+
 export const importTransactionsToDb = async (
   args: ImportTransactionsToDbArgs,
 ): Promise<TransactionImportSummary> => {
@@ -1329,8 +1399,50 @@ export const importTransactionsToDb = async (
     );
   }
   const seasonSet = new Set(seasons);
-  const selectedFiles = files.filter((file) => seasonSet.has(file.seasonStartYear));
-  const resolver = createTransactionEntityResolver(args.db);
+  const selectedFiles = files.filter((file) =>
+    seasonSet.has(file.seasonStartYear),
+  );
+  const recoveredEntities = new Map<string, FantraxEntity>();
+  const resolver = createTransactionEntityResolver(args.db, {
+    findMissingEntity: args.findMissingEntity,
+    recoveredEntities,
+  });
+  // Finish CSV parsing and provider lookups before replacing any stored history.
+  const preparedFiles = [];
+  for (const file of selectedFiles) {
+    const rawRows = await parseCsvFile(file.filePath);
+    const watermark =
+      args.incremental && !args.dryRun
+        ? await getSourceFileWatermark(args.db, file)
+        : null;
+    const result =
+      file.type === "claims"
+        ? {
+            claims: await buildClaimEvents({
+              rows: filterClaimRowsByWatermark(
+                rawRows as ClaimCsvRow[],
+                watermark,
+              ),
+              season: file.seasonStartYear,
+              sourceFile: file.fileName,
+              resolver,
+            }),
+            trades: null,
+          }
+        : {
+            claims: null,
+            trades: await buildTradeImportData({
+              rows: filterTradeRowsByWatermark(
+                rawRows as TradeCsvRow[],
+                watermark,
+              ),
+              season: file.seasonStartYear,
+              sourceFile: file.fileName,
+              resolver,
+            }),
+          };
+    preparedFiles.push({ file, watermark, ...result });
+  }
 
   const summary: TransactionImportSummary = {
     processedFiles: selectedFiles.length,
@@ -1343,40 +1455,36 @@ export const importTransactionsToDb = async (
     unresolvedTradeItems: 0,
     ignoredLineupChanges: 0,
     ignoredCommissionerBlocks: 0,
+    recoveredEntities: recoveredEntities.size,
   };
 
+  if (!args.dryRun) {
+    await persistRecoveredEntities(args.db, recoveredEntities);
+  }
   if (!args.dryRun && !args.incremental) {
     for (const season of seasons) {
       await deleteSeasonTransactions(args.db, season);
     }
   }
 
-  for (const file of selectedFiles) {
-    const rawRows = await parseCsvFile(file.filePath);
-    const watermark =
-      args.incremental && !args.dryRun
-        ? await getSourceFileWatermark(args.db, file)
-        : null;
-
+  for (const { file, watermark, claims, trades } of preparedFiles) {
     if (!args.dryRun && args.incremental && watermark) {
       if (file.type === "claims") {
-        await deleteClaimSourceFileFromWatermark(args.db, file.fileName, watermark);
+        await deleteClaimSourceFileFromWatermark(
+          args.db,
+          file.fileName,
+          watermark,
+        );
       } else {
-        await deleteTradeSourceFileFromWatermark(args.db, file.fileName, watermark);
+        await deleteTradeSourceFileFromWatermark(
+          args.db,
+          file.fileName,
+          watermark,
+        );
       }
     }
-
-    if (file.type === "claims") {
-      const filteredRows = filterClaimRowsByWatermark(
-        rawRows as ClaimCsvRow[],
-        watermark,
-      );
-      const result = await buildClaimEvents({
-        rows: filteredRows,
-        season: file.seasonStartYear,
-        sourceFile: file.fileName,
-        resolver,
-      });
+    if (claims) {
+      const result = claims;
       const events =
         args.incremental && !args.dryRun
           ? offsetClaimEventIndexes(
@@ -1402,16 +1510,7 @@ export const importTransactionsToDb = async (
       continue;
     }
 
-    const filteredRows = filterTradeRowsByWatermark(
-      rawRows as TradeCsvRow[],
-      watermark,
-    );
-    const result = await buildTradeImportData({
-      rows: filteredRows,
-      season: file.seasonStartYear,
-      sourceFile: file.fileName,
-      resolver,
-    });
+    const result = trades!;
     const dropEvents =
       args.incremental && !args.dryRun
         ? offsetClaimEventIndexes(
@@ -1462,4 +1561,97 @@ export const importTransactionsToDb = async (
   }
 
   return summary;
+};
+
+export const backfillTransactionEntities = async (args: {
+  db: DbExecutor;
+  findMissingEntity: MissingTransactionEntityLookup;
+  seasons?: readonly number[];
+  dryRun?: boolean;
+}) => {
+  const records = await args.db.execute(`
+    SELECT 'claim_event_items' AS table_name, id, season, raw_name, raw_position, team_id, NULL AS to_team_id
+    FROM claim_event_items WHERE fantrax_entity_id IS NULL AND match_status != 'not_applicable'
+    UNION ALL
+    SELECT 'trade_block_items', i.id, b.season, i.raw_name, i.raw_position, i.from_team_id, i.to_team_id
+    FROM trade_block_items i JOIN trade_source_blocks b ON b.id = i.trade_source_block_id
+    WHERE i.asset_type = 'player' AND i.fantrax_entity_id IS NULL AND i.match_status != 'not_applicable'
+    ORDER BY season, table_name, id`);
+  const recoveredEntities = new Map<string, FantraxEntity>();
+  const resolver = createTransactionEntityResolver(args.db, {
+    findMissingEntity: args.findMissingEntity,
+    recoveredEntities,
+  });
+  const updates = [];
+  const pending = [];
+  let examinedItems = 0;
+  const resolveRecord = (record: (typeof records.rows)[number]) =>
+    resolver.resolveEntity({
+      name: String(record.raw_name),
+      rawPosition:
+        record.raw_position == null ? null : String(record.raw_position),
+      season: Number(record.season),
+      teamIds: [
+        String(record.team_id),
+        ...(record.to_team_id == null ? [] : [String(record.to_team_id)]),
+      ],
+    });
+  for (const record of records.rows) {
+    if (args.seasons && !args.seasons.includes(Number(record.season))) continue;
+    examinedItems++;
+    const resolved = await resolveRecord(record);
+    if (resolved.fantraxEntityId) updates.push({ record, resolved });
+    else pending.push({ record, resolved });
+  }
+  const unresolved: {
+    season: number;
+    name: string;
+    position: string | null;
+  }[] = [];
+  // Newly recovered identities can also resolve earlier records whose archived
+  // provider rows no longer expose an ID, just as they would on a second run.
+  for (const item of pending) {
+    const resolved =
+      item.resolved.matchStatus === "unresolved_missing_entity" &&
+      recoveredEntities.size
+        ? await resolveRecord(item.record)
+        : item.resolved;
+    if (resolved.fantraxEntityId)
+      updates.push({ record: item.record, resolved });
+    else
+      unresolved.push({
+        season: Number(item.record.season),
+        name: String(item.record.raw_name),
+        position:
+          item.record.raw_position == null
+            ? null
+            : String(item.record.raw_position),
+      });
+  }
+  if (!args.dryRun && updates.length) {
+    await persistRecoveredEntities(args.db, recoveredEntities);
+    for (const { record, resolved } of updates) {
+      // table_name comes only from the two constant SQL projections above.
+      await args.db.execute({
+        sql: `UPDATE ${record.table_name} SET fantrax_entity_id = ?, match_status = ?, match_strategy = ? WHERE id = ? AND fantrax_entity_id IS NULL`,
+        args: [
+          resolved.fantraxEntityId,
+          resolved.matchStatus,
+          resolved.matchStrategy,
+          record.id,
+        ],
+      });
+    }
+    await args.db.execute({
+      sql: "INSERT OR REPLACE INTO import_metadata (key, value) VALUES (?, ?)",
+      args: ["last_modified", new Date().toISOString()],
+    });
+  }
+  return {
+    examinedItems,
+    resolvedItems: updates.length,
+    unresolvedItems: unresolved.length,
+    unresolved,
+    recoveredEntities: recoveredEntities.size,
+  };
 };

@@ -16,7 +16,11 @@ import { spawnSync } from "child_process";
 import { CURRENT_SEASON } from "../src/config/index.js";
 import { getDbClient } from "../src/db/client.js";
 import { DEFAULT_TRANSACTIONS_OUT_DIR } from "../src/features/transactions/files.js";
-import { importTransactionsToDb } from "./transaction-import-lib.js";
+import {
+  importTransactionsToDb,
+  backfillTransactionEntities,
+} from "./transaction-import-lib.js";
+import { createFantraxTransactionEntityLookup } from "./fantrax-transaction-entities.js";
 
 const main = async (): Promise<void> => {
   const args = process.argv.slice(2);
@@ -26,6 +30,11 @@ const main = async (): Promise<void> => {
   const full = args.includes("--full");
   const currentOnly = args.includes("--current-only");
   const dryRun = args.includes("--dry-run");
+  const backfill = args.includes("--backfill-entities");
+  if (backfill && (full || currentOnly || importAll))
+    throw new Error(
+      "--backfill-entities defaults to all stored seasons; only --season and --dry-run filters are supported.",
+    );
 
   if (seasonArg && importAll) {
     throw new Error("Use either --season or --all, not both.");
@@ -34,7 +43,9 @@ const main = async (): Promise<void> => {
     throw new Error("Use either --season or --current-only, not both.");
   }
   if (seasonArg && full) {
-    throw new Error("Use --season by itself; it already runs a full season import.");
+    throw new Error(
+      "Use --season by itself; it already runs a full season import.",
+    );
   }
   if (importAll && currentOnly) {
     throw new Error("Use either --all or --current-only, not both.");
@@ -56,10 +67,7 @@ const main = async (): Promise<void> => {
       ? path.resolve(outDirArg.split("=")[1])
       : DEFAULT_TRANSACTIONS_OUT_DIR;
 
-  const incremental =
-    seasonFilter === undefined &&
-    !importAll &&
-    !full;
+  const incremental = seasonFilter === undefined && !importAll && !full;
   const seasons =
     seasonFilter !== undefined
       ? [seasonFilter]
@@ -76,44 +84,68 @@ const main = async (): Promise<void> => {
           : `Incremental current season (${CURRENT_SEASON}-${CURRENT_SEASON + 1})`;
 
   const db = getDbClient();
-  const summary = await importTransactionsToDb({
-    db,
-    csvDir,
-    seasons,
-    currentOnly: currentOnly || incremental,
-    dryRun,
-    incremental,
-  });
+  const findMissingEntity = createFantraxTransactionEntityLookup();
+  const summary = backfill
+    ? await backfillTransactionEntities({
+        db,
+        findMissingEntity,
+        seasons: seasonFilter === undefined ? undefined : [seasonFilter],
+        dryRun,
+      })
+    : await importTransactionsToDb({
+        db,
+        csvDir,
+        seasons,
+        currentOnly: currentOnly || incremental,
+        dryRun,
+        incremental,
+        findMissingEntity,
+      });
 
-  console.info("✅ Transaction import complete");
-  console.info(`   CSV dir: ${csvDir}`);
-  console.info(`   Mode: ${modeLabel}`);
-  console.info(
-    `   Seasons: ${
-      summary.importedSeasons.length
-        ? summary.importedSeasons.join(", ")
-        : currentOnly || incremental
-          ? String(CURRENT_SEASON)
-          : "none"
-    }`,
-  );
-  console.info(`   Files processed: ${summary.processedFiles}`);
-  console.info(
-    `   Claim events/items: ${summary.claimEvents}/${summary.claimItems} ` +
-      `(unresolved items: ${summary.unresolvedClaimItems})`,
-  );
-  console.info(
-    `   Trade blocks/items: ${summary.tradeBlocks}/${summary.tradeItems} ` +
-      `(unresolved player items: ${summary.unresolvedTradeItems})`,
-  );
-  console.info(`   Ignored lineup-change rows: ${summary.ignoredLineupChanges}`);
-  console.info(
-    `   Ignored commissioner trade blocks: ${summary.ignoredCommissionerBlocks}`,
-  );
+  if ("resolvedItems" in summary) {
+    console.info(
+      `Transaction entity backfill: examined=${summary.examinedItems}, resolved=${summary.resolvedItems}, unresolved=${summary.unresolvedItems}`,
+    );
+    for (const item of summary.unresolved)
+      console.info(
+        `   Unresolved: ${item.season} ${item.name} (${item.position ?? "unknown position"})`,
+      );
+  } else {
+    console.info("✅ Transaction import complete");
+    console.info(`   CSV dir: ${csvDir}`);
+    console.info(`   Mode: ${modeLabel}`);
+    console.info(
+      `   Seasons: ${
+        summary.importedSeasons.length
+          ? summary.importedSeasons.join(", ")
+          : currentOnly || incremental
+            ? String(CURRENT_SEASON)
+            : "none"
+      }`,
+    );
+    console.info(`   Files processed: ${summary.processedFiles}`);
+    console.info(
+      `   Claim events/items: ${summary.claimEvents}/${summary.claimItems} ` +
+        `(unresolved items: ${summary.unresolvedClaimItems})`,
+    );
+    console.info(
+      `   Trade blocks/items: ${summary.tradeBlocks}/${summary.tradeItems} ` +
+        `(unresolved player items: ${summary.unresolvedTradeItems})`,
+    );
+    console.info(
+      `   Ignored lineup-change rows: ${summary.ignoredLineupChanges}`,
+    );
+    console.info(
+      `   Ignored commissioner trade blocks: ${summary.ignoredCommissionerBlocks}`,
+    );
+  }
+  console.info(`   Recovered Fantrax identities: ${summary.recoveredEntities}`);
   console.info(`   Dry run: ${dryRun}`);
 
   if (!dryRun) {
-    console.info("📸 Regenerating transactions and career-highlights snapshots...");
+    console.info(
+      "📸 Regenerating transactions and career-highlights snapshots...",
+    );
     const snapshotRun = spawnSync(
       "npm",
       [

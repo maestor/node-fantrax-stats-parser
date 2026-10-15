@@ -291,10 +291,31 @@ Notes:
 - treats `(Drop)` rows inside trade CSVs as normal drop events
 - ignores commissioner-fix one-way trade blocks
 - resolves player links through `fantrax_entities` first, then same-season fantasy-team context from `players` and `goalies`, with latest `last_seen_season` as the fallback for merged-history duplicate Fantrax IDs
+- when no local name/position candidate exists, reads the mapped Fantrax league's claim/drop and trade history over HTTP using the saved session; a unique provider ID matching the normalized name, position, season, and fantasy-team context adds the missing entity and links the transaction
+- grouped transaction rows inherit shared fantasy-team context only within the same Fantrax transaction ID, including across pages; exact provider IDs can link historical position changes without overwriting the existing entity position
+- this recovery requires `fantrax-leagues.json` and a valid `fantrax-auth.json` under `src/playwright/.fantrax/`; no browser is launched, and seasons whose players already resolve need no HTTP lookup
+- completes parsing and provider lookups before replacing stored transaction history; a failed lookup leaves existing history intact
+- dry runs perform the same identity lookups without writing entities, transactions, metadata, or snapshots
+- recovered identities do not create stats rows or change existing entity names, scoring windows, career profiles, or draft mappings
 - normalizes player names identically on both sides of matching: Unicode decomposition removes accent marks (including `ä`, `ö`, and `å`), straight/curly apostrophes are ignored, and whitespace is collapsed; canonical names and raw CSV text are preserved
 - keeps unresolved rows with null `fantrax_entity_id` plus explicit match metadata
 
-To relink existing unresolved rows, use `--season=YYYY` to reprocess each affected season; check with `--dry-run` first. Default incremental imports revisit only the latest stored timestamp and newer rows.
+Default incremental imports revisit only the latest stored timestamp and newer rows. Use the backfill below to repair older unresolved links without rebuilding transaction groups.
+
+### Backfill missing transaction identities
+
+```bash
+npm run db:backfill:transaction-entities -- --dry-run
+npm run db:backfill:transaction-entities
+# Limit the repair to one season:
+npm run db:backfill:transaction-entities -- --season=2026 --dry-run
+```
+
+The job defaults to every season with unresolved player links already stored in the selected database. It requires the same saved Fantrax session and league mapping as automatic identity recovery; existing transaction CSVs do not need to be downloaded again. `USE_REMOTE_DB` selects the target as described in [deployment](deployment.md).
+
+The job inserts missing entities and updates only unresolved claim/drop and player-trade identity links in place. Event IDs, grouping, raw source text, already resolved links, and stats stay intact. Reruns resume remaining unresolved items without duplicating records. Identities recovered in another season can also repair earlier rows through the existing unique name/position matching. Remaining missing or ambiguous matches are listed in the output; no player IDs are guessed. A provider failure occurs before any backfill writes.
+
+Persisted runs refresh the existing transaction leaderboard and transaction-related career-highlight snapshots, including on a no-op rerun so a failed snapshot refresh can be retried. Dry runs skip persistence and snapshots. This job does not add transaction-only players to stats-backed career lists or enable career profiles for them.
 
 ## Career History Consumers
 
