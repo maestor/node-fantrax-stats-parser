@@ -3,6 +3,7 @@ import {
   getEntryDraftPicksFromDb,
   getOpeningDraftPicksFromDb,
   type EntryDraftPickDbRow,
+  type OpeningDraftPickDbRow,
 } from "../../db/queries.js";
 
 export type DraftTeamRef = {
@@ -14,6 +15,7 @@ export type DraftPick = {
   round: number;
   pickNumber: number;
   draftedPlayer: string | null;
+  careerProfile: OpeningDraftPickDbRow["careerProfile"];
   playedInLeague: boolean;
   playedForDraftingTeam: boolean;
   originalOwner: DraftTeamRef;
@@ -38,6 +40,7 @@ export type EntryDraftHighestPickItem = {
   season: number;
   round: number;
   draftedPlayer: string;
+  careerProfile: OpeningDraftPickDbRow["careerProfile"];
 };
 
 export type EntryDraftRoundsSummary = {
@@ -113,20 +116,17 @@ const mapEntryDraftPick = (row: EntryDraftPickDbRow): DraftPick => ({
   round: row.round,
   pickNumber: row.pickNumber,
   draftedPlayer: row.draftedPlayer,
+  careerProfile: row.careerProfile,
   playedInLeague: row.playedInLeague,
   playedForDraftingTeam: row.playedForDraftingTeam,
   originalOwner: toDraftTeamRef(row.originalOwnerTeamId),
 });
 
-const mapOpeningDraftPick = (row: {
-  round: number;
-  pickNumber: number;
-  draftedPlayer: string;
-  originalOwnerTeamId: string;
-}): OpeningDraftPick => ({
+const mapOpeningDraftPick = (row: OpeningDraftPickDbRow): OpeningDraftPick => ({
   round: row.round,
   pickNumber: row.pickNumber,
   draftedPlayer: row.draftedPlayer,
+  careerProfile: row.careerProfile,
   originalOwner: toDraftTeamRef(row.originalOwnerTeamId),
 });
 
@@ -139,6 +139,7 @@ const toDraftPickResponse = (pick: DraftPick): DraftPick => ({
   round: pick.round,
   pickNumber: pick.pickNumber,
   draftedPlayer: pick.draftedPlayer,
+  careerProfile: pick.careerProfile,
   playedInLeague: pick.playedInLeague,
   playedForDraftingTeam: pick.playedForDraftingTeam,
   originalOwner: pick.originalOwner,
@@ -200,6 +201,7 @@ const buildEntryDraftTeamSummary = (
                 season: pick.season,
                 round: pick.round,
                 draftedPlayer: pick.draftedPlayer,
+                careerProfile: pick.careerProfile,
               }))
               .sort(compareHighestPickItems),
           },
