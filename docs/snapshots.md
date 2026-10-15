@@ -2,7 +2,7 @@
 
 Read-mostly endpoints can be served from generated JSON snapshots. This reduces Turso traffic and can improve response times for historical payloads.
 
-Draft endpoints are currently not snapshotted. `/draft/original` and `/draft/entry` stay DB-backed because the payloads are small and effectively static.
+Draft endpoints are currently not snapshotted. `/draft/original`, `/draft/entry`, and `/draft/expansion` stay DB-backed because the payloads are small and effectively static.
 
 ## Snapshot-Backed Routes
 

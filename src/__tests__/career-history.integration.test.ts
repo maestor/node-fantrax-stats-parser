@@ -380,6 +380,7 @@ test("history distinguishes no matching events from absent source records and in
       events: [],
       coverage: {
         entryDraftSeasons: [],
+        expansionDraftSeasons: [],
         openingDraftPresent: false,
         claimSeasons: [],
         tradeSeasons: [],

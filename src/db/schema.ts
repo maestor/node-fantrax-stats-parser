@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 
-const DB_SCHEMA_VERSION = "10";
+const DB_SCHEMA_VERSION = "11";
 const FANTRAX_ENTITIES_SCHEMA_VERSION = 5;
 
 const SCHEMA_SQL = [
@@ -67,6 +67,21 @@ const SCHEMA_SQL = [
     fantrax_entity_id TEXT,
     UNIQUE(season, pick_number)
   )`,
+  `CREATE TABLE IF NOT EXISTS expansion_draft_picks (
+    season INTEGER NOT NULL,
+    selection_number INTEGER NOT NULL,
+    expansion_team_id TEXT NOT NULL,
+    source_team_id TEXT NOT NULL,
+    raw_player_name TEXT NOT NULL,
+    player_name TEXT NOT NULL,
+    position TEXT NOT NULL CHECK (position IN ('F', 'D', 'G')),
+    fantrax_entity_id TEXT,
+    source_url TEXT NOT NULL,
+    PRIMARY KEY (season, expansion_team_id, source_team_id),
+    UNIQUE (season, expansion_team_id, selection_number)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_expansion_draft_entity
+    ON expansion_draft_picks(fantrax_entity_id)`,
   `CREATE TABLE IF NOT EXISTS opening_draft_picks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pick_number INTEGER NOT NULL,

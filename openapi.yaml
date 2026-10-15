@@ -204,6 +204,31 @@ components:
           items:
             $ref: "#/components/schemas/OpeningDraftPick"
 
+    ExpansionDraftPick:
+      type: object
+      required: [selectionNumber, draftedPlayer, position, sourceTeam, careerProfile]
+      properties:
+        selectionNumber:
+          type: integer
+          description: Source display order, not a draft ranking.
+        draftedPlayer: { type: string }
+        position: { type: string, enum: [F, D, G] }
+        sourceTeam: { $ref: "#/components/schemas/DraftTeamRef" }
+        careerProfile: { $ref: "#/components/schemas/DraftCareerProfile" }
+
+    ExpansionDraftGroup:
+      type: object
+      required: [season, team, picks]
+      properties:
+        season:
+          type: integer
+          description: Expansion team's first season starting year.
+        team: { $ref: "#/components/schemas/DraftTeamRef" }
+        picks:
+          type: array
+          description: Forwards, defensemen, then goalies; source order within each position.
+          items: { $ref: "#/components/schemas/ExpansionDraftPick" }
+
     EntryDraftSeasonGroup:
       type: object
       required: [season, picks]
@@ -570,8 +595,11 @@ components:
     HistoryCoverage:
       type: object
       description: Seasons containing stored records, not a completed-import manifest. Empty imports and missing imports cannot be distinguished; completeness is unknown.
-      required: [entryDraftSeasons, openingDraftPresent, claimSeasons, tradeSeasons, completeness]
+      required: [expansionDraftSeasons, entryDraftSeasons, openingDraftPresent, claimSeasons, tradeSeasons, completeness]
       properties:
+        expansionDraftSeasons:
+          type: array
+          items: { type: integer }
         entryDraftSeasons:
           type: array
           items: { type: integer }
@@ -603,6 +631,20 @@ components:
         pickNumber: { type: integer }
         team: { $ref: '#/components/schemas/HistoryTeam' }
         originalOwner: { $ref: '#/components/schemas/HistoryTeam' }
+
+    ExpansionHistoryEvent:
+      type: object
+      required: [id, type, season, date, fromTeam, team]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [expansion] }
+        season: { type: integer }
+        date:
+          type: string
+          nullable: true
+          description: No exact expansion draft date is stored; always null.
+        fromTeam: { $ref: '#/components/schemas/HistoryTeam' }
+        team: { $ref: '#/components/schemas/HistoryTeam' }
 
     ClaimHistoryEvent:
       type: object
@@ -643,10 +685,11 @@ components:
         coverage: { $ref: '#/components/schemas/HistoryCoverage' }
         events:
           type: array
-          description: Newest season first, then newest dated event; undated drafts follow dated events within a season. Opening draft records appear last. Equal timestamps use deterministic source identity order, not a claimed temporal order.
+          description: Newest season first, then newest dated event; undated drafts follow dated events within a season, with expansion selections at the bottom of their season. Opening draft records appear last. Equal timestamps use deterministic source identity order, not a claimed temporal order.
           items:
             oneOf:
               - { $ref: '#/components/schemas/DraftHistoryEvent' }
+              - { $ref: '#/components/schemas/ExpansionHistoryEvent' }
               - { $ref: '#/components/schemas/ClaimHistoryEvent' }
               - { $ref: '#/components/schemas/TradeHistoryEvent' }
 
@@ -2259,6 +2302,21 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EntryDraftTeamGroup"
+        "401":
+          description: Missing or invalid API key.
+
+  /draft/expansion:
+    get:
+      summary: Expansion draft selections
+      description: Returns imported expansion drafts newest season first. Career links require existing player or goalie statistics, including zero-game rows.
+      responses:
+        "200":
+          description: Expansion drafts with source teams and linked careers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ExpansionDraftGroup" }
         "401":
           description: Missing or invalid API key.
 

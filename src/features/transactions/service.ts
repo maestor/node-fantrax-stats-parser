@@ -129,6 +129,16 @@ export const getCareerHistoryData = async (
     team: team(row.drafted_team_id),
     originalOwner: team(row.owner_team_id),
   }));
+  for (const row of rows.expansions) {
+    events.push({
+      id: `expansion-${row.season}-${row.expansion_team_id}-${row.source_team_id}`,
+      type: "expansion",
+      season: row.season,
+      date: null,
+      fromTeam: team(row.source_team_id),
+      team: team(row.expansion_team_id),
+    });
+  }
   for (const row of rows.claims) {
     events.push({
       id: `claim-${encodeId([row.source_file, row.source_group_index, row.sequence])}`,
@@ -171,9 +181,12 @@ export const getCareerHistoryData = async (
     (left, right) =>
       (right.season ?? -1) - (left.season ?? -1) ||
       historyDateKey(right).localeCompare(historyDateKey(left)) ||
+      Number(left.type === "expansion") - Number(right.type === "expansion") ||
       left.id.localeCompare(right.id),
   );
-  const seasonsFor = (source: "entry" | "claim" | "trade"): number[] =>
+  const seasonsFor = (
+    source: "entry" | "expansion" | "claim" | "trade",
+  ): number[] =>
     rows.coverage
       .filter((row) => row.source === source)
       .map((row) => row.season as number)
@@ -182,6 +195,7 @@ export const getCareerHistoryData = async (
     id,
     coverage: {
       entryDraftSeasons: seasonsFor("entry"),
+      expansionDraftSeasons: seasonsFor("expansion"),
       openingDraftPresent: rows.coverage.some(
         (row) => row.source === "opening",
       ),
@@ -196,7 +210,7 @@ export const getCareerHistoryData = async (
       // so hiding one setup claim cannot make a later claim look adjacent.
       return !(
         event.type === "claim" &&
-        older?.type === "draft" &&
+        (older?.type === "draft" || older?.type === "expansion") &&
         event.team.id === older.team.id &&
         !(newer?.season === event.season && newer.date === event.date)
       );

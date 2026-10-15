@@ -42,7 +42,6 @@ export type EntryDraftEntityGenerationReport = {
   skippedCount: number;
 };
 
-/** @internal Test-only export for draft entity name normalization coverage. */
 export const normalizeDraftEntityName = (value: string): string =>
   value
     .normalize("NFKD")

@@ -35,6 +35,14 @@ export type DraftHistoryEvent = {
   team: HistoryTeam;
   originalOwner: HistoryTeam;
 };
+export type ExpansionHistoryEvent = {
+  id: string;
+  type: "expansion";
+  season: number;
+  date: null;
+  fromTeam: HistoryTeam;
+  team: HistoryTeam;
+};
 export type ClaimHistoryEvent = {
   id: string;
   type: "claim" | "drop";
@@ -52,11 +60,15 @@ export type TradeHistoryEvent = {
   movements: Array<{ fromTeam: HistoryTeam; toTeam: HistoryTeam }>;
 };
 export type CareerHistoryEvent =
-  DraftHistoryEvent | ClaimHistoryEvent | TradeHistoryEvent;
+  | DraftHistoryEvent
+  | ExpansionHistoryEvent
+  | ClaimHistoryEvent
+  | TradeHistoryEvent;
 export type CareerHistory = {
   id: string;
   coverage: {
     entryDraftSeasons: number[];
+    expansionDraftSeasons: number[];
     openingDraftPresent: boolean;
     claimSeasons: number[];
     tradeSeasons: number[];

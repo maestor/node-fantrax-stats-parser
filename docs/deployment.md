@@ -43,7 +43,7 @@ Team configuration lives in `src/config/settings.ts` via `TEAMS` and `DEFAULT_TE
 
 ## Database (Turso/SQLite)
 
-CSV imports maintain a canonical `fantrax_entities` registry keyed by Fantrax ID, and transaction imports normalize source rows into dedicated claim/drop and trade tables. FFHL forum draft history is stored in `entry_draft_picks` and `opening_draft_picks`, which back `/draft/entry` and `/draft/original`.
+CSV imports maintain a canonical `fantrax_entities` registry keyed by Fantrax ID, and transaction imports normalize source rows into dedicated claim/drop and trade tables. FFHL forum draft history uses dedicated entry, opening, and expansion tables; the [importing guide](importing.md#draft-history-imports) owns their commands and source handling.
 
 ### Local development
 

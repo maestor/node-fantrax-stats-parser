@@ -29,7 +29,7 @@ import {
   getSeasons,
   getTeams,
 } from "./features/meta/routes.js";
-import { getEntryDraft, getOriginalDraft } from "./features/drafts/routes.js";
+import { getEntryDraft, getExpansionDraft, getOriginalDraft } from "./features/drafts/routes.js";
 import { getCareerHistory, getTradeDetail } from "./features/transactions/routes.js";
 import { getOpenApiSpec, getSwaggerUi } from "./openapi.js";
 import { HTTP_STATUS } from "./shared/http.js";
@@ -61,6 +61,7 @@ const routes = [
   get("/seasons", protectedRoute(getSeasons)),
   get("/seasons/:reportType", protectedRoute(getSeasons)),
   get("/draft/entry", protectedRoute(getEntryDraft)),
+  get("/draft/expansion", protectedRoute(getExpansionDraft)),
   get("/draft/original", protectedRoute(getOriginalDraft)),
   get("/players/season/:reportType/:season", protectedRoute(getPlayersSeason)),
   get("/players/season/:reportType", protectedRoute(getPlayersSeason)),
