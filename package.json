@@ -65,6 +65,7 @@
     "db:import:stats": "tsx scripts/import-stats-to-db.ts",
     "db:import:stats:current": "tsx scripts/import-stats-to-db.ts --current-only",
     "db:import:transactions": "tsx scripts/db-import-transactions.ts",
+    "db:backfill:transaction-entities": "tsx scripts/db-import-transactions.ts --backfill-entities",
     "db:import:playoff-results": "tsx scripts/db-import-playoff-results.ts",
     "db:import:regular-results": "tsx scripts/db-import-regular-results.ts",
     "db:import:finals-results": "tsx scripts/db-import-finals-results.ts",
