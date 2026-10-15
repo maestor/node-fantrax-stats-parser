@@ -127,6 +127,19 @@ components:
           type: string
           example: Anaheim Ducks
 
+    DraftCareerProfile:
+      type: object
+      nullable: true
+      description: Career identity when the linked Fantrax entity has player or goalie statistics, including zero-game records. Null for unmatched picks or entities without career data.
+      required: [id, type]
+      properties:
+        id:
+          type: string
+          example: 00qs7
+        type:
+          type: string
+          enum: [player, goalie]
+
     DraftPick:
       type: object
       required:
@@ -145,6 +158,8 @@ components:
         pickNumber:
           type: integer
           example: 1
+        careerProfile:
+          $ref: "#/components/schemas/DraftCareerProfile"
         draftedPlayer:
           type: string
           nullable: true
@@ -170,6 +185,8 @@ components:
         pickNumber:
           type: integer
           example: 1
+        careerProfile:
+          $ref: "#/components/schemas/DraftCareerProfile"
         draftedPlayer:
           type: string
           example: Sidney Crosby
@@ -209,6 +226,8 @@ components:
         round:
           type: integer
           example: 1
+        careerProfile:
+          $ref: "#/components/schemas/DraftCareerProfile"
         draftedPlayer:
           type: string
           example: Connor McDavid

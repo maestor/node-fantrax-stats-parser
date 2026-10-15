@@ -634,6 +634,8 @@ interface DraftPickRowBase {
   round: number;
   drafted_team_id: string;
   owner_team_id: string;
+  fantrax_entity_id: string | null;
+  career_profile_type: "player" | "goalie" | null;
 }
 
 interface OpeningDraftPickRow extends DraftPickRowBase {
@@ -646,7 +648,21 @@ export type OpeningDraftPickDbRow = {
   draftedTeamId: string;
   originalOwnerTeamId: string;
   draftedPlayer: string;
+  careerProfile: { id: string; type: "player" | "goalie" } | null;
 };
+
+const mapDraftCareerProfile = (
+  row: DraftPickRowBase,
+): OpeningDraftPickDbRow["careerProfile"] =>
+  row.career_profile_type === null
+    ? null
+    : { id: row.fantrax_entity_id!, type: row.career_profile_type };
+
+const draftCareerProfileTypeSql = (alias: string): string => `CASE
+  WHEN EXISTS (SELECT 1 FROM players WHERE player_id = ${alias}.fantrax_entity_id) THEN 'player'
+  WHEN EXISTS (SELECT 1 FROM goalies WHERE goalie_id = ${alias}.fantrax_entity_id) THEN 'goalie'
+  ELSE NULL
+END AS career_profile_type`;
 
 const mapOpeningDraftPickRow = (
   row: OpeningDraftPickRow,
@@ -656,6 +672,7 @@ const mapOpeningDraftPickRow = (
   draftedTeamId: row.drafted_team_id,
   originalOwnerTeamId: row.owner_team_id,
   draftedPlayer: row.player_name,
+  careerProfile: mapDraftCareerProfile(row),
 });
 
 export const getOpeningDraftPicksFromDb = async (): Promise<
@@ -663,8 +680,9 @@ export const getOpeningDraftPicksFromDb = async (): Promise<
 > => {
   const db = getDbClient();
   const result = await db.execute(
-    `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name
-     FROM opening_draft_picks
+    `SELECT pick_number, round, drafted_team_id, owner_team_id, player_name, fantrax_entity_id,
+       ${draftCareerProfileTypeSql("odp")}
+     FROM opening_draft_picks odp
      ORDER BY pick_number ASC`,
   );
   return castRows<OpeningDraftPickRow>(result.rows).map(mapOpeningDraftPickRow);
@@ -677,7 +695,10 @@ interface EntryDraftPickRow extends DraftPickRowBase {
   played_for_drafted_team: number;
 }
 
-export type EntryDraftPickDbRow = Omit<OpeningDraftPickDbRow, "draftedPlayer"> & {
+export type EntryDraftPickDbRow = Omit<
+  OpeningDraftPickDbRow,
+  "draftedPlayer"
+> & {
   season: number;
   draftedPlayer: string | null;
   playedInLeague: boolean;
@@ -691,11 +712,14 @@ const mapEntryDraftPickRow = (row: EntryDraftPickRow): EntryDraftPickDbRow => ({
   draftedTeamId: row.drafted_team_id,
   originalOwnerTeamId: row.owner_team_id,
   draftedPlayer: row.player_name,
+  careerProfile: mapDraftCareerProfile(row),
   playedInLeague: Boolean(row.played_in_league),
   playedForDraftingTeam: Boolean(row.played_for_drafted_team),
 });
 
-export const getEntryDraftPicksFromDb = async (): Promise<EntryDraftPickDbRow[]> => {
+export const getEntryDraftPicksFromDb = async (): Promise<
+  EntryDraftPickDbRow[]
+> => {
   const db = getDbClient();
   const result = await db.execute(
     `WITH played_entities AS (
@@ -723,6 +747,8 @@ export const getEntryDraftPicksFromDb = async (): Promise<EntryDraftPickDbRow[]>
        edp.drafted_team_id,
        edp.owner_team_id,
        edp.player_name,
+       edp.fantrax_entity_id,
+       ${draftCareerProfileTypeSql("edp")},
        CASE
          WHEN pe.fantrax_entity_id IS NULL THEN 0
          ELSE 1
