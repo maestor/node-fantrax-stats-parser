@@ -296,7 +296,7 @@ Notes:
 - this recovery requires `fantrax-leagues.json` and a valid `fantrax-auth.json` under `src/playwright/.fantrax/`; no browser is launched, and seasons whose players already resolve need no HTTP lookup
 - completes parsing and provider lookups before replacing stored transaction history; a failed lookup leaves existing history intact
 - dry runs perform the same identity lookups without writing entities, transactions, metadata, or snapshots
-- recovered identities do not create stats rows or change existing entity names, scoring windows, career profiles, or draft mappings
+- recovered identities do not create stats rows or change existing entity names, scoring windows, or draft mappings
 - normalizes player names identically on both sides of matching: Unicode decomposition removes accent marks (including `ä`, `ö`, and `å`), straight/curly apostrophes are ignored, and whitespace is collapsed; canonical names and raw CSV text are preserved
 - keeps unresolved rows with null `fantrax_entity_id` plus explicit match metadata
 
@@ -315,13 +315,13 @@ The job defaults to every season with unresolved player links already stored in 
 
 The job inserts missing entities and updates only unresolved claim/drop and player-trade identity links in place. Event IDs, grouping, raw source text, already resolved links, and stats stay intact. Reruns resume remaining unresolved items without duplicating records. Identities recovered in another season can also repair earlier rows through the existing unique name/position matching. Remaining missing or ambiguous matches are listed in the output; no player IDs are guessed. A provider failure occurs before any backfill writes.
 
-Persisted runs refresh the existing transaction leaderboard and transaction-related career-highlight snapshots, including on a no-op rerun so a failed snapshot refresh can be retried. Dry runs skip persistence and snapshots. This job does not add transaction-only players to stats-backed career lists or enable career profiles for them.
+Persisted runs refresh the existing transaction leaderboard and transaction-related career-highlight snapshots, including on a no-op rerun so a failed snapshot refresh can be retried. Dry runs skip persistence and snapshots. Known recovered identities with position F/D/G are eligible for history-only career profiles and zero-counter career-list rows. Refresh the manual career-list snapshots after recovery; see [snapshots](snapshots.md#manual-generation).
 
 ## Career History Consumers
 
 Career history links imported drafts, expansion selections, claims/drops, and trades by resolved Fantrax identity; unresolved names are not matched to a profile by similarity. Trade inspection retains unresolved assets and original directional blocks. Exactly two opposing blocks with a matching period in one source-file/season/timestamp/participant group form a reconstructed package. Extra blocks or differing periods remain ambiguous; missing opposing directions remain incomplete. These are source-based inferences because exports contain no official deal identifier. [OpenAPI](../openapi.yaml) owns the response contract.
 
-Undated expansion selections appear at the bottom of their starting-season block and identify the source and expansion teams. Players with an identity but no stats rows remain unlinked on draft pages; the import does not create statistics or enable new career profiles.
+Undated expansion selections appear at the bottom of their starting-season block and identify the source and expansion teams. Known identities with position F/D/G can link from draft and trade pages even without statistical rows. They return identity-only profiles plus the same independent history response; no statistical rows are created. Statistical list counters remain zero and first/last statistical seasons remain null. Existing zero-game statistical rows still count as owned seasons and teams.
 
 The history response omits a claim when it is the first transaction after a draft or expansion selection and goes to the drafting team, including claims in later seasons and after the opening draft. An intervening claim, drop, or trade prevents suppression; transactions tied at the same timestamp remain visible because their order is unknown. This hides commissioner roster setup from the timeline without modifying stored transactions, claim highlights, or team transaction counts.
 

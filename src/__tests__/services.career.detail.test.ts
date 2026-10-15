@@ -3,6 +3,7 @@ import {
   getPlayerCareerData,
 } from "../features/career/service.js";
 import {
+  getCareerIdentitiesWithoutStatsFromDb,
   getGoalieCareerRowsFromDb,
   getPlayerCareerRowsFromDb,
 } from "../db/queries.js";
@@ -17,6 +18,7 @@ jest.mock("../db/queries");
 describe("services", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(getCareerIdentitiesWithoutStatsFromDb).mockResolvedValue([]);
   });
 
   describe("career detail services", () => {
@@ -65,6 +67,7 @@ describe("services", () => {
         ]);
 
         const result = await getPlayerCareerData("p001");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result).toMatchObject({
           id: "p001",
@@ -212,6 +215,7 @@ describe("services", () => {
         ]);
 
         const result = await getPlayerCareerData("p002");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result.position).toBe("D");
         expect(result.seasons.map((row) => `${row.teamId}-${row.reportType}`)).toEqual([
@@ -306,6 +310,7 @@ describe("services", () => {
         ]);
 
         const result = await getPlayerCareerData("p003");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result.summary.teams.map((team) => team.teamId)).toEqual([
           "1",
@@ -359,6 +364,7 @@ describe("services", () => {
         ]);
 
         const result = await getGoalieCareerData("g001");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result).toMatchObject({
           id: "g001",
@@ -441,6 +447,7 @@ describe("services", () => {
         ]);
 
         const result = await getGoalieCareerData("g002");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result.seasons[0].gaa).toBe("0.00");
         expect(result.seasons[0].savePercent).toBe("0.000");
@@ -459,6 +466,7 @@ describe("services", () => {
         ]);
 
         const result = await getGoalieCareerData("g003");
+        if (!("summary" in result)) throw new Error("Expected statistical career");
 
         expect(result.seasons[0].gaa).toBeUndefined();
         expect(result.seasons[0].savePercent).toBeUndefined();

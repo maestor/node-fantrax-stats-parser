@@ -1,3 +1,4 @@
+import { careerProfileTypeSql } from "./career-identity.js";
 import { getDbClient } from "./client.js";
 import type {
   GoalieWithSeason,
@@ -173,6 +174,23 @@ export const getGoaliesFromDb = async (
     args: [teamId, season, reportType],
   });
   return castRows<GoalieRow>(result.rows).map(mapGoalieRow);
+};
+
+export type CareerIdentityRow = { id: string; name: string; position: "F" | "D" | "G" };
+
+export const getCareerIdentitiesWithoutStatsFromDb = async (
+  kind: "player" | "goalie",
+  id?: string,
+): Promise<CareerIdentityRow[]> => {
+  const result = await getDbClient().execute({
+    sql: `SELECT fantrax_id AS id, name, position FROM fantrax_entities fe
+      WHERE ${kind === "goalie" ? "position = 'G'" : "position IN ('F', 'D')"}
+        AND NOT EXISTS (SELECT 1 FROM players WHERE player_id = fe.fantrax_id)
+        AND NOT EXISTS (SELECT 1 FROM goalies WHERE goalie_id = fe.fantrax_id)
+        ${id === undefined ? "" : "AND fantrax_id = ?"}`,
+    args: id === undefined ? [] : [id],
+  });
+  return castRows<CareerIdentityRow>(result.rows);
 };
 
 export const getPlayerCareerRowsFromDb = async (
@@ -658,11 +676,8 @@ const mapDraftCareerProfile = (
     ? null
     : { id: row.fantrax_entity_id!, type: row.career_profile_type };
 
-const draftCareerProfileTypeSql = (alias: string): string => `CASE
-  WHEN EXISTS (SELECT 1 FROM players WHERE player_id = ${alias}.fantrax_entity_id) THEN 'player'
-  WHEN EXISTS (SELECT 1 FROM goalies WHERE goalie_id = ${alias}.fantrax_entity_id) THEN 'goalie'
-  ELSE NULL
-END AS career_profile_type`;
+const draftCareerProfileTypeSql = (alias: string): string =>
+  `${careerProfileTypeSql(`${alias}.fantrax_entity_id`)} AS career_profile_type`;
 
 const mapOpeningDraftPickRow = (
   row: OpeningDraftPickRow,

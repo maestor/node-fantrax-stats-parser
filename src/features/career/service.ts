@@ -1,11 +1,11 @@
 import type {
   CareerGoalieListItem,
-  CareerGoalieResponse,
+  CareerGoalieProfile,
   CareerGoalieSeasonRow,
   CareerHighlightTeam,
   CareerHighlightType,
   CareerPlayerListItem,
-  CareerPlayerResponse,
+  CareerPlayerProfile,
   CareerPlayerSeasonRow,
   CareerRegularGrinderHighlightItem,
   CareerReunionHighlightItem,
@@ -23,6 +23,7 @@ import type {
 import type { CsvReport } from "../../shared/types/core.js";
 import { CAREER_HIGHLIGHT_CONFIG, TEAMS } from "../../config/index.js";
 import {
+  getCareerIdentitiesWithoutStatsFromDb,
   getAllGoalieCareerRowsFromDb,
   getAllPlayerCareerRowsFromDb,
   getClaimTransactionHighlightRowsFromDb,
@@ -1009,9 +1010,14 @@ const getCareerReunionHighlightRows = async (): Promise<
 
 export const getPlayerCareerData = async (
   playerId: string,
-): Promise<CareerPlayerResponse> => {
+): Promise<CareerPlayerProfile> => {
   const rows = await getPlayerCareerRowsFromDb(playerId);
   if (!rows.length) {
+    const [identity] = await getCareerIdentitiesWithoutStatsFromDb(
+      "player",
+      playerId,
+    );
+    if (identity) return identity;
     throw createNotFoundError("Player not found");
   }
 
@@ -1032,9 +1038,14 @@ export const getPlayerCareerData = async (
 
 export const getGoalieCareerData = async (
   goalieId: string,
-): Promise<CareerGoalieResponse> => {
+): Promise<CareerGoalieProfile> => {
   const rows = await getGoalieCareerRowsFromDb(goalieId);
   if (!rows.length) {
+    const [identity] = await getCareerIdentitiesWithoutStatsFromDb(
+      "goalie",
+      goalieId,
+    );
+    if (identity) return identity;
     throw createNotFoundError("Goalie not found");
   }
 
@@ -1052,28 +1063,60 @@ export const getGoalieCareerData = async (
   };
 };
 
-export const getCareerPlayersData = async (): Promise<CareerPlayerListItem[]> => {
-  const rows = await getAllPlayerCareerRowsFromDb();
+const emptyCareerListCounts = {
+  firstSeason: null,
+  lastSeason: null,
+  seasonsOwned: 0,
+  seasonsPlayedRegular: 0,
+  seasonsPlayedPlayoffs: 0,
+  teamsOwned: 0,
+  teamsPlayedRegular: 0,
+  teamsPlayedPlayoffs: 0,
+  regularGames: 0,
+  playoffGames: 0,
+};
+
+export const getCareerPlayersData = async (): Promise<
+  CareerPlayerListItem[]
+> => {
+  const [rows, identities] = await Promise.all([
+    getAllPlayerCareerRowsFromDb(),
+    getCareerIdentitiesWithoutStatsFromDb("player"),
+  ]);
   const grouped = groupCareerRowsById(
     rows.map((row) => ({ ...row, id: row.player_id })),
   );
-  return sortCareerListItems(
-    [...grouped.values()].map((playerRows) =>
+  return sortCareerListItems([
+    ...[...grouped.values()].map((playerRows) =>
       buildPlayerCareerListItem(playerRows),
     ),
-  );
+    ...identities.map((identity) => ({
+      ...identity,
+      ...emptyCareerListCounts,
+    })),
+  ]);
 };
 
-export const getCareerGoaliesData = async (): Promise<CareerGoalieListItem[]> => {
-  const rows = await getAllGoalieCareerRowsFromDb();
+export const getCareerGoaliesData = async (): Promise<
+  CareerGoalieListItem[]
+> => {
+  const [rows, identities] = await Promise.all([
+    getAllGoalieCareerRowsFromDb(),
+    getCareerIdentitiesWithoutStatsFromDb("goalie"),
+  ]);
   const grouped = groupCareerRowsById(
     rows.map((row) => ({ ...row, id: row.goalie_id })),
   );
-  return sortCareerListItems(
-    [...grouped.values()].map((goalieRows) =>
+  return sortCareerListItems([
+    ...[...grouped.values()].map((goalieRows) =>
       buildGoalieCareerListItem(goalieRows),
     ),
-  );
+    ...identities.map(({ id, name }) => ({
+      id,
+      name,
+      ...emptyCareerListCounts,
+    })),
+  ]);
 };
 
 export const getCareerHighlightsData = async (

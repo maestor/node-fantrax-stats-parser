@@ -31,7 +31,7 @@ Current snapshot families are:
 - snapshot uploads add `Content-Type: application/json` and `generated-at` metadata
 - transient R2/TLS failures retry automatically with exponential backoff
 
-Career lists and other career highlights remain manual-only after stats imports. Existing snapshots continue serving until you regenerate them.
+Career lists and other career highlights remain manual-only after stats imports. Existing snapshots continue serving until you regenerate them. After deploying history-only career profiles or recovering additional Fantrax identities, regenerate `--scope=career` so player/goalie lists include the zero-counter identity rows.
 
 ## Environment Variables
 

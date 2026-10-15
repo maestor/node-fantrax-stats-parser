@@ -130,7 +130,7 @@ components:
     DraftCareerProfile:
       type: object
       nullable: true
-      description: Career identity when the linked Fantrax entity has player or goalie statistics, including zero-game records. Null for unmatched picks or entities without career data.
+      description: Career identity for linked players and goalies, including known identities without statistical rows. Null for unmatched picks or identities without a known position.
       required: [id, type]
       properties:
         id:
@@ -710,7 +710,7 @@ components:
           type: string
           nullable: true
           enum: [player, goalie]
-          description: Present only when linked career statistics exist, including zero-game records.
+          description: Present for linked career identities, including known players and goalies without statistical rows.
         position: { type: string, nullable: true }
         fromTeam: { $ref: '#/components/schemas/HistoryTeam' }
         toTeam: { $ref: '#/components/schemas/HistoryTeam' }
@@ -743,6 +743,26 @@ components:
           type: array
           description: Original directional blocks preserved even when assembly is ambiguous or incomplete.
           items: { $ref: '#/components/schemas/TradeSourceBlock' }
+
+    CareerHistoryProfile:
+      type: object
+      additionalProperties: false
+      description: Identity-only career profile for a known player without any imported statistical rows. History is available separately from /career/history/{id}.
+      required: [id, name, position]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        position: { type: string, enum: [F, D, G] }
+
+    CareerPlayerProfile:
+      oneOf:
+        - $ref: '#/components/schemas/CareerPlayer'
+        - $ref: '#/components/schemas/CareerHistoryProfile'
+
+    CareerGoalieProfile:
+      oneOf:
+        - $ref: '#/components/schemas/CareerGoalie'
+        - $ref: '#/components/schemas/CareerHistoryProfile'
 
     CareerPlayer:
       type: object
@@ -796,8 +816,12 @@ components:
           type: string
         firstSeason:
           type: integer
+          nullable: true
+          description: Statistical season; null when no statistical rows exist.
         lastSeason:
           type: integer
+          nullable: true
+          description: Statistical season; null when no statistical rows exist.
         seasonsOwned:
           type: integer
         seasonsPlayedRegular:
@@ -837,8 +861,12 @@ components:
           type: string
         firstSeason:
           type: integer
+          nullable: true
+          description: Statistical season; null when no statistical rows exist.
         lastSeason:
           type: integer
+          nullable: true
+          description: Statistical season; null when no statistical rows exist.
         seasonsOwned:
           type: integer
         seasonsPlayedRegular:
@@ -2308,7 +2336,7 @@ paths:
   /draft/expansion:
     get:
       summary: Expansion draft selections
-      description: Returns imported expansion drafts newest season first. Career links require existing player or goalie statistics, including zero-game rows.
+      description: Returns imported expansion drafts newest season first. Career links support known player and goalie identities with or without statistical rows.
       responses:
         "200":
           description: Expansion drafts with source teams and linked careers.
@@ -2515,8 +2543,8 @@ paths:
     get:
       summary: Recorded draft and transaction history for a career identity
       description: |
-        Reads linked records only, across all teams. Supports players and goalies with career
-        statistics, including zero-game rows. Coverage describes stored-record seasons with
+        Reads linked records only, across all teams. Supports stats-backed careers and known Fantrax identities without
+        statistical rows. Coverage describes stored-record seasons with
         unknown completeness. Does not infer current ownership or exact roster tenures.
         Omits a claim when it is the first transaction after a draft and goes to the drafting
         team, regardless of season. Claims tied with another transaction at the same timestamp
@@ -2530,7 +2558,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CareerHistory' }
         "401": { description: Missing or invalid API key. }
-        "404": { description: No career statistics for this identity. }
+        "404": { description: Unknown career identity. }
 
   /transactions/trades/{id}:
     get:
@@ -2556,19 +2584,20 @@ paths:
 
   /career/player/{id}:
     get:
-      summary: Career stats for one player
+      summary: Career profile for one player
       description: |
         Returns all imported career records for a single Fantrax player ID across all fantasy teams.
+        Known identities without statistical rows return only id, name and position.
         Zero-game rows are included and count toward `owned` totals but not `played` totals.
       parameters:
         - $ref: "#/components/parameters/careerId"
       responses:
         "200":
-          description: Career stats document for one player.
+          description: Career profile document for one player.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CareerPlayer"
+                $ref: "#/components/schemas/CareerPlayerProfile"
         "401":
           description: Missing or invalid API key.
         "404":
@@ -2580,6 +2609,7 @@ paths:
       description: |
         Returns one summary row per player across all fantasy teams.
         Zero-game rows count toward owned seasons and teams, but not played counts.
+        Identities without any statistical rows have zero counters and null first/last statistical seasons.
       responses:
         "200":
           description: Career player list entries.
@@ -2594,19 +2624,20 @@ paths:
 
   /career/goalie/{id}:
     get:
-      summary: Career stats for one goalie
+      summary: Career profile for one goalie
       description: |
         Returns all imported career records for a single Fantrax goalie ID across all fantasy teams.
+        Known identities without statistical rows return only id, name and position.
         Zero-game rows are included and count toward `owned` totals but not `played` totals.
       parameters:
         - $ref: "#/components/parameters/careerId"
       responses:
         "200":
-          description: Career stats document for one goalie.
+          description: Career profile document for one goalie.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CareerGoalie"
+                $ref: "#/components/schemas/CareerGoalieProfile"
         "401":
           description: Missing or invalid API key.
         "404":
@@ -2618,6 +2649,7 @@ paths:
       description: |
         Returns one summary row per goalie across all fantasy teams.
         Zero-game rows count toward owned seasons and teams, but not played counts.
+        Identities without any statistical rows have zero counters and null first/last statistical seasons.
       responses:
         "200":
           description: Career goalie list entries.

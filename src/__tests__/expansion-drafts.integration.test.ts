@@ -115,7 +115,7 @@ test("the operator imports both public drafts and readers see source teams, care
     expect(
       groups[1].picks.find((pick) => pick.draftedPlayer === "Juuso Hietanen")
         ?.careerProfile,
-    ).toBeNull();
+    ).toEqual({ id: "vegas-2", type: "player" });
     expect(
       groups[1].picks.find((pick) => pick.draftedPlayer === "Chris Martenet")
         ?.position,
@@ -154,7 +154,9 @@ test("the operator imports both public drafts and readers see source teams, care
         )
       ).rows[0].count,
     ).toBe(2);
-    expect((await request("/career/history/vegas-2")).statusCode).toBe(404);
+    const identityHistory = await request("/career/history/vegas-2");
+    expect(identityHistory.statusCode).toBe(200);
+    expectObjectSchema("CareerHistory", getJsonBody(identityHistory));
     await importExpansionDraftsToDb({ db: context.db, drafts: [drafts[0]] });
     expect(
       (
