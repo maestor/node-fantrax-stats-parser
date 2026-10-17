@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "leagueName": "Finnish Fantasy Hockey League",
+  "scrapedAt": "2026-07-28T04:29:35.436Z",
+  "seasons": [
+    {
+      "year": 2012,
+      "leagueId": "pxxque8nh42xpxdb",
+      "periods": {
+        "regularStartDate": "2013-01-19",
+        "regularEndDate": "2013-03-31",
+        "playoffsStartDate": "2013-04-01",
+        "playoffsEndDate": "2013-04-28"
+      }
+    },
+    {
+      "year": 2013,
+      "leagueId": "nz40tglehg5m91ml",
+      "periods": {
+        "regularStartDate": "2013-10-01",
+        "regularEndDate": "2014-03-16",
+        "playoffsStartDate": "2014-03-17",
+        "playoffsEndDate": "2014-04-13"
+      }
+    },
+    {
+      "year": 2014,
+      "leagueId": "m98hlei6hu03syqx",
+      "periods": {
+        "regularStartDate": "2014-10-08",
+        "regularEndDate": "2015-03-15",
+        "playoffsStartDate": "2015-03-16",
+        "playoffsEndDate": "2015-04-12"
+      }
+    },
+    {
+      "year": 2015,
+      "leagueId": "e9vf5acwi8fibpbr",
+      "periods": {
+        "regularStartDate": "2015-10-07",
+        "regularEndDate": "2016-03-06",
+        "playoffsStartDate": "2016-03-07",
+        "playoffsEndDate": "2016-04-03"
+      }
+    },
+    {
+      "year": 2016,
+      "leagueId": "cke58odbimwedytt",
+      "periods": {
+        "regularStartDate": "2016-10-12",
+        "regularEndDate": "2017-03-05",
+        "playoffsStartDate": "2017-03-06",
+        "playoffsEndDate": "2017-04-02"
+      }
+    },
+    {
+      "year": 2017,
+      "leagueId": "5no86xltj1dkhx1n",
+      "periods": {
+        "regularStartDate": "2017-10-04",
+        "regularEndDate": "2018-03-04",
+        "playoffsStartDate": "2018-03-05",
+        "playoffsEndDate": "2018-04-01"
+      }
+    },
+    {
+      "year": 2018,
+      "leagueId": "hn2ax413jfrw4nvr",
+      "periods": {
+        "regularStartDate": "2018-10-03",
+        "regularEndDate": "2019-03-03",
+        "playoffsStartDate": "2019-03-04",
+        "playoffsEndDate": "2019-04-06"
+      }
+    },
+    {
+      "year": 2019,
+      "leagueId": "yb9c3hzwju76v73i",
+      "periods": {
+        "regularStartDate": "2019-10-02",
+        "regularEndDate": "2020-03-01",
+        "playoffsStartDate": "2020-03-02",
+        "playoffsEndDate": "2020-05-24"
+      }
+    },
+    {
+      "year": 2020,
+      "leagueId": "6rejkjjqkarzuppq",
+      "periods": {
+        "regularStartDate": "2021-01-13",
+        "regularEndDate": "2021-04-04",
+        "playoffsStartDate": "2021-04-05",
+        "playoffsEndDate": "2021-05-02"
+      }
+    },
+    {
+      "year": 2021,
+      "leagueId": "6h44uqipkowkvqvg",
+      "periods": {
+        "regularStartDate": "2021-10-12",
+        "regularEndDate": "2022-03-27",
+        "playoffsStartDate": "2022-03-28",
+        "playoffsEndDate": "2022-04-24"
+      }
+    },
+    {
+      "year": 2022,
+      "leagueId": "gih59dwsl2oo5idn",
+      "periods": {
+        "regularStartDate": "2022-10-07",
+        "regularEndDate": "2023-03-12",
+        "playoffsStartDate": "2023-03-13",
+        "playoffsEndDate": "2023-04-09"
+      }
+    },
+    {
+      "year": 2023,
+      "leagueId": "osmkterulghuwuyg",
+      "periods": {
+        "regularStartDate": "2023-10-10",
+        "regularEndDate": "2024-03-17",
+        "playoffsStartDate": "2024-03-18",
+        "playoffsEndDate": "2024-04-14"
+      }
+    },
+    {
+      "year": 2024,
+      "leagueId": "1be0m8nrlv96mnwm",
+      "periods": {
+        "regularStartDate": "2024-10-04",
+        "regularEndDate": "2025-03-16",
+        "playoffsStartDate": "2025-03-17",
+        "playoffsEndDate": "2025-04-13"
+      }
+    },
+    {
+      "year": 2025,
+      "leagueId": "chfvdwbkm9rcyptz",
+      "periods": {
+        "regularStartDate": "2025-10-07",
+        "regularEndDate": "2026-03-15",
+        "playoffsStartDate": "2026-03-16",
+        "playoffsEndDate": "2026-04-12"
+      }
+    },
+    {
+      "year": 2026,
+      "leagueId": "a9ls3cgxmo2yfmay",
+      "periods": {
+        "regularStartDate": "2026-09-29",
+        "regularEndDate": "2027-03-07",
+        "playoffsStartDate": "2027-03-08",
+        "playoffsEndDate": "2027-04-04"
+      }
+    }
+  ]
+}

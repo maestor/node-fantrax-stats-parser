@@ -20,6 +20,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import type { InStatement } from "@libsql/client";
 import { getDbClient } from "../src/db/client.js";
+import { selectImportSeasons } from "./import-season.js";
 import {
   FINAL_STAT_KEYS,
   parseFinalsFile,
@@ -145,7 +146,8 @@ const main = async () => {
     process.exit(1);
   }
 
-  if (!file.seasons.length) {
+  const seasons = selectImportSeasons(file.seasons, process.argv.slice(2));
+  if (!seasons.length) {
     console.info(`No finals seasons found in ${FINALS_PATH}`);
     return;
   }
@@ -156,7 +158,7 @@ const main = async () => {
   let teams = 0;
   let categories = 0;
 
-  for (const season of file.seasons.slice().sort((a, b) => a.year - b.year)) {
+  for (const season of seasons.slice().sort((a, b) => a.year - b.year)) {
     const winnerTeamId = getWinnerTeamId(season);
 
     statements.push({

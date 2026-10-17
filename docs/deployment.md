@@ -1,5 +1,7 @@
 # Deployment and Operations
 
+The API's scheduled import runner is separate from Vercel request handling. See [daily imports](daily-import.md) for GitHub Actions configuration, required secrets, snapshot delivery, and manual reruns.
+
 ## Deployment (Vercel)
 
 This API is designed to run on Vercel Serverless Functions.

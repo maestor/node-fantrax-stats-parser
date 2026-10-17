@@ -21,6 +21,7 @@ import { readFileSync } from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
 import { getDbClient } from "../src/db/client.js";
+import { selectImportSeasons } from "./import-season.js";
 
 const PLAYOFFS_PATH = path.resolve(
   "src",
@@ -70,11 +71,12 @@ const main = async () => {
     process.exit(1);
   }
 
+  const seasons = selectImportSeasons(file.seasons, process.argv.slice(2));
   const db = getDbClient();
   let upserted = 0;
   let skipped = 0;
 
-  for (const season of file.seasons) {
+  for (const season of seasons) {
     for (const team of season.teams) {
       if (team.roundReached == null) {
         skipped++;

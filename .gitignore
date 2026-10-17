@@ -10,8 +10,9 @@ coverage/
 csv/
 !csv/.gitkeep
 
-# Local-only Fantrax Playwright artifacts
-src/playwright/.fantrax/
+# Track league configuration; keep auth and generated artifacts local
+src/playwright/.fantrax/*
+!src/playwright/.fantrax/fantrax-leagues.json
 
 # Generated API snapshots
 generated/

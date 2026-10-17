@@ -43,7 +43,7 @@ if (process.argv[2] === "--fixture") {
       assert.equal(url.searchParams.get("leagueId"), "fixture-league");
       return Response.json({
         teamInfo: Object.fromEntries(
-          TEAMS.slice(0, 2).map((team) => [
+          TEAMS.slice(0, scenario === "strict-missing" ? 1 : 2).map((team) => [
             `remote-${team.id}`,
             { id: `remote-${team.id}`, name: team.presentName },
           ]),
@@ -109,6 +109,7 @@ if (process.argv[2] === "--fixture") {
     ...(scenario === "remaining" ? [] : [`--year=${year}`]),
     "--pause=0",
     "--concurrency=2",
+    ...(scenario === "strict-missing" ? ["--strict"] : []),
     `--out=${outDir}`,
   ];
   await import(`../../src/playwright/import-league-${report}.js`);
@@ -124,6 +125,7 @@ if (process.argv[2] === "--fixture") {
     ["expired", "playoffs", 2025, true],
     ["existing", "regular", 2012, false],
     ["remaining", "playoffs", 2012, false],
+    ["strict-missing", "regular", CURRENT_SEASON, false],
   ] as const) {
     test(
       `roster import: ${report} ${year} ${scenario}`,
@@ -246,7 +248,7 @@ if (process.argv[2] === "--fixture") {
             child.once("error", reject);
             child.once("close", resolve);
           });
-          const fails = scenario === "exhausted" || scenario === "expired";
+          const fails = scenario === "exhausted" || scenario === "expired" || scenario === "strict-missing";
           assert.equal(code, fails ? 1 : 0, output);
           assert.doesNotMatch(
             output,
@@ -262,6 +264,11 @@ if (process.argv[2] === "--fixture") {
               existsSync(path.join(out, fileName(TEAMS[0], year, report))),
               false,
             );
+            return;
+          }
+          if (scenario === "strict-missing") {
+            assert.match(output, /regular import is incomplete/);
+            assert.doesNotMatch(output, /FIXTURE export|FIXTURE pipeline/);
             return;
           }
           assert.equal(

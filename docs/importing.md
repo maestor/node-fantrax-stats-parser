@@ -9,6 +9,8 @@ The source files stay local or in R2; the API serves data from the database and 
 
 ## Prerequisites
 
+For the hosted daily schedule and phase-aware coordinator, see [daily imports](daily-import.md). The commands below remain available for individual manual imports.
+
 - `npm install`
 - Roster CSV downloads use HTTP and the saved Fantrax session; they do not install or launch a browser
 - Browser-based Fantrax metadata/transaction scripts still require Playwright
@@ -24,17 +26,26 @@ Options listed below are passed after `--` with npm scripts, e.g. `npm run playw
 npm run playwright:login
 ```
 
-This ensures Chromium is installed, opens a real browser for manual login, and saves the session to `src/playwright/.fantrax/fantrax-auth.json` (gitignored).
+This ensures Chromium is installed and opens a real browser for manual login. Finish signing in, including any verification, then press Enter in the terminal. The script prints a verification message and checks the session through Fantrax's authenticated league-list API before writing; it does not navigate away from your completed login or depend on the league archive's page layout:
 
-### 2) Sync league IDs (local mapping)
+- `src/playwright/.fantrax/fantrax-auth.json`: session used by local import commands
+- `src/playwright/.fantrax/fantrax-auth-secret.txt`: the complete session encoded as gzip + Base64, ready to paste into the GitHub Actions secret `FANTRAX_AUTH_STATE`
+
+Both files are gitignored and written with owner-only permissions. The secret value is never printed. Failed login verification or an encoded value exceeding GitHub's 48 KB secret limit leaves existing files unchanged.
+
+To renew the hosted session, rerun the same login command and replace `FANTRAX_AUTH_STATE` with the new text file's contents. Compression and Base64 do not encrypt the session; treat both files as credentials. The hosted consumer must Base64-decode and gunzip the value to recover the auth JSON.
+
+### 2) Sync league IDs (tracked mapping)
 
 ```bash
 npm run playwright:sync:leagues
 ```
 
-This scrapes the Fantrax league archive plus each season's Rules page and writes `src/playwright/.fantrax/fantrax-leagues.json` (gitignored).
+This scrapes the Fantrax league archive plus each season's Rules page and writes `src/playwright/.fantrax/fantrax-leagues.json` (tracked in Git). Review and include mapping changes when advancing the configured current season so fresh checkouts have its league ID and dates.
 
 Fields: `leagueId`, `regularStartDate`/`regularEndDate`, `playoffsStartDate`/`playoffsEndDate` per season.
+
+Only this league configuration file is allowlisted. Authentication state, generated playoff/standings/finals mappings, drafts, and debug artifacts remain gitignored; regenerate the required mappings with the commands below.
 
 Optional:
 
@@ -66,6 +77,7 @@ Useful options:
 - `--timeout=120000`
 - `--debug`
 - `--import-db`
+- `--strict` to fail rather than save a stale mapping when a requested season cannot be scraped
 
 ### 2c) Sync regular season standings (local mapping)
 
@@ -88,6 +100,7 @@ Useful options:
 - `--slowmo=250`
 - `--timeout=120000`
 - `--import-db`
+- `--strict` to require complete, numeric standings for every requested season
 
 After syncing, you can import separately without re-scraping:
 
@@ -144,6 +157,8 @@ After syncing, you can import separately without re-scraping:
 npm run db:import:finals-results
 ```
 
+Use `--strict` on finals sync when a champion is expected; missing or failed seasons leave the existing mapping unchanged and return failure. Regular, playoff and finals result imports accept `--season=YYYY` to restrict database writes to one mapped season.
+
 This populates `finals_matchups`, `finals_matchup_teams`, and `finals_matchup_categories` in the database from the local finals mapping file.
 
 ## Roster CSV Imports
@@ -181,6 +196,8 @@ Useful options:
 - `--concurrency=4` (1–8)
 - `--pause=500`
 - `--out=./csv/temp/`
+
+Use `--strict` on regular imports to reject a missing team mapping instead of skipping that team. Database/CSV pipeline failures return a nonzero status and preserve temp files for retry. Explicit environment variables take precedence over `.env` in `parseAndUploadCsv`.
 
 ### 3b) Download playoffs roster CSVs
 

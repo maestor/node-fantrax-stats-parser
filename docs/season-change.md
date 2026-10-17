@@ -54,6 +54,7 @@ npm run playwright:sync:finals -- --year=2026
 Notes:
 
 - `playwright:sync:leagues` is the important first step because regular imports, playoff imports, and transaction downloads depend on the season-to-league mapping.
+- Include the reviewed tracked league mapping in the same contribution as `CURRENT_SEASON`. The [daily importer](daily-import.md) follows that configured year on its next run and rejects a missing mapping.
 - keep `--year=2026` on the `sync:*` commands when you only want to refresh the new active season; without it, these scripts iterate every mapped season
 - `playwright:sync:playoffs` and `playwright:sync:finals` can be deferred until those parts of the season actually exist.
 - `playwright:sync:regular` writes the local standings mapping used by regular-results imports.

@@ -18,4 +18,7 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+void main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

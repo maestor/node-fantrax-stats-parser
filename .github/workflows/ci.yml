@@ -28,3 +28,6 @@ jobs:
 
       - name: Validate Pull Request (lint, build, test coverage)
         run: npm run verify
+
+      - name: Validate operational import workflows
+        run: npm run test:imports && npm run test:playwright:login && npm run test:automation

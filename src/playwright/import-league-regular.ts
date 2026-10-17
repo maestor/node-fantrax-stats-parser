@@ -3,6 +3,7 @@ import path from "node:path";
 import { CURRENT_SEASON, TEAMS } from "../config/index.js";
 import {
   buildRosterCsvPath,
+  hasFlag,
   parseImportLeagueRegularOptions,
   requireAuthStateFile,
   runImportTempCsvScriptIfUsingDefaultOutDir,
@@ -47,6 +48,9 @@ const main = async (): Promise<void> => {
       const names = standingsNameCandidates(team);
       const matches = leagueTeams.filter((t) => names.includes(t.name));
       if (!matches.length) {
+        if (hasFlag(process.argv.slice(2), "--strict")) {
+          throw new Error(`[${team.name}] missing from league metadata; regular import is incomplete.`);
+        }
         console.info(
           `[${team.name}] not found in ${options.year} league metadata; skipping.`,
         );

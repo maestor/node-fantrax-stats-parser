@@ -159,6 +159,8 @@ async function main(): Promise<void> {
   const timeoutMs = parseNumberArg(argv, "--timeout") ?? 60_000;
   const onlyYear = parseNumberArg(argv, "--year") ?? null;
   const shouldImportDb = hasFlag(argv, "--import-db");
+  const strict = hasFlag(argv, "--strict");
+  const syncedYears = new Set<number>();
 
   const leagues = readLeagueIdsV2();
   const seasons = leagues.seasons.filter((s) =>
@@ -167,6 +169,9 @@ async function main(): Promise<void> {
   const playoffYears = readPlayoffYears();
 
   if (seasons.length === 0) {
+    if (strict) {
+      throw new Error("No matching season found for strict regular sync.");
+    }
     console.info(
       `⚠️  No seasons found${onlyYear !== null ? ` for year ${onlyYear}` : ""}.`,
     );
@@ -264,6 +269,19 @@ async function main(): Promise<void> {
           });
         }
 
+        const expectedTeamCount = TEAMS.filter(
+          (team) => team.firstSeason === undefined || team.firstSeason <= league.year,
+        ).length;
+        if (
+          strict &&
+          (teams.length !== expectedTeamCount ||
+            teams.some((team) =>
+              [team.wins, team.losses, team.ties, team.points, team.divWins, team.divLosses, team.divTies]
+                .some((value) => !Number.isFinite(value)),
+            ))
+        ) {
+          throw new Error("Regular standings are incomplete or contain invalid numbers.");
+        }
         seasonByYear.set(league.year, {
           year: league.year,
           leagueId: league.leagueId,
@@ -271,11 +289,15 @@ async function main(): Promise<void> {
         });
 
         console.info(`  ✅  ${teams.length} teams scraped.`);
+        syncedYears.add(league.year);
       } catch (err) {
         console.error(`  ❌  Failed for ${league.year}: ${err}`);
       }
     }
 
+    if (strict && syncedYears.size !== seasons.length) {
+      throw new Error("Strict regular sync failed; existing mapping was left unchanged.");
+    }
     const file: RegularFile = {
       schemaVersion: 1,
       leagueName: leagues.leagueName,

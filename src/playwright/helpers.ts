@@ -1,5 +1,6 @@
 import { spawnSync } from "child_process";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -9,6 +10,7 @@ import {
 } from "fs";
 import { createInterface } from "readline";
 import path from "path";
+import { gzipSync } from "node:zlib";
 import type { BrowserContext, Locator, Page } from "playwright";
 
 import { DEFAULT_CSV_OUT_DIR, FANTRAX_URLS } from "../config/index.js";
@@ -48,14 +50,22 @@ export const ensureFantraxArtifactDir = (): void => {
 const waitForEnter = (
   message = "Press Enter to continue...",
 ): Promise<void> => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout,
     });
+    rl.once("close", () =>
+      reject(
+        new Error(
+          "Login cancelled before confirmation. Existing saved files were left unchanged.",
+        ),
+      ),
+    );
+    rl.once("SIGINT", () => rl.close());
     rl.question(message, () => {
-      rl.close();
       resolve();
+      rl.close();
     });
   });
 };
@@ -83,13 +93,82 @@ export const saveAuthStateInteractive = async (
   await page.goto(FANTRAX_URLS.login, { waitUntil: "domcontentloaded" });
 
   console.info("Login manually in the opened browser.");
-  await waitForEnter("When you are done, press Enter to save auth state... ");
+  await waitForEnter(
+    "When you are done, press Enter to verify login and save auth state... ",
+  );
+
+  console.info("Verifying Fantrax session...");
+  let failureReason = "The authenticated league request failed or timed out.";
+  try {
+    const response = await context.request.post(
+      "https://www.fantrax.com/fxpa/req",
+      {
+        timeout: 30_000,
+        data: {
+          msgs: [{ method: "getAllLeagues", data: { view: "LEAGUES" } }],
+          uiv: 3,
+          refUrl: FANTRAX_URLS.leagueArchive,
+          dt: 0,
+          at: 0,
+          tz: "Europe/Helsinki",
+        },
+      },
+    );
+    if (!response.ok()) {
+      failureReason = `Fantrax returned HTTP ${response.status()}.`;
+      throw new Error(failureReason);
+    }
+    failureReason = "Fantrax did not return an authenticated league list.";
+    const payload = (await response.json()) as {
+      pageError?: unknown;
+      responses?: Array<{
+        pageError?: unknown;
+        errors?: unknown[];
+        data?: { tableList?: unknown };
+      }>;
+    };
+    const result = payload.responses?.[0];
+    if (
+      payload.pageError ||
+      result?.pageError ||
+      result?.errors?.length ||
+      !Array.isArray(result?.data?.tableList)
+    ) {
+      throw new Error(failureReason);
+    }
+  } catch {
+    throw new Error(
+      `Could not verify Fantrax login. ${failureReason} Existing saved files were left unchanged. ` +
+        "Check your login and connection, then rerun npm run playwright:login.",
+    );
+  }
+
+  const stateJson = JSON.stringify(await context.storageState());
+  const secret = gzipSync(stateJson).toString("base64");
+  if (Buffer.byteLength(secret, "utf8") > 48 * 1024) {
+    throw new Error(
+      "Compressed authentication state exceeds GitHub's 48 KB secret limit. " +
+        "Existing saved files were left unchanged.",
+    );
+  }
 
   ensureFantraxArtifactDir();
-  await context.storageState({ path: AUTH_STATE_PATH });
+  const secretPath = path.join(FANTRAX_ARTIFACT_DIR, "fantrax-auth-secret.txt");
+  for (const [filePath, contents] of [
+    [AUTH_STATE_PATH, stateJson],
+    [secretPath, secret],
+  ]) {
+    if (existsSync(filePath)) chmodSync(filePath, 0o600);
+    writeFileSync(filePath, contents, { mode: 0o600 });
+  }
   console.info(`Saved auth state to ${AUTH_STATE_PATH}`);
+  console.info(
+    `Saved GitHub secret value to ${secretPath} (${Buffer.byteLength(secret)} bytes).`,
+  );
+  console.info(
+    "Copy that file's contents into the GitHub Actions secret FANTRAX_AUTH_STATE. Both files remain gitignored.",
+  );
 };
-
 export type ImportLeagueRegularOptions = {
   pauseBetweenMs: number;
   outDir: string;
