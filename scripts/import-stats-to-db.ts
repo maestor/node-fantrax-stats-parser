@@ -354,6 +354,7 @@ const main = async () => {
     }
   }
   console.log("");
+  if (errors > 0) throw new Error(`Stats import failed for ${errors} CSV file(s).`);
   console.log("✨ Done!");
 };
 

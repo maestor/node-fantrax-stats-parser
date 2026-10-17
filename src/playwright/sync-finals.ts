@@ -611,6 +611,8 @@ async function main(): Promise<void> {
   const slowMo = parseNumberArg(argv, "--slowmo") ?? 0;
   const timeoutMs = parseNumberArg(argv, "--timeout") ?? 60_000;
   const onlyYear = parseNumberArg(argv, "--year");
+  const strict = hasFlag(argv, "--strict");
+  const syncedYears = new Set<number>();
 
   const playoffs = readPlayoffsFile();
   const seasons = playoffs.seasons
@@ -621,6 +623,9 @@ async function main(): Promise<void> {
     .sort((a, b) => a.year - b.year);
 
   if (!seasons.length) {
+    if (strict) {
+      throw new Error("No matching season found for strict finals sync.");
+    }
     console.info(
       onlyYear
         ? `No seasons found for --year=${onlyYear} in ${PLAYOFFS_PATH}`
@@ -667,6 +672,7 @@ async function main(): Promise<void> {
         );
         const finalSeason = buildFinalSeason({ season, data });
         seasonByYear.set(season.year, finalSeason);
+        syncedYears.add(season.year);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.info(
@@ -675,6 +681,9 @@ async function main(): Promise<void> {
       }
     }
 
+    if (strict && syncedYears.size !== seasons.length) {
+      throw new Error("Strict finals sync failed; existing mapping was left unchanged.");
+    }
     const file: FinalsFile = {
       schemaVersion: FINALS_SCHEMA_VERSION,
       leagueName: playoffs.leagueName,

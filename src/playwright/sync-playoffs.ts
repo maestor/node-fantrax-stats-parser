@@ -208,6 +208,8 @@ async function main(): Promise<void> {
   const onlyYear = parseNumberArg(argv, "--year");
   const debug = hasFlag(argv, "--debug");
   const importDb = hasFlag(argv, "--import-db");
+  const strict = hasFlag(argv, "--strict");
+  const syncedYears = new Set<number>();
 
   const leagues = readLeagueIdsV2();
   const seasons = leagues.seasons
@@ -218,6 +220,9 @@ async function main(): Promise<void> {
     .sort((a, b) => a.year - b.year);
 
   if (!seasons.length) {
+    if (strict) {
+      throw new Error("No matching season found for strict playoffs sync.");
+    }
     console.info(
       onlyYear
         ? `No seasons found for --year=${onlyYear} in ${LEAGUE_IDS_PATH}`
@@ -262,6 +267,7 @@ async function main(): Promise<void> {
             teams: teams.sort((a, b) => a.id.localeCompare(b.id)),
           });
           console.info(`Used manual playoffs mapping for ${season.year}`);
+          syncedYears.add(season.year);
           continue;
         }
 
@@ -380,6 +386,7 @@ async function main(): Promise<void> {
           leagueId: season.leagueId,
           teams: teams.sort((a, b) => a.id.localeCompare(b.id)),
         });
+        syncedYears.add(season.year);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.info(
@@ -388,6 +395,9 @@ async function main(): Promise<void> {
       }
     }
 
+    if (strict && syncedYears.size !== seasons.length) {
+      throw new Error("Strict playoffs sync failed; existing mapping was left unchanged.");
+    }
     const file: PlayoffsFile = {
       schemaVersion: 3,
       leagueName: leagues.leagueName,

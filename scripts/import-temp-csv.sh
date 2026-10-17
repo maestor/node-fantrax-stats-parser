@@ -207,6 +207,7 @@ if [[ "$IMPORTED_COUNT" -gt 0 ]]; then
     fi
   else
     echo "⚠️  Database import failed, keeping temp files" >&2
+    exit 1
   fi
 fi
 

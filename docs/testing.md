@@ -11,6 +11,8 @@ Use `intelligence-testing` for real usage stories and the highest-signal failing
 | `npm run test:coverage` | Runtime coverage gate |
 | `npm run test:integration` | DB-backed tests in-band with temporary SQLite files |
 | `npm run test:imports` | Browser-free regular/playoff import behavior tests |
+| `npm run test:playwright:login` | Browser-free manual-login session and secret export checks |
+| `npm run test:automation` | Daily orchestration/checkpoints, strict scrape recovery, seasonal DB imports and pipeline failures |
 | `npm run verify` | Lint, types, Knip, build, coverage after acceptance |
 
 [jest.config.cjs](../jest.config.cjs) owns the 100% statement/branch/function/line gates and exact exclusions. Do not lower thresholds or add coverage exclusions without discussion. Coverage includes runtime/domain modules; operational `src/playwright/**`, test infrastructure, entrypoint wrappers, and the thin DB client are excluded according to that config.
@@ -33,6 +35,12 @@ Jest uses ts-jest, `NODE_OPTIONS=--experimental-vm-modules`, and `tsconfig.test.
 
 The scenarios protect historical/current date parameters, team-specific playoff windows, bounded concurrency, cookie scoping, retries, invalid/truncated exports, authentication rejection, completed-CSV preservation, and downstream season/report filtering. These operational checks stay outside Jest and the runtime coverage gate.
 
+## Login session export
+
+The login checks run the real login CLI with fixture browser/API boundaries and temporary files. They cover initial export, renewal without archive DOM elements, failed or incomplete league-list responses, cancellation, secret-size rejection, private file permissions, and full session recovery from gzip + Base64 without launching a browser or accessing live Fantrax.
+
 ## Coverage gaps and exports
+
+`test:automation` runs the coordinator with subprocess fixtures and real temporary SQLite metadata, plus result importers against the production schema in temporary SQLite databases. It verifies current-season routing, Helsinki date transitions, offseason transactions, finalization/retry/correction behavior, historical-data preservation, strict scrape failure, explicit environment precedence, and secret restoration. External download/browser/snapshot process boundaries are fixtures; no live Fantrax requests, production DB writes, or R2 uploads occur. CI runs these operational checks alongside the existing import and login checks.
 
 If realistic coverage is difficult, explain the gap and propose integration or boundary-mocking options before changing exclusions. A covered helper can still be unused at runtime: `npm run unused` checks production exports separately. [Development](development.md#code-conventions) owns the `@internal` convention.

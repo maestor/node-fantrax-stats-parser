@@ -7,6 +7,7 @@ Read only the guide matching the task. [README](../README.md) owns quick start a
 | Code organization, local configuration, OpenAPI maintenance | [Development](development.md) |
 | Test strategy, coverage, DB integration, scraper recovery | [Testing](testing.md) |
 | Fantrax/forum scraping, CSV normalization, transactions, draft linking | [Importing](importing.md) |
+| Daily hosted imports, auth renewal, manual reruns and season transitions | [Daily imports](daily-import.md) |
 | Vercel, database targets/backups, R2, auth, caching | [Deployment](deployment.md) |
 | Snapshot scopes, regeneration, fallback | [Snapshots](snapshots.md) |
 | Advance the active season | [Season change](season-change.md) |
