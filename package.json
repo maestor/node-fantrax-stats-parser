@@ -79,7 +79,7 @@
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --watchman=false --runInBand --testPathPatterns=integration",
     "test:imports": "node --import tsx --test scripts/__tests__/roster-import.test.ts",
     "test:playwright:login": "node --import tsx --test scripts/__tests__/fantrax-login.test.ts",
-    "test:automation": "node --import tsx --test scripts/__tests__/daily-import.test.ts scripts/__tests__/import-failures.test.ts scripts/__tests__/result-imports.test.ts",
+    "test:automation": "node --import tsx --test scripts/__tests__/daily-import.test.ts scripts/__tests__/daily-workflow.test.ts scripts/__tests__/import-failures.test.ts scripts/__tests__/result-imports.test.ts",
     "test:playwright:regular": "npm run test:imports",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.cjs --coverage --watchman=false",

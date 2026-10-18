@@ -2,7 +2,7 @@ name: Daily Fantrax import
 
 on:
   schedule:
-    - cron: "30 10 * * *"
+    - cron: "0 10 * * *"
       timezone: Europe/Helsinki
   workflow_dispatch:
     inputs:
@@ -24,7 +24,8 @@ concurrency:
 
 jobs:
   import:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    environment: production
     timeout-minutes: 60
     env:
       TZ: Europe/Helsinki
@@ -32,19 +33,11 @@ jobs:
       USE_R2_STORAGE: "false"
       USE_R2_SNAPSHOTS: "true"
       RAW_UPLOAD: "false"
-      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      R2_SNAPSHOT_BUCKET_NAME: ${{ vars.R2_SNAPSHOT_BUCKET_NAME }}
-      R2_SNAPSHOT_PREFIX: ${{ vars.R2_SNAPSHOT_PREFIX || 'snapshots' }}
-      FANTRAX_AUTH_STATE: ${{ secrets.FANTRAX_AUTH_STATE }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -55,6 +48,14 @@ jobs:
         run: npx playwright install --with-deps chromium --only-shell
       - name: Import current season
         env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_SNAPSHOT_BUCKET_NAME: ${{ vars.R2_SNAPSHOT_BUCKET_NAME }}
+          R2_SNAPSHOT_PREFIX: ${{ vars.R2_SNAPSHOT_PREFIX || 'snapshots' }}
+          FANTRAX_AUTH_STATE: ${{ secrets.FANTRAX_AUTH_STATE }}
           DRY_RUN: ${{ inputs.dry_run }}
           REFRESH_FINALIZED: ${{ inputs.refresh_finalized }}
         run: |
