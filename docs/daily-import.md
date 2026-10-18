@@ -1,6 +1,6 @@
 # Daily Fantrax Imports
 
-[Daily Fantrax import](../.github/workflows/daily-import.yml) runs on a GitHub-hosted Linux runner at **10:30 Europe/Helsinki**, including daylight saving changes. It uses the configured `CURRENT_SEASON` and that season's tracked `fantrax-leagues.json` entry, regardless of the calendar year or a newer league appearing in Fantrax.
+[Daily Fantrax import](../.github/workflows/daily-import.yml) is scheduled on a GitHub-hosted Linux runner at **10:00 Europe/Helsinki**, including daylight saving changes. Actual starts can be delayed by GitHub's scheduler. It uses the configured `CURRENT_SEASON` and that season's tracked `fantrax-leagues.json` entry, regardless of the calendar year or a newer league appearing in Fantrax.
 
 ## Season behavior
 
@@ -21,7 +21,7 @@ Generated mappings remain temporary and are regenerated when needed. The hosted 
 
 ## GitHub setup
 
-Configure these repository **Actions secrets**:
+The import job selects the GitHub environment named **`production`**. In **Settings → Environments → production**, configure these **environment secrets**:
 
 | Secret                 | Value                                                                                                                                |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -32,14 +32,18 @@ Configure these repository **Actions secrets**:
 | `R2_ACCESS_KEY_ID`     | Existing snapshot storage access key                                                                                                 |
 | `R2_SECRET_ACCESS_KEY` | Existing snapshot storage secret key                                                                                                 |
 
-Configure these repository **Actions variables** to match the deployed API:
+In the same `production` environment, configure these **environment variables** to match the deployed API:
 
 - `R2_SNAPSHOT_BUCKET_NAME`: required snapshot bucket name
 - `R2_SNAPSHOT_PREFIX`: optional; defaults to `snapshots`
 
-The production database must already be migrated. Hosted imports reject missing remote credentials, missing snapshot configuration, raw-upload mode, missing/invalid authentication state, or an absent/invalid current-season mapping before starting import commands. Auth is restored to an ignored file with owner-only permissions and removed in an always-run workflow cleanup step. The workflow does not upload auth files, debug dumps, traces, CSVs, or generated mappings as artifacts.
+Keep `main` allowed under the environment's deployment branch rules. Scheduled and manual production imports should run from `main`; selecting a feature branch will be blocked when only `main` is allowed. Required reviewers, wait timers, or deployment protection rules also apply to this job, so they must permit unattended daily runs if that is intended. Secrets and snapshot variables are resolved in the import step after the selected environment is available. Existing repository-level values are still supported, with the `production` environment taking precedence.
+
+The production database must already be migrated. Hosted imports list any missing configuration by name without printing values, and reject local database URLs, raw-upload mode, missing/invalid authentication state, or an absent/invalid current-season mapping before starting import commands. Auth is restored to an ignored file with owner-only permissions and removed in an always-run workflow cleanup step. The workflow does not upload auth files, debug dumps, traces, CSVs, or generated mappings as artifacts. CI and imports use Ubuntu 24.04 explicitly and Node 24-based action versions, avoiding automatic changes from the `ubuntu-latest` image label.
 
 After the workflow reaches the default branch, first use **Actions → Daily Fantrax import → Run workflow** with `dry_run` checked, then run it normally. Check the job's stage summary and confirm the deployed API data changed. An expired session fails the job; renew the session locally and replace `FANTRAX_AUTH_STATE`. No account password is stored in the workflow.
+
+After changing the workflow, start a new run from `main`; retrying an older failed run uses its original commit and workflow definition. Dry runs preview phase routing without validating hosted credentials, so a normal manual run is still needed to confirm the production environment is connected correctly.
 
 Enable GitHub Actions failure notifications in your GitHub notification settings. GitHub scheduling is best effort: runs can be delayed or dropped, and public-repository schedules disable after 60 days without repository activity. A dropped/disabled run does not generate a failed-run notification; check the workflow's run history and last-success marker when data is stale. See [GitHub schedule limitations](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 

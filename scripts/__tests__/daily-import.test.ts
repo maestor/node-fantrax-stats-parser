@@ -79,7 +79,11 @@ if (process.argv[2] === "--fixture") {
     process.argv[0],
     "daily-import",
     ...(scenario === "dry" ? ["--dry-run"] : []),
-    ...(scenario === "remote-guard" ? ["--require-remote"] : []),
+    ...(["remote-guard", "remote-file-url", "snapshot-bucket-missing"].includes(
+      scenario,
+    )
+      ? ["--require-remote"]
+      : []),
     ...(scenario === "refresh" ? ["--refresh-finalized"] : []),
   ];
   await import("../daily-import.js");
@@ -102,6 +106,8 @@ if (process.argv[2] === "--fixture") {
     ["invalid-dates", `${year}-10-17T07:30:00Z`],
     ["bad-secret", `${year}-10-17T07:30:00Z`],
     ["remote-guard", `${year}-10-17T07:30:00Z`],
+    ["remote-file-url", `${year}-10-17T07:30:00Z`],
+    ["snapshot-bucket-missing", `${year}-10-17T07:30:00Z`],
     ["dry", `${year}-10-17T07:30:00Z`],
   ];
   for (const [scenario, timestamp] of cases)
@@ -164,6 +170,37 @@ if (process.argv[2] === "--fixture") {
         };
         delete env.TURSO_DATABASE_URL;
         delete env.TURSO_AUTH_TOKEN;
+        if (
+          [
+            "remote-guard",
+            "remote-file-url",
+            "snapshot-bucket-missing",
+          ].includes(scenario)
+        ) {
+          env.USE_REMOTE_DB = "true";
+          env.USE_R2_SNAPSHOTS = "true";
+          for (const name of [
+            "R2_ENDPOINT",
+            "R2_ACCESS_KEY_ID",
+            "R2_SECRET_ACCESS_KEY",
+            "R2_SNAPSHOT_BUCKET_NAME",
+          ])
+            delete env[name];
+        }
+        if (["remote-file-url", "snapshot-bucket-missing"].includes(scenario)) {
+          Object.assign(env, {
+            TURSO_DATABASE_URL:
+              scenario === "remote-file-url"
+                ? "file:local.db"
+                : "libsql://fixture.invalid",
+            TURSO_AUTH_TOKEN: "private-fixture-token",
+            R2_ENDPOINT: "https://fixture.invalid",
+            R2_ACCESS_KEY_ID: "private-fixture-key",
+            R2_SECRET_ACCESS_KEY: "private-fixture-secret",
+            R2_SNAPSHOT_BUCKET_NAME:
+              scenario === "snapshot-bucket-missing" ? "" : "fixture",
+          });
+        }
         const child = spawn(
           process.execPath,
           [
@@ -196,6 +233,8 @@ if (process.argv[2] === "--fixture") {
           "invalid-dates",
           "bad-secret",
           "remote-guard",
+          "remote-file-url",
+          "snapshot-bucket-missing",
         ].includes(scenario);
         assert.equal(code, fails ? 1 : 0, output);
         const commands = [...output.matchAll(/^COMMAND (.+)$/gm)].map(
@@ -206,6 +245,8 @@ if (process.argv[2] === "--fixture") {
           "invalid-dates",
           "bad-secret",
           "remote-guard",
+          "remote-file-url",
+          "snapshot-bucket-missing",
           "dry",
         ].includes(scenario);
         if (blocked) assert.deepEqual(commands, []);
@@ -264,6 +305,22 @@ if (process.argv[2] === "--fixture") {
           !output.includes(env.FANTRAX_AUTH_STATE),
           "Auth secret must never be logged",
         );
+        assert.doesNotMatch(output, /private-fixture-(token|key|secret)/);
+        if (scenario === "remote-guard") {
+          assert.match(
+            output,
+            /Missing hosted configuration: .*TURSO_DATABASE_URL/,
+          );
+          assert.match(output, /TURSO_AUTH_TOKEN/);
+          assert.match(output, /R2_SNAPSHOT_BUCKET_NAME/);
+        }
+        if (scenario === "remote-file-url")
+          assert.match(output, /TURSO_DATABASE_URL must be a remote/);
+        if (scenario === "snapshot-bucket-missing")
+          assert.match(
+            output,
+            /Missing hosted configuration: R2_SNAPSHOT_BUCKET_NAME/,
+          );
         if (!blocked)
           assert.deepEqual(
             JSON.parse(

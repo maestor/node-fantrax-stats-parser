@@ -143,28 +143,27 @@ const main = async (): Promise<void> => {
     return;
   }
   if (args.includes("--require-remote")) {
-    if (
-      process.env.USE_REMOTE_DB !== "true" ||
-      !/^(libsql|https):\/\//.test(process.env.TURSO_DATABASE_URL ?? "") ||
-      !process.env.TURSO_AUTH_TOKEN?.trim()
-    )
+    const missing = [
+      "TURSO_DATABASE_URL",
+      "TURSO_AUTH_TOKEN",
+      "R2_ENDPOINT",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "R2_SNAPSHOT_BUCKET_NAME",
+      "FANTRAX_AUTH_STATE",
+    ].filter((name) => !process.env[name]?.trim());
+    if (missing.length)
       throw new Error(
-        "Hosted imports require USE_REMOTE_DB=true and remote TURSO_DATABASE_URL/TURSO_AUTH_TOKEN.",
+        `Missing hosted configuration: ${missing.join(", ")}. Check the production environment secrets/variables and the workflow's environment selection.`,
       );
-    if (
-      process.env.USE_R2_SNAPSHOTS !== "true" ||
-      [
-        "R2_ENDPOINT",
-        "R2_ACCESS_KEY_ID",
-        "R2_SECRET_ACCESS_KEY",
-        "R2_SNAPSHOT_BUCKET_NAME",
-      ].some((k) => !process.env[k]?.trim())
-    )
+    if (process.env.USE_REMOTE_DB !== "true")
+      throw new Error("Hosted imports require USE_REMOTE_DB=true.");
+    if (!/^(libsql|https):\/\//.test(process.env.TURSO_DATABASE_URL ?? ""))
       throw new Error(
-        "Hosted imports require USE_R2_SNAPSHOTS=true and explicit R2 snapshot credentials/bucket.",
+        "TURSO_DATABASE_URL must be a remote libsql:// or https:// URL for hosted imports.",
       );
-    if (!process.env.FANTRAX_AUTH_STATE?.trim())
-      throw new Error("Hosted imports require FANTRAX_AUTH_STATE.");
+    if (process.env.USE_R2_SNAPSHOTS !== "true")
+      throw new Error("Hosted imports require USE_R2_SNAPSHOTS=true.");
   }
   if (process.env.RAW_UPLOAD?.toLowerCase() === "true")
     throw new Error(
