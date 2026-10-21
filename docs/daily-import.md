@@ -1,6 +1,6 @@
 # Daily Fantrax Imports
 
-[Daily Fantrax import](../.github/workflows/daily-import.yml) is scheduled on a GitHub-hosted Linux runner at **10:00 Europe/Helsinki**, including daylight saving changes. Actual starts can be delayed by GitHub's scheduler. It uses the configured `CURRENT_SEASON` and that season's tracked `fantrax-leagues.json` entry, regardless of the calendar year or a newer league appearing in Fantrax.
+[Daily Fantrax import](../.github/workflows/daily-import.yml) is scheduled on a GitHub-hosted Linux runner at **09:07 Europe/Helsinki**, including daylight saving changes. NHL games are assumed to have finished by 09:00 Helsinki; minute 7 avoids GitHub's busy top-of-hour scheduling period. Actual starts can still be delayed by hours or dropped; this is a best-effort target, not a completion deadline. It uses the configured `CURRENT_SEASON` and that season's tracked `fantrax-leagues.json` entry, regardless of the calendar year or a newer league appearing in Fantrax.
 
 ## Season behavior
 
@@ -46,6 +46,8 @@ After the workflow reaches the default branch, first use **Actions → Daily Fan
 After changing the workflow, start a new run from `main`; retrying an older failed run uses its original commit and workflow definition. Dry runs preview phase routing without validating hosted credentials, so a normal manual run is still needed to confirm the production environment is connected correctly.
 
 Enable GitHub Actions failure notifications in your GitHub notification settings. GitHub scheduling is best effort: runs can be delayed or dropped, and public-repository schedules disable after 60 days without repository activity. A dropped/disabled run does not generate a failed-run notification; check the workflow's run history and last-success marker when data is stale. See [GitHub schedule limitations](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+
+When investigating lateness, compare the intended Helsinki schedule with the run's creation time, job start and step timings. A run created hours late but completed in minutes indicates trigger delay; speeding up dependency or browser installation cannot recover that time. If off-peak scheduling remains too late, an external scheduler can call the existing `workflow_dispatch` trigger on `main`; runner availability and environment protection rules still apply.
 
 ## Manual runs and corrections
 
