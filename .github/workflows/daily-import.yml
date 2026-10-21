@@ -2,7 +2,8 @@ name: Daily Fantrax import
 
 on:
   schedule:
-    - cron: "0 10 * * *"
+    # NHL games are finished by 09:00 Helsinki; avoid the busy top of the hour.
+    - cron: "7 9 * * *"
       timezone: Europe/Helsinki
   workflow_dispatch:
     inputs:
