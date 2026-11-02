@@ -304,6 +304,7 @@ Notes:
 - also supports `--current-only`, `--dry-run`, and `--dir=/custom/path`
 - stores claim/drop groups in `claim_events` and `claim_event_items`
 - stores trade rows in `trade_source_blocks` and `trade_block_items`
+- accepts `Date (EDT)` and `Date (EST)` export columns and converts their stated offsets to UTC; unsupported date columns fail before replacing history
 - ignores `Lineup Change` rows
 - treats `(Drop)` rows inside trade CSVs as normal drop events
 - ignores commissioner-fix one-way trade blocks

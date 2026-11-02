@@ -872,7 +872,7 @@ describe("transaction import helpers", () => {
     }
   });
 
-  test("incrementally reimports only current-season rows at or after the latest watermark", async () => {
+  test("incrementally reimports current-season rows across an EDT to EST export change", async () => {
     const context = await createIntegrationDb();
     const csvDir = await fs.mkdtemp(path.join(os.tmpdir(), "ffhl-transactions-"));
     const currentSeason = CURRENT_SEASON;
@@ -966,19 +966,19 @@ describe("transaction import helpers", () => {
       });
 
       await writeCsv(csvDir, currentClaimsFile, [
-        `"Player","Team","Position","Type","Team","Date (EDT)","Period"`,
-        `"Season 2025 New Claim","EDM","F","Claim","Edmonton Oilers","Fri Mar 6, ${currentSeasonEndYear}, 12:38PM","151"`,
-        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
-        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 12:38PM","149"`,
+        `"Player","Team","Position","Type","Team","Date (EST)","Period"`,
+        `"Season 2025 New Claim","EDM","F","Claim","Edmonton Oilers","Fri Mar 6, ${currentSeasonEndYear}, 11:38AM","151"`,
+        `"Season 2025 Latest Claim","EDM","F","Claim","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 11:38AM","150"`,
+        `"Season 2025 Older Claim","EDM","F","Claim","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 11:38AM","149"`,
       ]);
       await writeCsv(csvDir, currentTradesFile, [
-        `"Player","Team","Position","From","To","Date (EDT)","Period"`,
-        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","149"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 9:12AM","150"`,
-        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
-        `"${currentSeasonEndYear} Draft Pick, Round 3 (Buffalo Sabres)","","","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","150"`,
-        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
-        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, ${currentSeasonEndYear}, 12:38PM","151"`,
+        `"Player","Team","Position","From","To","Date (EST)","Period"`,
+        `"Season 2025 Older Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Wed Mar 4, ${currentSeasonEndYear}, 8:12AM","149"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Wed Mar 4, ${currentSeasonEndYear}, 8:12AM","150"`,
+        `"Season 2025 Latest Claim","EDM","F","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 11:38AM","150"`,
+        `"${currentSeasonEndYear} Draft Pick, Round 3 (Buffalo Sabres)","","","Edmonton Oilers","Tampa Bay Lightning","Thu Mar 5, ${currentSeasonEndYear}, 11:38AM","150"`,
+        `"Trade Return","TBL","D","Tampa Bay Lightning","Edmonton Oilers","Thu Mar 5, ${currentSeasonEndYear}, 11:38AM","151"`,
+        `"Trade Drop Goalie","TBL","G","Tampa Bay Lightning","(Drop)","Thu Mar 5, ${currentSeasonEndYear}, 11:38AM","151"`,
       ]);
 
       const secondSummary = await importTransactionsToDb({
@@ -1067,6 +1067,20 @@ describe("transaction import helpers", () => {
           occurred_at: `${currentSeasonEndYear}-03-05T16:38:00.000Z`,
         },
       ]);
+      await writeCsv(csvDir, currentClaimsFile, [
+        `"Player","Team","Position","Type","Team","Date (unknown)","Period"`,
+        `"Season 2025 New Claim","EDM","F","Claim","Edmonton Oilers","Fri Mar 6, ${currentSeasonEndYear}, 11:38AM","151"`,
+      ]);
+      await expect(
+        importTransactionsToDb({
+          db: context.db,
+          csvDir,
+          seasons: [currentSeason],
+          incremental: true,
+        }),
+      ).rejects.toThrow("Transaction CSV is missing a Date (EDT) or Date (EST) column");
+      expect(await getCount(context.db, `SELECT COUNT(*) AS count FROM claim_events WHERE season = ${currentSeason}`)).toBe(4);
+      expect(await getCount(context.db, `SELECT COUNT(*) AS count FROM trade_source_blocks WHERE season = ${currentSeason}`)).toBe(4);
     } finally {
       await context.cleanup();
       await fs.rm(csvDir, { recursive: true, force: true });
