@@ -45,7 +45,8 @@ type ClaimCsvRow = {
   Position: string;
   Type: string;
   Team: string;
-  "Date (EDT)": string;
+  "Date (EDT)"?: string;
+  "Date (EST)"?: string;
   Period: string;
 };
 
@@ -54,7 +55,8 @@ type TradeCsvRow = {
   Position: string;
   From: string;
   To: string;
-  "Date (EDT)": string;
+  "Date (EDT)"?: string;
+  "Date (EST)"?: string;
   Period: string;
 };
 
@@ -242,7 +244,10 @@ const parseClaimActionType = (
 };
 
 /** @internal Test-only export for transaction timestamp parsing. */
-export const parseTransactionDateToIso = (rawDate: string): string => {
+export const parseTransactionDateToIso = (
+  rawDate: string,
+  offsetHours = 4,
+): string => {
   const normalized = rawDate.replace(/\s+/g, " ").trim();
   const match =
     /^(?:[A-Za-z]{3}\s+)?([A-Za-z]{3})\s+(\d{1,2}),\s*(\d{4}),\s*(\d{1,2}):(\d{2})(AM|PM)$/.exec(
@@ -269,9 +274,23 @@ export const parseTransactionDateToIso = (rawDate: string): string => {
     meridiem === "AM"
       ? rawHour % 12
       : (rawHour % 12) + 12;
-  const utcTimestamp = Date.UTC(year, monthIndex, day, hour + 4, minute);
+  const utcTimestamp = Date.UTC(
+    year, monthIndex, day, hour + offsetHours, minute,
+  );
 
   return new Date(utcTimestamp).toISOString();
+};
+
+const transactionRowDateToIso = (row: ClaimCsvRow | TradeCsvRow): string => {
+  if (row["Date (EDT)"] !== undefined) {
+    return parseTransactionDateToIso(row["Date (EDT)"], 4);
+  }
+  if (row["Date (EST)"] !== undefined) {
+    return parseTransactionDateToIso(row["Date (EST)"], 5);
+  }
+  throw new Error(
+    "Transaction CSV is missing a Date (EDT) or Date (EST) column",
+  );
 };
 
 const parseTransactionPeriod = (rawPeriod: string): number => {
@@ -523,7 +542,7 @@ const filterClaimRowsByWatermark = (
   }
 
   return rows.filter(
-    (row) => parseTransactionDateToIso(row["Date (EDT)"]) >= watermark,
+    (row) => transactionRowDateToIso(row) >= watermark,
   );
 };
 
@@ -536,7 +555,7 @@ const filterTradeRowsByWatermark = (
   }
 
   return rows.filter(
-    (row) => parseTransactionDateToIso(row["Date (EDT)"]) >= watermark,
+    (row) => transactionRowDateToIso(row) >= watermark,
   );
 };
 
@@ -817,7 +836,7 @@ const normalizeClaimRows = (rows: readonly ClaimCsvRow[]): NormalizedClaimRow[] 
       rawPosition: row.Position.trim() || null,
       actionType: parseClaimActionType(row.Type),
       teamId,
-      occurredAt: parseTransactionDateToIso(row["Date (EDT)"]),
+      occurredAt: transactionRowDateToIso(row),
     };
   });
 
@@ -925,7 +944,7 @@ const normalizeTradeRows = (rows: readonly TradeCsvRow[]): NormalizedTradeRow[] 
       rawPosition: row.Position.trim() || null,
       fromTeamId,
       toTeamId,
-      occurredAt: parseTransactionDateToIso(row["Date (EDT)"]),
+      occurredAt: transactionRowDateToIso(row),
       sourcePeriod: parseTransactionPeriod(row.Period),
       isDropRow: fromIsDrop || toIsDrop,
     };
