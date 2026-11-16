@@ -1117,9 +1117,7 @@ export const downloadCsvFromPage = async (
   page: Page,
   filePath: string,
 ): Promise<string> => {
-  const downloadButton = page.locator(
-    'button[mattooltip="Download all as CSV"]',
-  );
+  const downloadButton = page.locator("button[download]");
   await downloadButton.waitFor({ state: "visible", timeout: 30_000 });
 
   mkdirSync(path.dirname(filePath), { recursive: true });
