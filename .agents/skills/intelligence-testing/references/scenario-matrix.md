@@ -109,9 +109,24 @@ Avoid:
 
 ## Cross-Cutting Heuristics
 
-- If a branch cannot be tied to a realistic scenario, remove it.
+- If a branch has no realistic trigger or required contract, confirm callers and invariants before removing it. Hard to test does not mean unreachable.
 - If a test does not describe observable behavior, question whether it belongs.
 - If a unit test and an integration test prove the same thing, keep the one with better signal.
 - If behavior was intentionally removed, delete the tests and setup that only existed for that behavior unless absence itself is the requirement.
 - If coverage pressure encourages fake scenarios, simplify the code instead.
 - If the task changes behavior across UI and API, make sure both the user-visible result and the server contract are validated.
+
+## Coverage Gap Decisions
+
+Use these decisions while implementing and reviewing the diff, before the full verify script:
+
+| Changed path | Decision and meaningful proof |
+| --- | --- |
+| Empty collection returned by an API | Exercise a valid empty response and assert the empty state or response contract. |
+| Network rejection handled by retry UI | Reject the request at the network boundary; assert the error state and that retry recovers. Rarity is not a reason to delete the handler. |
+| Invalid input rejected by a public endpoint | Send malformed input through the endpoint and assert rejection and relevant absence of side effects. Static types do not validate external input. |
+| Internal fallback after a boundary already guarantees a value | Check all callers and the validation contract. Remove the fallback if it is redundant; do not bypass validation or cast an impossible value merely to cover it. |
+| Default argument never omitted by any supported caller | Check whether omission is part of a supported public contract. Test that contract if it is; otherwise remove the unnecessary default. |
+| New helper or callback absent from the coverage report | Check coverage inclusion and exercise it through its real caller. A report that omits the new file is not evidence of coverage. |
+
+For every retained path, identify the real trigger, expected outcome, and test asserting it. One behavior test may cover several paths; add separate tests only when they prove a distinct outcome. Coverage counters help locate omissions, but meaningful assertions establish protection.
